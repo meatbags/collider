@@ -2,7 +2,7 @@
  * @author meatbags / https://github.com/meatbags
 */
 
-import Collider from './modules/Collider';
-import ColliderSystem from './modules/System';
+import Mesh from './modules/Mesh';
+import System from './modules/System';
 
-export { Collider, ColliderSystem };
+export { Mesh, System };

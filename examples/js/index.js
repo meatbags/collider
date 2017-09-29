@@ -16,6 +16,9 @@ const App = {
     App.camera.position.set(60, 60, 60);
     App.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
+    // collision system
+    App.colliderSystem = new Collider.System();
+
     // add stuff
     App.mtlLoader = new THREE.MTLLoader();
     App.mtlLoader.setPath('./assets/');
@@ -25,9 +28,15 @@ const App = {
       objLoader.setPath('./assets/');
       objLoader.setMaterials(materials);
       objLoader.load('sample.obj', function(object){
+        for (let i=0; i<object.children.length; i+=1) {
+          const child = object.children[i];
+          App.colliderSystem.add(new Collider.Mesh(child.geometry));
+        }
         App.scene.add(object);
       });
     });
+
+    console.log(App.colliderSystem);
 
     // lights
     App.lights = {
@@ -43,8 +52,6 @@ const App = {
       App.lights.p2,
       App.lights.a1
     );
-
-    console.log( Collider )
 
     // run!
     App.loop();

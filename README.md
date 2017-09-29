@@ -1,6 +1,6 @@
 # Collider
 
-Provides precise collisions for three.js bufferGeometry. Uses normal data and face culling to find collisions for complex geometries. Useful for quick integration of 3D collision maps (for example a complex set of prisms created in Blender).
+Provides precise collisions for three.js bufferGeometry. Uses normal data and face culling to find collision solutions for complex geometries. Useful for quick integration of 3D collision maps (for example a set of blocks and prisms created in Blender).
 
 Note: Currently does not support transforms!
 
@@ -13,17 +13,14 @@ var material = new THREE.MeshBasicMaterial({color: 0xffff00 });
 var torus = new THREE.Mesh(geometry, material);
 
 // create a collision object
-var collision = new Collider().fromBufferGeometry(torus.geometry);
+var collision = new Collider.Mesh().fromBufferGeometry(torus.geometry);
 
-// a point within the torus' ring
-// returns true
+// a point within the torus' ring -> returns true
 collision.check(new THREE.Vector3(10, 0, 0));
 
-// a point on the surface of the torus
-// returns true
+// a point on the surface of the torus -> returns true
 collision.check(new THREE.Vector3(0, 3, 10));
 
-// a point within the hollow centre of the torus
-// returns false
+// a point within the hollow centre of the torus -> returns false
 collision.check(new THREE.Vector3(0, 0, 0));
 ```
