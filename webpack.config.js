@@ -4,6 +4,8 @@ var webpack = require('webpack');
 module.exports = {
   entry: './src/js/app.js',
   output: {
+    library: 'Collider',
+    libraryTarget: 'var',
     path: path.resolve(__dirname, 'build'),
     filename: 'collider.js'
   },

@@ -13,7 +13,7 @@ const App = {
     // scene
     App.scene = new THREE.Scene();
     App.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    App.camera.position.set(0, 10, -20);
+    App.camera.position.set(60, 60, 60);
     App.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
     // add stuff
@@ -21,13 +21,30 @@ const App = {
     App.mtlLoader.setPath('./assets/');
     App.mtlLoader.load('sample.mtl', function(materials) {
       materials.preload();
-      var objLoader = new THREE.objLoader();
+      var objLoader = new THREE.OBJLoader();
       objLoader.setPath('./assets/');
       objLoader.setMaterials(materials);
       objLoader.load('sample.obj', function(object){
         App.scene.add(object);
       });
     });
+
+    // lights
+    App.lights = {
+      p1: new THREE.PointLight(0xffffff, 1),
+      p2: new THREE.PointLight(0xffffff, 0.5),
+      a1: new THREE.AmbientLight(0xffffff, 0.1)
+    };
+
+    App.lights.p1.position.set(10, 5, 0);
+    App.lights.p2.position.set(-8, 5, 0);
+    App.scene.add(
+      App.lights.p1,
+      App.lights.p2,
+      App.lights.a1
+    );
+
+    console.log( Collider )
 
     // run!
     App.loop();

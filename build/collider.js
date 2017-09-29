@@ -1,3 +1,4 @@
+var Collider =
 /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -70,11 +71,27 @@
 "use strict";
 
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.ColliderSystem = exports.Collider = undefined;
+
 var _Collider = __webpack_require__(1);
 
 var _Collider2 = _interopRequireDefault(_Collider);
 
+var _System = __webpack_require__(2);
+
+var _System2 = _interopRequireDefault(_System);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * @author meatbags / https://github.com/meatbags
+*/
+
+exports.Collider = _Collider2.default;
+exports.ColliderSystem = _System2.default;
 
 /***/ }),
 /* 1 */
@@ -86,11 +103,54 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-var Collider = function Collider() {};
+var Collider = function Collider() {
+  this.a = 1;
+};
 
-Collider.prototype = {};
+Collider.prototype = {
+  fromGeometry: function fromGeometry(geo) {
+    console.log(geo);
+  }
+};
 
 exports.default = Collider;
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _Config = __webpack_require__(3);
+
+var _Config2 = _interopRequireDefault(_Config);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var ColliderSystem = function ColliderSystem() {};
+
+ColliderSystem.prototype = {};
+
+exports.default = ColliderSystem;
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var Config = {};
+
+exports.default = Config;
 
 /***/ })
 /******/ ]);
