@@ -1,3 +1,4 @@
+![collider_torus](/screenshots/torus.png?raw=true)
 ~23K voxel approximation of an 800-poly torus, raytraced with Collider.
 
 # Collider
