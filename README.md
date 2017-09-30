@@ -3,9 +3,9 @@
 
 # Collider
 
-Provides precise collisions for three.js bufferGeometry. Uses normal data and face culling to find collision solutions for complex geometries. Useful for quick integration of 3D collision maps (for example a set of blocks and prisms created in Blender).
+Collider provides precise collisions for three.js bufferGeometry, using normal data and face culling to find collision solutions for complex geometries. Collider is useful for quick integration of 3D collision maps (for example a set of blocks and prisms created in Blender).
 
-Processing of high-poly models is possible, but computationally expensive. For the best real-time results, minimise the poly count and break up geometry into separate objects. Collider.System provides search optimisation for large mesh sets.
+Processing of high-poly models is possible, but computationally expensive. For the best real-time results, minimise poly count and break up geometry into separate objects. Collider.System provides search optimisation for large mesh sets.
 
 Note: Currently does not support transforms - static geometry only.
 
