@@ -1,32 +1,41 @@
+// collision system - checks against all meshes
+// meshes are divided into quadrants for efficiency
+// recent collisions are cached
+
 import Config from './Config';
 import Quadrants from './Quadrants';
 
 const System = function () {
   this.quadrants = new Quadrants();
   this.collisionCache = [];
+  this.isColliderSystem = true;
 };
 
 System.prototype = {
-  isColliderSystem: function() {
-    return true;
-  },
-
   add: function(mesh) {
     // add mesh to quadrants
 
-    if (mesh.isColliderMesh()) {
+    if (mesh.isColliderMesh) {
       this.quadrants.add(mesh);
+    } else {
+      throw('Error: Input must be Collider.Mesh');
     }
   },
-
+  
   cache: function(mesh) {
     // add mesh to collision cache
 
-    this.cache.unshift(mesh);
+    this.collisionCache.unshift(mesh);
 
-    if (this.cache.length > Config.system.collisionCacheSize) {
-      this.cache.splice(this.cache.length - 1, 1);
+    if (this.collisionCache.length > Config.system.collisionCacheSize) {
+      this.collisionCache.splice(this.collisionCache.length - 1, 1);
     }
+  },
+
+  flush: function() {
+    // empty the cache
+
+    this.collisionCache = [];
   },
 
   check: function(point) {
@@ -39,8 +48,8 @@ System.prototype = {
       const mesh = quadrant[i];
 
       if (mesh.check(point)) {
-        this.cache(mesh);
         collision = true;
+        this.cache(mesh);
         break;
       }
     }

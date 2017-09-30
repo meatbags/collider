@@ -1,3 +1,5 @@
+// quadrant system for indexing large polygon groups
+
 import Config from './Config';
 
 const Quadrants = function() {
@@ -8,11 +10,13 @@ Quadrants.prototype = {
   positionToQuadrant: function(point) {
     // convert point to quadrant keys
 
-    return {
+    const keys = {
       x: Math.floor(point.x / Config.quadrants.size.x),
       y: Math.floor(point.y / Config.quadrants.size.y),
       z: Math.floor(point.z / Config.quadrants.size.z)
     };
+
+    return keys;
   },
 
   add: function(mesh) {

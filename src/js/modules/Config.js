@@ -1,6 +1,6 @@
 const Config = {
   system: {
-    collisionCacheSize: 10,
+    collisionCacheSize: 10
   },
   quadrants: {
     size: {
@@ -8,6 +8,9 @@ const Config = {
       y: 100,
       z: 100,
     }
+  },
+  plane: {
+    dotBuffer: 0.0001 // account for dot product precision limitations
   }
 };
 
