@@ -12,16 +12,20 @@ const System = function () {
 };
 
 System.prototype = {
-  add: function(mesh) {
+  add: function() {
     // add mesh to quadrants
 
-    if (mesh.isColliderMesh) {
-      this.quadrants.add(mesh);
-    } else {
-      throw('Error: Input must be Collider.Mesh');
+    for (let i=0; i<arguments.length; i+=1) {
+      const mesh = arguments[i];
+      
+      if (mesh.isColliderMesh) {
+        this.quadrants.add(mesh);
+      } else {
+        throw('Error: Input must be Collider.Mesh');
+      }
     }
   },
-  
+
   cache: function(mesh) {
     // add mesh to collision cache
 

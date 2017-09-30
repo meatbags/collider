@@ -27,6 +27,6 @@ collision.check(new THREE.Vector3(3, 0, 0));
 collision.check(new THREE.Vector3(0, 0, 0));
 ```
 
-![collider_torus_2](/screenshots/torus_2.png?raw=true)
+![collider_torus_2](/screenshots/screen_3.png?raw=true)
 
-Iterate over the space and create voxels.
+Voxels generated from a set of three.js meshes.

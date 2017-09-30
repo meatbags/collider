@@ -314,13 +314,17 @@ var System = function System() {
 };
 
 System.prototype = {
-  add: function add(mesh) {
+  add: function add() {
     // add mesh to quadrants
 
-    if (mesh.isColliderMesh) {
-      this.quadrants.add(mesh);
-    } else {
-      throw 'Error: Input must be Collider.Mesh';
+    for (var i = 0; i < arguments.length; i += 1) {
+      var mesh = arguments[i];
+
+      if (mesh.isColliderMesh) {
+        this.quadrants.add(mesh);
+      } else {
+        throw 'Error: Input must be Collider.Mesh';
+      }
     }
   },
 

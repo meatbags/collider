@@ -67,16 +67,21 @@ const App = {
     var torus = new THREE.Mesh(geometry, material);
 
     // create a collision object
-    App.colliderSystem.add(new Collider.Mesh(torus.geometry));
+    App.colliderSystem.add(
+      new Collider.Mesh(new THREE.TorusBufferGeometry(3.5, 1, 6, 12)),
+      new Collider.Mesh(new THREE.SphereBufferGeometry(1.5, 12, 12)),
+      new Collider.Mesh(new THREE.BoxBufferGeometry(15, 0.5, 3)),
+      new Collider.Mesh(new THREE.BoxBufferGeometry(3, 0.5, 15))
+    );
 
-    const step = .25;
+    const step = .15;
 
     for (let x=-5; x<5; x+=step) {
       for (let y=-5; y<5; y+=step) {
         for (let z=-5; z<5; z+=step) {
           if (App.colliderSystem.check(new THREE.Vector3(x, y, z))) {
             const mesh = new THREE.Mesh(
-              new THREE.SphereBufferGeometry(step * 0.75, 6, 6),
+              new THREE.BoxBufferGeometry(step, step, step),
               new THREE.MeshLambertMaterial({
                 color: 0x888888
               })
