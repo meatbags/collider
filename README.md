@@ -12,20 +12,21 @@ Note: Currently does not support transforms - static geometry only.
 # Usage
 
 ```javascript
-// create a three.js torus
-var geometry = new THREE.TorusBufferGeometry(10, 3);
-var material = new THREE.MeshBasicMaterial({color: 0xffff00 });
+// create a three js torus
+var geometry = new THREE.TorusBufferGeometry(3, 1, 6, 12);
+var material = new THREE.MeshLambertMaterial({color: 0x888888 });
 var torus = new THREE.Mesh(geometry, material);
 
-// create a collision object
+// create collision object
 var collision = new Collider.Mesh(torus.geometry);
 
 // a point within the torus' ring -> returns true
-collision.check(new THREE.Vector3(10, 0, 0));
-
-// a point on the surface of the torus -> returns true
-collision.check(new THREE.Vector3(0, 3, 10));
+collision.check(new THREE.Vector3(3, 0, 0));
 
 // a point within the hollow centre of the torus -> returns false
 collision.check(new THREE.Vector3(0, 0, 0));
 ```
+
+![collider_torus_2](/screenshots/torus_2.png?raw=true)
+
+Iterate over the space and create voxels.

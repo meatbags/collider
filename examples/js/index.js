@@ -17,7 +17,9 @@ const App = {
     // collision system
     App.colliderSystem = new Collider.System();
 
-    // add stuff
+    // test!
+    App.test();
+    /*
     App.mtlLoader = new THREE.MTLLoader();
     App.mtlLoader.setPath('./assets/');
     App.mtlLoader.load('sample.mtl', function(materials) {
@@ -29,11 +31,13 @@ const App = {
         for (let i=0; i<object.children.length; i+=1) {
           const child = object.children[i];
           App.colliderSystem.add(new Collider.Mesh(child.geometry));
+          console.log(child.geometry)
         }
         //App.scene.add(object);
         App.test();
       });
     });
+    */
 
     // lights
     App.lights = {
@@ -57,36 +61,38 @@ const App = {
   },
 
   test: function() {
-    const step = .25;
-    let voxels = 0;
+    // create a three.js torus
+    var geometry = new THREE.TorusBufferGeometry(3, 1, 6, 12);
+    var material = new THREE.MeshLambertMaterial({color: 0x888888 });
+    var torus = new THREE.Mesh(geometry, material);
 
-    for (let x=-7; x<7; x+=step) {
-      for (let y=0; y<4; y+=step) {
-        for (let z=-7; z<7; z+=step) {
+    // create a collision object
+    App.colliderSystem.add(new Collider.Mesh(torus.geometry));
+
+    const step = .25;
+
+    for (let x=-5; x<5; x+=step) {
+      for (let y=-5; y<5; y+=step) {
+        for (let z=-5; z<5; z+=step) {
           if (App.colliderSystem.check(new THREE.Vector3(x, y, z))) {
             const mesh = new THREE.Mesh(
-              new THREE.BoxBufferGeometry(step, step, step),
+              new THREE.SphereBufferGeometry(step * 0.75, 6, 6),
               new THREE.MeshLambertMaterial({
                 color: 0x888888
               })
             );
             mesh.position.set(x, y, z);
             App.scene.add(mesh);
-            voxels += 1;
           }
         }
       }
     }
-
-    console.log('Voxels', voxels);
-
-    App.render();
   },
 
   update: function() {
     const now = (new Date()).getTime();
     App.time = (now - App.start) / 1000;
-    App.camera.position.set(15, 10, 12);
+    App.camera.position.set(Math.sin(App.time / 5) * 10, 5, Math.cos(App.time / 5) * 10);
     App.camera.lookAt(new THREE.Vector3(0, 1, 0));
   },
 
@@ -95,7 +101,7 @@ const App = {
   },
 
   loop: function() {
-    //requestAnimationFrame(App.loop);
+    requestAnimationFrame(App.loop);
     App.update();
     App.render();
   }

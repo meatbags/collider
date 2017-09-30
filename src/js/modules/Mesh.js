@@ -22,18 +22,41 @@ Mesh.prototype = {
     this.planes = [];
     const verts = this.geometry.attributes.position.array;
     const norms = this.geometry.attributes.normal.array;
-    const size = 9; // TODO: get from position.itemSize
 
-    for (let i=0; i<verts.length; i+=size) {
-      this.planes.push(new Plane(
-          new THREE.Vector3(verts[i+0], verts[i+1], verts[i+2]),
-          new THREE.Vector3(verts[i+3], verts[i+4], verts[i+5]),
-          new THREE.Vector3(verts[i+6], verts[i+7], verts[i+8]),
-          new THREE.Vector3(norms[i+0], norms[i+1], norms[i+2]),
-          new THREE.Vector3(norms[i+3], norms[i+4], norms[i+5]),
-          new THREE.Vector3(norms[i+6], norms[i+7], norms[i+8])
-        )
-      );
+    if (this.geometry.index) {
+      // handle indexed geometry
+      const indices = this.geometry.index.array;
+      const size = this.geometry.attributes.position.itemSize;
+      const step = 3;
+
+      for (let i=0; i<indices.length; i+=step) {
+        const j = indices[i] * size;
+        const k = indices[i+1] * size;
+        const l = indices[i+2] * size;
+
+        this.planes.push(new Plane(
+          new THREE.Vector3(verts[j], verts[j+1], verts[j+2]),
+          new THREE.Vector3(verts[k], verts[k+1], verts[k+2]),
+          new THREE.Vector3(verts[l], verts[l+1], verts[l+2]),
+          new THREE.Vector3(norms[j], norms[j+1], norms[j+2]),
+          new THREE.Vector3(norms[k], norms[k+1], norms[k+2]),
+          new THREE.Vector3(norms[l], norms[l+1], norms[l+2])
+        ));
+      }
+    } else {
+      const step = 9;
+
+      for (let i=0; i<verts.length; i+=step) {
+        this.planes.push(new Plane(
+            new THREE.Vector3(verts[i+0], verts[i+1], verts[i+2]),
+            new THREE.Vector3(verts[i+3], verts[i+4], verts[i+5]),
+            new THREE.Vector3(verts[i+6], verts[i+7], verts[i+8]),
+            new THREE.Vector3(norms[i+0], norms[i+1], norms[i+2]),
+            new THREE.Vector3(norms[i+3], norms[i+4], norms[i+5]),
+            new THREE.Vector3(norms[i+6], norms[i+7], norms[i+8])
+          )
+        );
+      }
     }
   },
 

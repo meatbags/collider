@@ -163,10 +163,26 @@ Mesh.prototype = {
     this.planes = [];
     var verts = this.geometry.attributes.position.array;
     var norms = this.geometry.attributes.normal.array;
-    var size = 9; // TODO: get from position.itemSize
 
-    for (var i = 0; i < verts.length; i += size) {
-      this.planes.push(new _Plane2.default(new THREE.Vector3(verts[i + 0], verts[i + 1], verts[i + 2]), new THREE.Vector3(verts[i + 3], verts[i + 4], verts[i + 5]), new THREE.Vector3(verts[i + 6], verts[i + 7], verts[i + 8]), new THREE.Vector3(norms[i + 0], norms[i + 1], norms[i + 2]), new THREE.Vector3(norms[i + 3], norms[i + 4], norms[i + 5]), new THREE.Vector3(norms[i + 6], norms[i + 7], norms[i + 8])));
+    if (this.geometry.index) {
+      // handle indexed geometry
+      var indices = this.geometry.index.array;
+      var size = this.geometry.attributes.position.itemSize;
+      var step = 3;
+
+      for (var i = 0; i < indices.length; i += step) {
+        var j = indices[i] * size;
+        var k = indices[i + 1] * size;
+        var l = indices[i + 2] * size;
+
+        this.planes.push(new _Plane2.default(new THREE.Vector3(verts[j], verts[j + 1], verts[j + 2]), new THREE.Vector3(verts[k], verts[k + 1], verts[k + 2]), new THREE.Vector3(verts[l], verts[l + 1], verts[l + 2]), new THREE.Vector3(norms[j], norms[j + 1], norms[j + 2]), new THREE.Vector3(norms[k], norms[k + 1], norms[k + 2]), new THREE.Vector3(norms[l], norms[l + 1], norms[l + 2])));
+      }
+    } else {
+      var _step = 9;
+
+      for (var _i = 0; _i < verts.length; _i += _step) {
+        this.planes.push(new _Plane2.default(new THREE.Vector3(verts[_i + 0], verts[_i + 1], verts[_i + 2]), new THREE.Vector3(verts[_i + 3], verts[_i + 4], verts[_i + 5]), new THREE.Vector3(verts[_i + 6], verts[_i + 7], verts[_i + 8]), new THREE.Vector3(norms[_i + 0], norms[_i + 1], norms[_i + 2]), new THREE.Vector3(norms[_i + 3], norms[_i + 4], norms[_i + 5]), new THREE.Vector3(norms[_i + 6], norms[_i + 7], norms[_i + 8])));
+      }
     }
   },
 
@@ -178,11 +194,11 @@ Mesh.prototype = {
       }
 
       // first pass
-      for (var _i = 0; _i < this.planes.length; _i += 1) {
-        if (!this.planes[_i].culled && this.planes[_i].isPointBelowOrEqual(point)) {
+      for (var _i2 = 0; _i2 < this.planes.length; _i2 += 1) {
+        if (!this.planes[_i2].culled && this.planes[_i2].isPointBelowOrEqual(point)) {
           // cull planes above plane
           for (var j = 0; j < this.planes.length; j += 1) {
-            if (!this.planes[j].culled && j != _i && this.planes[_i].isPlaneAbove(this.planes[j])) {
+            if (!this.planes[j].culled && j != _i2 && this.planes[_i2].isPlaneAbove(this.planes[j])) {
               this.planes[j].cull();
             }
           }
@@ -190,8 +206,8 @@ Mesh.prototype = {
       }
 
       // second pass
-      for (var _i2 = 0; _i2 < this.planes.length; _i2 += 1) {
-        if (!this.planes[_i2].culled && this.planes[_i2].isPointAboveOrEqual(point)) {
+      for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
+        if (!this.planes[_i3].culled && this.planes[_i3].isPointAboveOrEqual(point)) {
           return false;
         }
       }
