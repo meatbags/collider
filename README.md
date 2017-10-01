@@ -29,4 +29,4 @@ collision.check(new THREE.Vector3(0, 0, 0));
 
 ![collider_torus_2](/screenshots/screen_3.png?raw=true)
 
-Voxels generated from a set of three.js meshes.
+Voxels generated from point collisions in a geometric set.
