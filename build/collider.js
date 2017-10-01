@@ -108,7 +108,7 @@ var _Mesh = __webpack_require__(2);
 
 var _Mesh2 = _interopRequireDefault(_Mesh);
 
-var _System = __webpack_require__(4);
+var _System = __webpack_require__(5);
 
 var _System2 = _interopRequireDefault(_System);
 
@@ -136,7 +136,7 @@ var _Config = __webpack_require__(0);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Plane = __webpack_require__(6);
+var _Plane = __webpack_require__(3);
 
 var _Plane2 = _interopRequireDefault(_Plane);
 
@@ -150,6 +150,7 @@ var Mesh = function Mesh(geometry) {
     this.box = new THREE.Box3().setFromBufferAttribute(geometry.attributes.position);
     this.min = this.box.min;
     this.max = this.box.max;
+    this.planes = [];
     this.generatePlanes();
   } else {
     throw 'Error: Input is not THREE.BufferGeometry';
@@ -160,7 +161,6 @@ Mesh.prototype = {
   generatePlanes: function generatePlanes() {
     // create planes from buffer geometry attribute
 
-    this.planes = [];
     var verts = this.geometry.attributes.position.array;
     var norms = this.geometry.attributes.normal.array;
 
@@ -216,6 +216,28 @@ Mesh.prototype = {
     } else {
       return false;
     }
+  },
+
+  getCeiling: function getCeiling(point) {
+    // get ceiling above point
+
+    var y = null;
+
+    for (var i = 0; i < this.planes.length; i += 1) {
+      var plane = this.planes[i];
+
+      if ((point.y <= plane.p1.y || point.y <= plane.p2.y || point.y <= plane.p3.y) && plane.containsPointXZ(point) && plane.isPointBelowOrEqual(point)) {
+        var newY = plane.getY(point.x, point.z);
+
+        if (y === null || newY < y) {
+          y = newY;
+        }
+      }
+    }
+
+    //console.log(y)
+
+    return y;
   }
 };
 
@@ -223,6 +245,143 @@ exports.default = Mesh;
 
 /***/ }),
 /* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _Maths = __webpack_require__(4);
+
+var Maths = _interopRequireWildcard(_Maths);
+
+var _Config = __webpack_require__(0);
+
+var _Config2 = _interopRequireDefault(_Config);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+var Plane = function Plane(p1, p2, p3, n1, n2, n3) {
+  this.p1 = p1;
+  this.p2 = p2;
+  this.p3 = p3;
+  this.n1 = n1;
+  this.n2 = n2;
+  this.n3 = n3;
+  this.culled = false;
+  this.generatePlane();
+};
+
+Plane.prototype = {
+  generatePlane: function generatePlane() {
+    // generate a plane
+
+    var edge12 = Maths.subtractVector(this.p2, this.p1);
+    var edge13 = Maths.subtractVector(this.p3, this.p1);
+
+    // get normal
+    this.normal = Maths.normalise(Maths.crossProduct(edge12, edge13));
+
+    // reverse naughty normals
+    if (Maths.dotProduct(this.normal, this.n1) < 0) {
+      this.normal = Maths.reverseVector(this.normal);
+    }
+
+    // get position
+    this.position = new THREE.Vector3((this.p1.x + this.p2.x + this.p3.x) / 3, (this.p1.y + this.p2.y + this.p3.y) / 3, (this.p1.z + this.p2.z + this.p3.z) / 3);
+
+    // cache D for solving plane
+    this.D = -(this.normal.x * this.position.x) - this.normal.y * this.position.y - this.normal.z * this.position.z;
+
+    // create bounding box
+    var points = [this.p1, this.p2, this.p3];
+    this.box = new THREE.Box3().setFromPoints(points);
+  },
+
+  isPointAbove: function isPointAbove(point) {
+    // is point above plane
+
+    var vec = Maths.subtractVector(point, this.position);
+    var dot = Maths.dotProduct(vec, this.normal);
+    var res = dot > 0;
+
+    return res;
+  },
+
+  isPointBelow: function isPointBelow(point) {
+    // is point below plane
+
+    var vec = Maths.subtractVector(point, this.position);
+    var dot = Maths.dotProduct(vec, this.normal);
+    var res = dot < 0;
+
+    return res;
+  },
+
+  isPointAboveOrEqual: function isPointAboveOrEqual(point) {
+    // is point above plane or on surface
+
+    var vec = Maths.subtractVector(point, this.position);
+    var dot = Maths.dotProduct(vec, this.normal);
+    var res = dot >= -_Config2.default.plane.dotBuffer;
+
+    return res;
+  },
+
+  isPointBelowOrEqual: function isPointBelowOrEqual(point) {
+    // is point below plane or on surface
+
+    var vec = Maths.subtractVector(point, this.position);
+    var dot = Maths.dotProduct(vec, this.normal);
+    var res = dot <= _Config2.default.plane.dotBuffer;
+
+    return res;
+  },
+
+  isPlaneAbove: function isPlaneAbove(plane) {
+    // check if whole plane is above
+
+    return this.isPointAboveOrEqual(plane.p1) && this.isPointAboveOrEqual(plane.p2) && this.isPointAboveOrEqual(plane.p3);
+  },
+
+  containsPoint: function containsPoint(point) {
+    // is inside bounding box
+
+    return this.box.containsPoint(point);
+  },
+
+  containsPointXZ: function containsPointXZ(point) {
+    // is X, Z inside bounding box
+
+    return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
+  },
+
+  getY: function getY(x, z) {
+    // solve plane for x, z
+
+    var y = (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
+
+    return y;
+  },
+
+  cull: function cull() {
+    this.culled = true;
+  },
+
+  revive: function revive() {
+    this.culled = false;
+  }
+};
+
+exports.default = Plane;
+
+/***/ }),
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -265,6 +424,12 @@ var reverseVector = function reverseVector(a) {
   return a;
 };
 
+var distanceBetween = function distanceBetween(a, b) {
+  var d = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2) + Math.pow(b.z - a.z, 2));
+
+  return d;
+};
+
 var crossProduct = function crossProduct(a, b) {
   var c = new THREE.Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 
@@ -283,7 +448,7 @@ exports.reverseVector = reverseVector;
 exports.normalise = normalise;
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -297,7 +462,7 @@ var _Config = __webpack_require__(0);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Quadrants = __webpack_require__(5);
+var _Quadrants = __webpack_require__(6);
 
 var _Quadrants2 = _interopRequireDefault(_Quadrants);
 
@@ -361,13 +526,43 @@ System.prototype = {
     }
 
     return collision;
+  },
+
+  getCeiling: function getCeiling(point) {
+    // get top of geometry at point
+
+    var y = null;
+
+    var quadrant = this.quadrants.getQuadrant(point);
+
+    for (var i = 0; i < quadrant.length; i += 1) {
+      var mesh = quadrant[i];
+
+      if (mesh.check(point)) {
+        var newY = mesh.getCeiling(point);
+
+        if (y === null || newY > y) {
+          y = newY;
+        }
+      }
+    }
+
+    return y;
+  },
+
+  getLastCollision: function getLastCollision() {
+    if (this.collisionCache.length > 0) {
+      return this.collisionCache[0];
+    } else {
+      return null;
+    }
   }
 };
 
 exports.default = System;
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -450,113 +645,6 @@ Quadrants.prototype = {
 };
 
 exports.default = Quadrants;
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _Maths = __webpack_require__(3);
-
-var Maths = _interopRequireWildcard(_Maths);
-
-var _Config = __webpack_require__(0);
-
-var _Config2 = _interopRequireDefault(_Config);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var Plane = function Plane(p1, p2, p3, n1, n2, n3) {
-  this.p1 = p1;
-  this.p2 = p2;
-  this.p3 = p3;
-  this.n1 = n1;
-  this.n2 = n2;
-  this.n3 = n3;
-  this.culled = false;
-  this.generatePlane();
-};
-
-Plane.prototype = {
-  generatePlane: function generatePlane() {
-    // generate a plane (position & vector)
-
-    var edge12 = Maths.subtractVector(this.p2, this.p1);
-    var edge13 = Maths.subtractVector(this.p3, this.p1);
-    this.normal = Maths.normalise(Maths.crossProduct(edge12, edge13));
-
-    if (Maths.dotProduct(this.normal, this.n1) < 0) {
-      // reverse naughty normals
-      this.normal = Maths.reverseVector(this.normal);
-    }
-
-    this.position = new THREE.Vector3((this.p1.x + this.p2.x + this.p3.x) / 3, (this.p1.y + this.p2.y + this.p3.y) / 3, (this.p1.z + this.p2.z + this.p3.z) / 3);
-  },
-
-  isPointAbove: function isPointAbove(point) {
-    // is point above plane
-
-    var vec = Maths.subtractVector(point, this.position);
-    var dot = Maths.dotProduct(vec, this.normal);
-    var res = dot > 0;
-
-    return res;
-  },
-
-  isPointBelow: function isPointBelow(point) {
-    // is point below plane
-
-    var vec = Maths.subtractVector(point, this.position);
-    var dot = Maths.dotProduct(vec, this.normal);
-    var res = dot < 0;
-
-    return res;
-  },
-
-  isPointAboveOrEqual: function isPointAboveOrEqual(point) {
-    // is point above plane or on surface
-
-    var vec = Maths.subtractVector(point, this.position);
-    var dot = Maths.dotProduct(vec, this.normal);
-    var res = dot >= -_Config2.default.plane.dotBuffer;
-
-    return res;
-  },
-
-  isPointBelowOrEqual: function isPointBelowOrEqual(point) {
-    // is point below plane or on surface
-
-    var vec = Maths.subtractVector(point, this.position);
-    var dot = Maths.dotProduct(vec, this.normal);
-    var res = dot <= _Config2.default.plane.dotBuffer;
-
-    return res;
-  },
-
-  isPlaneAbove: function isPlaneAbove(plane) {
-    // check if whole plane is above
-
-    return this.isPointAboveOrEqual(plane.p1) && this.isPointAboveOrEqual(plane.p2) && this.isPointAboveOrEqual(plane.p3);
-  },
-
-  cull: function cull() {
-    this.culled = true;
-  },
-
-  revive: function revive() {
-    this.culled = false;
-  }
-};
-
-exports.default = Plane;
 
 /***/ })
 /******/ ]);

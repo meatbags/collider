@@ -17,7 +17,7 @@ System.prototype = {
 
     for (let i=0; i<arguments.length; i+=1) {
       const mesh = arguments[i];
-      
+
       if (mesh.isColliderMesh) {
         this.quadrants.add(mesh);
       } else {
@@ -59,6 +59,36 @@ System.prototype = {
     }
 
     return collision;
+  },
+
+  getCeiling: function(point) {
+    // get top of geometry at point
+
+    let y = null;
+
+    const quadrant = this.quadrants.getQuadrant(point);
+
+    for (let i=0; i<quadrant.length; i+=1) {
+      const mesh = quadrant[i];
+
+      if (mesh.check(point)) {
+        let newY = mesh.getCeiling(point);
+
+        if (y === null || newY > y) {
+          y = newY;
+        }
+      }
+    }
+    
+    return y;
+  },
+
+  getLastCollision: function() {
+    if (this.collisionCache.length > 0) {
+      return this.collisionCache[0];
+    } else {
+      return null;
+    }
   }
 };
 

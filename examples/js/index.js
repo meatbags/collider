@@ -17,9 +17,7 @@ const App = {
     // collision system
     App.colliderSystem = new Collider.System();
 
-    // test!
-    App.test();
-    /*
+    // test
     App.mtlLoader = new THREE.MTLLoader();
     App.mtlLoader.setPath('./assets/');
     App.mtlLoader.load('sample.mtl', function(materials) {
@@ -30,14 +28,14 @@ const App = {
       objLoader.load('sample.obj', function(object){
         for (let i=0; i<object.children.length; i+=1) {
           const child = object.children[i];
+          child.material.transparent = true;
+          child.material.opacity = 0.5;
           App.colliderSystem.add(new Collider.Mesh(child.geometry));
-          console.log(child.geometry)
         }
-        //App.scene.add(object);
+        App.scene.add(object);
         App.test();
       });
     });
-    */
 
     // lights
     App.lights = {
@@ -61,43 +59,36 @@ const App = {
   },
 
   test: function() {
-    // create a three.js torus
-    var geometry = new THREE.TorusBufferGeometry(3, 1, 6, 12);
-    var material = new THREE.MeshLambertMaterial({color: 0x888888 });
-    var torus = new THREE.Mesh(geometry, material);
+    const step = .5;
 
-    // create a collision object
-    App.colliderSystem.add(
-      new Collider.Mesh(new THREE.TorusBufferGeometry(3.5, 1, 6, 12)),
-      new Collider.Mesh(new THREE.SphereBufferGeometry(1.5, 12, 12)),
-      new Collider.Mesh(new THREE.BoxBufferGeometry(15, 0.5, 3)),
-      new Collider.Mesh(new THREE.BoxBufferGeometry(3, 0.5, 15))
-    );
+    for (let x=-10; x<10; x+=step) {
+      //for (let y=0; y<8; y+=step) {
+        for (let z=-10; z<10; z+=step) {
+          let y = 0;
+          let point = new THREE.Vector3(x, y, z);
 
-    const step = .15;
-
-    for (let x=-5; x<5; x+=step) {
-      for (let y=-5; y<5; y+=step) {
-        for (let z=-5; z<5; z+=step) {
-          if (App.colliderSystem.check(new THREE.Vector3(x, y, z))) {
+          if (App.colliderSystem.check(point)) {
+            const top = App.colliderSystem.getCeiling(point);
             const mesh = new THREE.Mesh(
               new THREE.BoxBufferGeometry(step, step, step),
               new THREE.MeshLambertMaterial({
                 color: 0x888888
               })
             );
-            mesh.position.set(x, y, z);
+            mesh.position.set(x, top, z);
             App.scene.add(mesh);
           }
         }
-      }
+      //}
     }
+
+    //App.loop();
   },
 
   update: function() {
     const now = (new Date()).getTime();
     App.time = (now - App.start) / 1000;
-    App.camera.position.set(Math.sin(App.time / 5) * 10, 5, Math.cos(App.time / 5) * 10);
+    App.camera.position.set(Math.sin(App.time / 5) * 15, 7.5, Math.cos(App.time / 5) * 15);
     App.camera.lookAt(new THREE.Vector3(0, 1, 0));
   },
 

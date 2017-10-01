@@ -9,6 +9,7 @@ const Mesh = function(geometry) {
     this.box = new THREE.Box3().setFromBufferAttribute(geometry.attributes.position);
     this.min = this.box.min;
     this.max = this.box.max;
+    this.planes = [];
     this.generatePlanes();
   } else {
     throw('Error: Input is not THREE.BufferGeometry');
@@ -19,7 +20,6 @@ Mesh.prototype = {
   generatePlanes: function() {
     // create planes from buffer geometry attribute
 
-    this.planes = [];
     const verts = this.geometry.attributes.position.array;
     const norms = this.geometry.attributes.normal.array;
 
@@ -91,6 +91,32 @@ Mesh.prototype = {
       return false;
     }
   },
+
+  getCeiling: function(point) {
+    // get ceiling above point
+
+    let y = null;
+
+    for (let i=0; i<this.planes.length; i+=1) {
+      const plane = this.planes[i];
+
+      if (
+        (point.y <= plane.p1.y || point.y <= plane.p2.y || point.y <= plane.p3.y) &&
+        plane.containsPointXZ(point) &&
+        plane.isPointBelowOrEqual(point)
+      ) {
+        let newY = plane.getY(point.x, point.z);
+
+        if (y === null || newY < y) {
+          y = newY;
+        }
+      }
+    }
+
+    //console.log(y)
+
+    return y;
+  }
 };
 
 export default Mesh;

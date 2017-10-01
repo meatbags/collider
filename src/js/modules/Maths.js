@@ -40,6 +40,12 @@ const reverseVector = function(a) {
   return a;
 };
 
+const distanceBetween = function(a, b) {
+  const d = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2) + Math.pow(b.z - a.z, 2));
+
+  return d;
+};
+
 const crossProduct = function(a, b) {
   const c = new THREE.Vector3(
     a.y * b.z - a.z * b.y,
