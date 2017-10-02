@@ -9,6 +9,8 @@ const Plane = function(p1, p2, p3, n1, n2, n3) {
   this.n2 = n2;
   this.n3 = n3;
   this.culled = false;
+  this.above = false;
+  this.below = false;
   this.generatePlane();
 };
 
@@ -111,14 +113,6 @@ Plane.prototype = {
 
     return y;
   },
-
-  cull: function() {
-    this.culled = true;
-  },
-
-  revive: function() {
-    this.culled = false;
-  }
 };
 
 export default Plane;

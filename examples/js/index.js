@@ -59,36 +59,43 @@ const App = {
   },
 
   test: function() {
-    const step = .5;
+    const step = 1;
+    const size = step;
 
-    for (let x=-10; x<10; x+=step) {
-      //for (let y=0; y<8; y+=step) {
-        for (let z=-10; z<10; z+=step) {
-          let y = 0;
-          let point = new THREE.Vector3(x, y, z);
+    for (let x=-12; x<12; x+=step) {
+      for (let y=-5; y<5; y+=step) {
+        for (let z=-12; z<12; z+=step) {
+          const point = new THREE.Vector3(x, y, z);
 
           if (App.colliderSystem.check(point)) {
-            const top = App.colliderSystem.getCeiling(point);
+            const top = App.colliderSystem.getCeiling(new THREE.Vector3(x, 0, z));
             const mesh = new THREE.Mesh(
-              new THREE.BoxBufferGeometry(step, step, step),
+              new THREE.BoxBufferGeometry(size, size, size),
               new THREE.MeshLambertMaterial({
                 color: 0x888888
               })
             );
-            mesh.position.set(x, top, z);
-            App.scene.add(mesh);
+            const mesh2 = new THREE.Mesh(
+              new THREE.BoxBufferGeometry(size/10, size + 0.05, size/10),
+              new THREE.MeshPhongMaterial({
+                color: 0x888888
+              })
+            );
+            mesh.position.set(x, y, z);
+            mesh2.position.set(x, top, z);
+            App.scene.add(mesh, mesh2);
           }
         }
-      //}
+      }
     }
 
-    //App.loop();
+    App.loop();
   },
 
   update: function() {
     const now = (new Date()).getTime();
     App.time = (now - App.start) / 1000;
-    App.camera.position.set(Math.sin(App.time / 5) * 15, 7.5, Math.cos(App.time / 5) * 15);
+    App.camera.position.set(Math.sin(App.time / 5) * 20, 15, Math.cos(App.time / 5) * -20);
     App.camera.lookAt(new THREE.Vector3(0, 1, 0));
   },
 
@@ -97,7 +104,7 @@ const App = {
   },
 
   loop: function() {
-    requestAnimationFrame(App.loop);
+    //requestAnimationFrame(App.loop);
     App.update();
     App.render();
   }

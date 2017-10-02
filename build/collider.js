@@ -190,22 +190,22 @@ Mesh.prototype = {
     if (this.box.containsPoint(point)) {
       // reset
       for (var i = 0; i < this.planes.length; i += 1) {
-        this.planes[i].revive();
+        this.planes[i].culled = false;
       }
 
-      // first pass
+      // first pass - cull faces
       for (var _i2 = 0; _i2 < this.planes.length; _i2 += 1) {
         if (!this.planes[_i2].culled && this.planes[_i2].isPointBelowOrEqual(point)) {
           // cull planes above plane
           for (var j = 0; j < this.planes.length; j += 1) {
             if (!this.planes[j].culled && j != _i2 && this.planes[_i2].isPlaneAbove(this.planes[j])) {
-              this.planes[j].cull();
+              this.planes[j].culled = true;
             }
           }
         }
       }
 
-      // second pass
+      // second pass - get res
       for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
         if (!this.planes[_i3].culled && this.planes[_i3].isPointAboveOrEqual(point)) {
           return false;
@@ -274,6 +274,8 @@ var Plane = function Plane(p1, p2, p3, n1, n2, n3) {
   this.n2 = n2;
   this.n3 = n3;
   this.culled = false;
+  this.above = false;
+  this.below = false;
   this.generatePlane();
 };
 
@@ -367,14 +369,6 @@ Plane.prototype = {
     var y = (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
 
     return y;
-  },
-
-  cull: function cull() {
-    this.culled = true;
-  },
-
-  revive: function revive() {
-    this.culled = false;
   }
 };
 
@@ -531,9 +525,8 @@ System.prototype = {
   getCeiling: function getCeiling(point) {
     // get top of geometry at point
 
-    var y = null;
-
     var quadrant = this.quadrants.getQuadrant(point);
+    var y = null;
 
     for (var i = 0; i < quadrant.length; i += 1) {
       var mesh = quadrant[i];

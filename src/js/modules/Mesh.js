@@ -64,22 +64,22 @@ Mesh.prototype = {
     if (this.box.containsPoint(point)) {
       // reset
       for (let i=0; i<this.planes.length; i+=1) {
-        this.planes[i].revive();
+        this.planes[i].culled = false;
       }
 
-      // first pass
+      // first pass - cull faces
       for (let i=0; i<this.planes.length; i+=1) {
         if (!this.planes[i].culled && this.planes[i].isPointBelowOrEqual(point)) {
           // cull planes above plane
           for (let j=0; j<this.planes.length; j+=1) {
             if (!this.planes[j].culled && j != i && this.planes[i].isPlaneAbove(this.planes[j])) {
-              this.planes[j].cull();
+              this.planes[j].culled = true;
             }
           }
         }
       }
 
-      // second pass
+      // second pass - get res
       for (let i=0; i<this.planes.length; i+=1) {
         if (!this.planes[i].culled && this.planes[i].isPointAboveOrEqual(point)) {
           return false;

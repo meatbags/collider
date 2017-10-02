@@ -64,9 +64,8 @@ System.prototype = {
   getCeiling: function(point) {
     // get top of geometry at point
 
-    let y = null;
-
     const quadrant = this.quadrants.getQuadrant(point);
+    let y = null;
 
     for (let i=0; i<quadrant.length; i+=1) {
       const mesh = quadrant[i];
@@ -79,7 +78,7 @@ System.prototype = {
         }
       }
     }
-    
+
     return y;
   },
 
