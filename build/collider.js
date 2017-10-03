@@ -61,7 +61,7 @@ var Collider =
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 1);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -76,7 +76,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 var Config = {
   system: {
-    collisionCacheSize: 10
+    cacheSize: 10
   },
   quadrants: {
     size: {
@@ -102,9 +102,90 @@ exports.default = Config;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+var addVector = function addVector(a, b) {
+  var c = new THREE.Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
+
+  return c;
+};
+
+var subtractVector = function subtractVector(a, b) {
+  var c = new THREE.Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
+
+  return c;
+};
+
+var normalise = function normalise(a) {
+  var mag = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+
+  if (mag == 0) {
+    return a;
+  }
+
+  a.x /= mag;
+  a.y /= mag;
+  a.z /= mag;
+
+  return a;
+};
+
+var reverseVector = function reverseVector(a) {
+  a.x *= -1;
+  a.y *= -1;
+  a.z *= -1;
+
+  return a;
+};
+
+var distanceBetween = function distanceBetween(a, b) {
+  var d = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2) + Math.pow(b.z - a.z, 2));
+
+  return d;
+};
+
+var distanceBetween2D = function distanceBetween2D(a, b) {
+  var dist = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.z - a.z, 2));
+
+  return dist;
+};
+
+var crossProduct = function crossProduct(a, b) {
+  var c = new THREE.Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+
+  return c;
+};
+
+var minAngleDifference = function minAngleDifference(a1, a2) {
+  var angle = Math.atan2(Math.sin(a2 - a1), Math.cos(a2 - a1));
+
+  return angle;
+};
+
+var dotProduct = function dotProduct(a, b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+};
+
+exports.distanceBetween2D = distanceBetween2D;
+exports.minAngleDifference = minAngleDifference;
+exports.dotProduct = dotProduct;
+exports.addVector = addVector;
+exports.subtractVector = subtractVector;
+exports.crossProduct = crossProduct;
+exports.reverseVector = reverseVector;
+exports.normalise = normalise;
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
 exports.Player = exports.System = exports.Mesh = undefined;
 
-var _Mesh = __webpack_require__(2);
+var _Mesh = __webpack_require__(3);
 
 var _Mesh2 = _interopRequireDefault(_Mesh);
 
@@ -125,7 +206,7 @@ exports.Player = _Player2.default; /**
                                    */
 
 /***/ }),
-/* 2 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -139,7 +220,7 @@ var _Config = __webpack_require__(0);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Plane = __webpack_require__(3);
+var _Plane = __webpack_require__(4);
 
 var _Plane2 = _interopRequireDefault(_Plane);
 
@@ -247,7 +328,7 @@ Mesh.prototype = {
 exports.default = Mesh;
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -257,7 +338,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _Maths = __webpack_require__(4);
+var _Maths = __webpack_require__(1);
 
 var Maths = _interopRequireWildcard(_Maths);
 
@@ -366,6 +447,8 @@ Plane.prototype = {
     return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
   },
 
+  getIntersect: function getIntersect(p1, p2) {},
+
   getY: function getY(x, z) {
     // solve plane for x, z
 
@@ -376,87 +459,6 @@ Plane.prototype = {
 };
 
 exports.default = Plane;
-
-/***/ }),
-/* 4 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-var addVector = function addVector(a, b) {
-  var c = new THREE.Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
-
-  return c;
-};
-
-var subtractVector = function subtractVector(a, b) {
-  var c = new THREE.Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
-
-  return c;
-};
-
-var normalise = function normalise(a) {
-  var mag = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
-
-  if (mag == 0) {
-    return a;
-  }
-
-  a.x /= mag;
-  a.y /= mag;
-  a.z /= mag;
-
-  return a;
-};
-
-var reverseVector = function reverseVector(a) {
-  a.x *= -1;
-  a.y *= -1;
-  a.z *= -1;
-
-  return a;
-};
-
-var distanceBetween = function distanceBetween(a, b) {
-  var d = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2) + Math.pow(b.z - a.z, 2));
-
-  return d;
-};
-
-var distanceBetween2D = function distanceBetween2D(a, b) {
-  var dist = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.z - a.z, 2));
-
-  return dist;
-};
-
-var crossProduct = function crossProduct(a, b) {
-  var c = new THREE.Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
-
-  return c;
-};
-
-var minAngleDifference = function minAngleDifference(a1, a2) {
-  var angle = Math.atan2(Math.sin(a2 - a1), Math.cos(a2 - a1));
-
-  return angle;
-};
-
-var dotProduct = function dotProduct(a, b) {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-};
-
-exports.distanceBetween2D = distanceBetween2D;
-exports.minAngleDifference = minAngleDifference;
-exports.dotProduct = dotProduct;
-exports.addVector = addVector;
-exports.subtractVector = subtractVector;
-exports.crossProduct = crossProduct;
-exports.reverseVector = reverseVector;
-exports.normalise = normalise;
 
 /***/ }),
 /* 5 */
@@ -485,7 +487,10 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var System = function System() {
   this.quadrants = new _Quadrants2.default();
-  this.collisionCache = [];
+  this.cache = {
+    mesh: [],
+    ceiling: []
+  };
   this.isColliderSystem = true;
 };
 
@@ -504,34 +509,24 @@ System.prototype = {
     }
   },
 
-  cache: function cache(mesh) {
-    // add mesh to collision cache
-
-    this.collisionCache.unshift(mesh);
-
-    if (this.collisionCache.length > _Config2.default.system.collisionCacheSize) {
-      this.collisionCache.splice(this.collisionCache.length - 1, 1);
-    }
-  },
-
-  flush: function flush() {
-    // empty the cache
-
-    this.collisionCache = [];
-  },
-
   check: function check(point) {
     // search for collisions at point
 
-    var quadrant = this.quadrants.getQuadrant(point);
+    // check cache
+    if (isCached(point, this.cache.mesh)) {
+      return true;
+    }
+
+    // search meshes
     var collision = false;
+    var quadrant = this.quadrants.getQuadrant(point);
 
     for (var i = 0; i < quadrant.length; i += 1) {
       var mesh = quadrant[i];
 
       if (mesh.check(point)) {
         collision = true;
-        this.cache(mesh);
+        this.cacheItem(this.cache.mesh, point, mesh);
         break;
       }
     }
@@ -540,8 +535,14 @@ System.prototype = {
   },
 
   getCeiling: function getCeiling(point) {
-    // get top of geometry at point
+    // get height of plane above point
 
+    // check cache
+    if (isCached(point, this.cache.ceiling)) {
+      return this.cache.ceiling[0].item;
+    }
+
+    // search
     var quadrant = this.quadrants.getQuadrant(point);
     var y = null;
 
@@ -557,15 +558,25 @@ System.prototype = {
       }
     }
 
+    // cache
+    this.cacheItem(this.cache.ceiling, point, y);
+
     return y;
   },
 
-  getLastCollision: function getLastCollision() {
-    if (this.collisionCache.length > 0) {
-      return this.collisionCache[0];
-    } else {
-      return null;
+  cacheItem: function cacheItem(cache, point, item) {
+    cache.unshift({
+      point: new THREE.Vector3(point.x, point.y, point.z),
+      item: item
+    });
+
+    if (cache.length > _Config2.default.system.cacheSize) {
+      cache.mesh.splice(cache.mesh.length - 1, 1);
     }
+  },
+
+  isCached: function isCached(point, cache) {
+    return cache.length > 0 && point.x === cache[0].point.x && point.y === cache[0].point.y && point.z === cache[0].point.z;
   }
 };
 
@@ -667,7 +678,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _Maths = __webpack_require__(4);
+var _Maths = __webpack_require__(1);
 
 var Player = function Player(domElement) {
   this.domElement = domElement;

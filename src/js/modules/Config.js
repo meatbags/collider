@@ -1,6 +1,6 @@
 const Config = {
   system: {
-    collisionCacheSize: 10
+    cacheSize: 10
   },
   quadrants: {
     size: {

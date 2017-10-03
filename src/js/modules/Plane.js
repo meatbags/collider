@@ -106,13 +106,17 @@ Plane.prototype = {
     return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
   },
 
+  getIntersect: function(p1, p2) {
+
+  },
+
   getY: function(x, z) {
     // solve plane for x, z
 
     const y = (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
 
     return y;
-  },
+  }
 };
 
 export default Plane;

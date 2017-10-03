@@ -7,7 +7,10 @@ import Quadrants from './Quadrants';
 
 const System = function () {
   this.quadrants = new Quadrants();
-  this.collisionCache = [];
+  this.cache = {
+    mesh: [],
+    ceiling: []
+  };
   this.isColliderSystem = true;
 };
 
@@ -26,34 +29,24 @@ System.prototype = {
     }
   },
 
-  cache: function(mesh) {
-    // add mesh to collision cache
-
-    this.collisionCache.unshift(mesh);
-
-    if (this.collisionCache.length > Config.system.collisionCacheSize) {
-      this.collisionCache.splice(this.collisionCache.length - 1, 1);
-    }
-  },
-
-  flush: function() {
-    // empty the cache
-
-    this.collisionCache = [];
-  },
-
   check: function(point) {
     // search for collisions at point
 
-    const quadrant = this.quadrants.getQuadrant(point);
+    // check cache
+    if (isCached(point, this.cache.mesh)) {
+      return true;
+    }
+
+    // search meshes
     let collision = false;
+    const quadrant = this.quadrants.getQuadrant(point);
 
     for (let i=0; i<quadrant.length; i+=1) {
       const mesh = quadrant[i];
 
       if (mesh.check(point)) {
         collision = true;
-        this.cache(mesh);
+        this.cacheItem(this.cache.mesh, point, mesh);
         break;
       }
     }
@@ -62,8 +55,14 @@ System.prototype = {
   },
 
   getCeiling: function(point) {
-    // get top of geometry at point
+    // get height of plane above point
 
+    // check cache
+    if (isCached(point, this.cache.ceiling)) {
+      return this.cache.ceiling[0].item;
+    }
+
+    // search
     const quadrant = this.quadrants.getQuadrant(point);
     let y = null;
 
@@ -79,16 +78,31 @@ System.prototype = {
       }
     }
 
+    // cache
+    this.cacheItem(this.cache.ceiling, point, y);
+
     return y;
   },
 
-  getLastCollision: function() {
-    if (this.collisionCache.length > 0) {
-      return this.collisionCache[0];
-    } else {
-      return null;
+  cacheItem: function(cache, point, item) {
+    cache.unshift({
+      point: new THREE.Vector3(point.x, point.y, point.z),
+      item: item
+    })
+
+    if (cache.length > Config.system.cacheSize) {
+      cache.mesh.splice(cache.mesh.length - 1, 1);
     }
-  }
+  },
+
+  isCached: function(point, cache) {
+    return (
+      cache.length > 0 &&
+      point.x === cache[0].point.x &&
+      point.y === cache[0].point.y &&
+      point.z === cache[0].point.z
+    )
+  },
 };
 
 export default System;
