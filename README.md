@@ -9,7 +9,7 @@ Processing of high-poly models is possible, but computationally expensive. For t
 
 Note: Currently does not support transforms - static geometry only.
 
-# Usage
+# Example
 
 ```javascript
 // create a three js torus
@@ -30,3 +30,40 @@ collision.check(new THREE.Vector3(0, 0, 0));
 ![collider_torus_2](/screenshots/screen_3.png?raw=true)
 
 Voxels generated from point collisions in a geometric set.
+
+# Documentation
+
+## Collider.Mesh
+### Constructor
+#### Collider.Mesh(geometry)
+A collision mesh.
+- geometry - THREE.BufferGeometry object
+
+### Methods
+#### .check(point)
+Check for a collision at point. Returns true or false.
+- point - THREE.Vector3
+
+#### .getCeiling(point)
+Get the y coordinate intersect of the nearest upper plane. Returns Number, or null if no plane exists.
+- point - THREE.Vector3
+
+## Collider.System
+### Constructor
+#### Collider.System()
+A system of collision meshes. Handles complex scenes.
+
+### Methods
+#### .add(mesh, ...)
+- mesh - Collider.Mesh to add to system.
+
+#### .check(point)
+Check a point for collisions against all meshes in the system. Returns true or false.
+- point - THREE.Vector3
+
+#### .getCeiling(point)
+Get the y coordinate intersect of the nearest upper plane for all meshes in system. If more than one mesh have solutions, returns the higher value. Returns Number or null if no plane found.
+- point - THREE.Vector3
+
+#### .getLastCollision()
+Returns the collision mesh of the last successful collision. If none, returns null.
