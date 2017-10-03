@@ -9,7 +9,8 @@ const System = function () {
   this.quadrants = new Quadrants();
   this.cache = {
     mesh: [],
-    ceiling: []
+    ceiling: [],
+    intersect: []
   };
   this.isColliderSystem = true;
 };
@@ -82,6 +83,55 @@ System.prototype = {
     this.cacheItem(this.cache.ceiling, point, y);
 
     return y;
+  },
+
+  getIntersect: function(from, to) {
+    // get intersect of geometry and line
+    // check cache for intersect
+    if (isCached(from, this.cache.intersect)) {
+      const cached = this.cache.intersect[0];
+
+      if (to.x === cached.item.to.x && to.y === cached.item.to.y && to.z === cached.item.to.z) {
+        return cached.item.intersect;
+      }
+    }
+
+    // check cache for mesh
+    if (isCached(from, this.cache.mesh) || isCached(to, this.cache.mesh)) {
+      const intersect = this.cache.mesh[0].getIntersect(from, to);
+
+      // cache intersect
+      this.cacheItem(this.cache.intersect, from, {
+        to: to,
+        intersect: intersect
+      });
+
+      return intersect;
+    }
+
+    // search
+    const quadrant = this.quadrants.getQuadrant(to);
+    let intersect = null;
+
+    for (let i=0; i<quadrant.length; i+=1) {
+      const mesh = quadrant[i];
+
+      if (mesh.check(to)) {
+        let res = mesh.getIntersect(from, to);
+
+        if (res != null) {
+          intersect = res;
+        }
+      }
+    }
+
+    // cache
+    this.cacheItem(this.cache.intersect, from, {
+      to: to,
+      intersect: intersect
+    });
+
+    return intersect;
   },
 
   cacheItem: function(cache, point, item) {

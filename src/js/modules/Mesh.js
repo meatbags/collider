@@ -113,9 +113,23 @@ Mesh.prototype = {
       }
     }
 
-    //console.log(y)
-
     return y;
+  },
+
+  getIntersect: function(p1, p2) {
+    // get intersect of mesh and line
+
+    let intersect = null;
+
+    for (var i=0; i<this.planes.length; i+=1) {
+      const res = this.planes[i].getIntersect(p1, p2);
+
+      if (res != null) {
+        intersect = res;
+      }
+    }
+
+    return intersect;
   }
 };
 

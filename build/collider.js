@@ -319,9 +319,23 @@ Mesh.prototype = {
       }
     }
 
-    //console.log(y)
-
     return y;
+  },
+
+  getIntersect: function getIntersect(p1, p2) {
+    // get intersect of mesh and line
+
+    var intersect = null;
+
+    for (var i = 0; i < this.planes.length; i += 1) {
+      var res = this.planes[i].getIntersect(p1, p2);
+
+      if (res != null) {
+        intersect = res;
+      }
+    }
+
+    return intersect;
   }
 };
 
@@ -447,7 +461,37 @@ Plane.prototype = {
     return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
   },
 
-  getIntersect: function getIntersect(p1, p2) {},
+  getIntersect: function getIntersect(p1, p2) {
+    // get intersection of plane and line between p1, p2
+
+    var vec = Maths.subtractVector(p2, p1);
+    var dot = Maths.dotProduct(this.normal, Maths.normalise(vec));
+
+    // check for parallel lines
+    if (dot == 0) {
+      return null;
+    }
+
+    var numPart = this.normal.x * p1.x + this.normal.y * p1.y + this.normal.z * p1.z + this.D;
+    var denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
+
+    // invalid
+    if (denom == 0) {
+      return null;
+    }
+
+    var x = p1.x - vec.x * numPart / denom;
+    var y = p1.y - vec.y * numPart / denom;
+    var z = p1.z - vec.z * numPart / denom;
+    var point = new THREE.Vector3(x, y, z);
+
+    // return intersect if point is inside geometry
+    if (this.containsPoint(point)) {
+      return point;
+    }
+
+    return null;
+  },
 
   getY: function getY(x, z) {
     // solve plane for x, z
@@ -489,7 +533,8 @@ var System = function System() {
   this.quadrants = new _Quadrants2.default();
   this.cache = {
     mesh: [],
-    ceiling: []
+    ceiling: [],
+    intersect: []
   };
   this.isColliderSystem = true;
 };
@@ -562,6 +607,55 @@ System.prototype = {
     this.cacheItem(this.cache.ceiling, point, y);
 
     return y;
+  },
+
+  getIntersect: function getIntersect(from, to) {
+    // get intersect of geometry and line
+    // check cache for intersect
+    if (isCached(from, this.cache.intersect)) {
+      var cached = this.cache.intersect[0];
+
+      if (to.x === cached.item.to.x && to.y === cached.item.to.y && to.z === cached.item.to.z) {
+        return cached.item.intersect;
+      }
+    }
+
+    // check cache for mesh
+    if (isCached(from, this.cache.mesh) || isCached(to, this.cache.mesh)) {
+      var _intersect = this.cache.mesh[0].getIntersect(from, to);
+
+      // cache intersect
+      this.cacheItem(this.cache.intersect, from, {
+        to: to,
+        intersect: _intersect
+      });
+
+      return _intersect;
+    }
+
+    // search
+    var quadrant = this.quadrants.getQuadrant(to);
+    var intersect = null;
+
+    for (var i = 0; i < quadrant.length; i += 1) {
+      var mesh = quadrant[i];
+
+      if (mesh.check(to)) {
+        var res = mesh.getIntersect(from, to);
+
+        if (res != null) {
+          intersect = res;
+        }
+      }
+    }
+
+    // cache
+    this.cacheItem(this.cache.intersect, from, {
+      to: to,
+      intersect: intersect
+    });
+
+    return intersect;
   },
 
   cacheItem: function cacheItem(cache, point, item) {

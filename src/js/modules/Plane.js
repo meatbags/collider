@@ -107,7 +107,35 @@ Plane.prototype = {
   },
 
   getIntersect: function(p1, p2) {
+    // get intersection of plane and line between p1, p2
 
+    const vec = Maths.subtractVector(p2, p1);
+    const dot = Maths.dotProduct(this.normal, Maths.normalise(vec));
+
+    // check for parallel lines
+    if (dot == 0) {
+      return null;
+    }
+
+    const numPart = this.normal.x * p1.x + this.normal.y * p1.y + this.normal.z * p1.z + this.D;
+    const denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
+
+    // invalid
+    if (denom == 0) {
+      return null;
+    }
+
+    const x = p1.x - ((vec.x * numPart) / denom);
+    const y = p1.y - ((vec.y * numPart) / denom);
+    const z = p1.z - ((vec.z * numPart) / denom);
+    const point = new THREE.Vector3(x, y, z);
+
+    // return intersect if point is inside geometry
+    if (this.containsPoint(point)) {
+      return point;
+    }
+
+    return null;
   },
 
   getY: function(x, z) {
