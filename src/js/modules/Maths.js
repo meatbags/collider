@@ -46,6 +46,12 @@ const distanceBetween = function(a, b) {
   return d;
 };
 
+const distanceBetween2D = function(a, b) {
+  const dist = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.z - a.z, 2));
+
+  return dist;
+}
+
 const crossProduct = function(a, b) {
   const c = new THREE.Vector3(
     a.y * b.z - a.z * b.y,
@@ -56,8 +62,14 @@ const crossProduct = function(a, b) {
   return c;
 };
 
+const minAngleDifference = function(a1, a2) {
+  const angle = Math.atan2(Math.sin(a2 - a1), Math.cos(a2 - a1))
+
+  return angle;
+}
+
 const dotProduct = function(a, b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 };
 
-export { dotProduct, addVector, subtractVector, crossProduct, reverseVector, normalise };
+export { distanceBetween2D, minAngleDifference, dotProduct, addVector, subtractVector, crossProduct, reverseVector, normalise };

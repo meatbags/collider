@@ -6,13 +6,14 @@ const App = {
   init: function() {
     // set up 3JS
     App.renderer = new THREE.WebGLRenderer();
-    App.renderer.setSize(960, 480);
+    App.renderer.setSize(1000, 540);
     App.renderer.setClearColor(0xf9e5e2, 1);
     document.body.append(App.renderer.domElement);
 
     // scene
     App.scene = new THREE.Scene();
-    App.camera = new THREE.PerspectiveCamera(45, 960/480, 0.1, 1000);
+    //App.camera = new THREE.PerspectiveCamera(45, 960/480, 0.1, 1000);
+    App.player = new Collider.Player(App.renderer.domElement);
 
     // collision system
     App.colliderSystem = new Collider.System();
@@ -33,7 +34,7 @@ const App = {
           App.colliderSystem.add(new Collider.Mesh(child.geometry));
         }
         App.scene.add(object);
-        App.test();
+        //App.test();
       });
     });
 
@@ -53,8 +54,7 @@ const App = {
     );
 
     // run!
-    App.start = (new Date()).getTime();
-    App.time = 0;
+    App.time = (new Date()).getTime();
     App.loop();
   },
 
@@ -92,20 +92,23 @@ const App = {
     App.loop();
   },
 
-  update: function() {
-    const now = (new Date()).getTime();
-    App.time = (now - App.start) / 1000;
-    App.camera.position.set(Math.sin(App.time / 5) * 20, 15, Math.cos(App.time / 5) * -20);
-    App.camera.lookAt(new THREE.Vector3(0, 1, 0));
+  update: function(delta) {
+    App.player.update(delta, App.colliderSystem);
   },
 
   render: function() {
-    App.renderer.render(App.scene, App.camera);
+    App.renderer.render(App.scene, App.player.camera);
   },
 
   loop: function() {
-    //requestAnimationFrame(App.loop);
-    App.update();
+    requestAnimationFrame(App.loop);
+
+    // timing
+    const now = (new Date()).getTime();
+    const delta = (now - App.time) / 1000.;
+    App.time = now;
+
+    App.update(delta);
     App.render();
   }
 }

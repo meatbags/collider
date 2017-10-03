@@ -4,5 +4,6 @@
 
 import Mesh from './modules/Mesh';
 import System from './modules/System';
+import Player from './modules/Player';
 
-export { Mesh, System };
+export { Mesh, System, Player };
