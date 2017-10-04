@@ -1,3 +1,5 @@
+const twoPi = Math.PI * 2;
+
 const addVector = function(a, b) {
   const c = new THREE.Vector3(
     a.x + b.x,
@@ -72,4 +74,4 @@ const dotProduct = function(a, b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 };
 
-export { distanceBetween2D, minAngleDifference, dotProduct, addVector, subtractVector, crossProduct, reverseVector, normalise };
+export { twoPi, distanceBetween2D, minAngleDifference, dotProduct, addVector, subtractVector, crossProduct, reverseVector, normalise };

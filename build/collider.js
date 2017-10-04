@@ -102,6 +102,8 @@ exports.default = Config;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+var twoPi = Math.PI * 2;
+
 var addVector = function addVector(a, b) {
   var c = new THREE.Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
 
@@ -164,6 +166,7 @@ var dotProduct = function dotProduct(a, b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 };
 
+exports.twoPi = twoPi;
 exports.distanceBetween2D = distanceBetween2D;
 exports.minAngleDifference = minAngleDifference;
 exports.dotProduct = dotProduct;
@@ -270,7 +273,7 @@ Mesh.prototype = {
     }
   },
 
-  check: function check(point) {
+  collision: function collision(point) {
     if (this.box.containsPoint(point)) {
       // reset
       for (var i = 0; i < this.planes.length; i += 1) {
@@ -291,7 +294,7 @@ Mesh.prototype = {
 
       // second pass - get res
       for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
-        if (!this.planes[_i3].culled && this.planes[_i3].isPointAboveOrEqual(point)) {
+        if (!this.planes[_i3].culled && !this.planes[_i3].isPointBelowOrEqual(point)) {
           return false;
         }
       }
@@ -302,7 +305,7 @@ Mesh.prototype = {
     }
   },
 
-  getCeiling: function getCeiling(point) {
+  ceiling: function ceiling(point) {
     // get ceiling above point
 
     var y = null;
@@ -310,10 +313,10 @@ Mesh.prototype = {
     for (var i = 0; i < this.planes.length; i += 1) {
       var plane = this.planes[i];
 
-      if ((point.y <= plane.p1.y || point.y <= plane.p2.y || point.y <= plane.p3.y) && plane.containsPointXZ(point) && plane.isPointBelowOrEqual(point)) {
+      if (plane.containsPointXZ(point) && plane.isPointBelowOrEqual(point)) {
         var newY = plane.getY(point.x, point.z);
 
-        if (y === null || newY < y) {
+        if (newY >= point.y && (y === null || newY < y)) {
           y = newY;
         }
       }
@@ -322,13 +325,13 @@ Mesh.prototype = {
     return y;
   },
 
-  getIntersect: function getIntersect(p1, p2) {
+  intersect: function intersect(p1, p2) {
     // get intersect of mesh and line
 
     var intersect = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
-      var res = this.planes[i].getIntersect(p1, p2);
+      var res = this.planes[i].intersect(p1, p2);
 
       if (res != null) {
         intersect = res;
@@ -461,7 +464,7 @@ Plane.prototype = {
     return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
   },
 
-  getIntersect: function getIntersect(p1, p2) {
+  intersect: function intersect(p1, p2) {
     // get intersection of plane and line between p1, p2
 
     var vec = Maths.subtractVector(p2, p1);
@@ -537,9 +540,15 @@ var System = function System() {
     intersect: []
   };
   this.isColliderSystem = true;
+  this.init();
 };
 
 System.prototype = {
+  init: function init() {
+    this.devCvs = document.getElementById('canvas');
+    this.devCtx = this.devCvs.getContext('2d');
+  },
+
   add: function add() {
     // add mesh to quadrants
 
@@ -554,11 +563,10 @@ System.prototype = {
     }
   },
 
-  check: function check(point) {
+  collision: function collision(point) {
     // search for collisions at point
-
     // check cache
-    if (isCached(point, this.cache.mesh)) {
+    if (this.isCached(point, this.cache.mesh)) {
       return true;
     }
 
@@ -569,7 +577,7 @@ System.prototype = {
     for (var i = 0; i < quadrant.length; i += 1) {
       var mesh = quadrant[i];
 
-      if (mesh.check(point)) {
+      if (mesh.collision(point)) {
         collision = true;
         this.cacheItem(this.cache.mesh, point, mesh);
         break;
@@ -579,11 +587,11 @@ System.prototype = {
     return collision;
   },
 
-  getCeiling: function getCeiling(point) {
+  ceiling: function ceiling(point) {
     // get height of plane above point
 
-    // check cache
-    if (isCached(point, this.cache.ceiling)) {
+    // check ceiling cache
+    if (this.isCached(point, this.cache.ceiling)) {
       return this.cache.ceiling[0].item;
     }
 
@@ -594,8 +602,8 @@ System.prototype = {
     for (var i = 0; i < quadrant.length; i += 1) {
       var mesh = quadrant[i];
 
-      if (mesh.check(point)) {
-        var newY = mesh.getCeiling(point);
+      if (mesh.collision(point)) {
+        var newY = mesh.ceiling(point);
 
         if (y === null || newY > y) {
           y = newY;
@@ -609,10 +617,10 @@ System.prototype = {
     return y;
   },
 
-  getIntersect: function getIntersect(from, to) {
+  intersect: function intersect(from, to) {
     // get intersect of geometry and line
-    // check cache for intersect
-    if (isCached(from, this.cache.intersect)) {
+    // check intersect cache for intersect
+    if (this.isCached(from, this.cache.intersect)) {
       var cached = this.cache.intersect[0];
 
       if (to.x === cached.item.to.x && to.y === cached.item.to.y && to.z === cached.item.to.z) {
@@ -620,8 +628,8 @@ System.prototype = {
       }
     }
 
-    // check cache for mesh
-    if (isCached(from, this.cache.mesh) || isCached(to, this.cache.mesh)) {
+    // check mesh cache for collision
+    if (this.isCached(from, this.cache.mesh) || this.isCached(to, this.cache.mesh)) {
       var _intersect = this.cache.mesh[0].getIntersect(from, to);
 
       // cache intersect
@@ -640,7 +648,7 @@ System.prototype = {
     for (var i = 0; i < quadrant.length; i += 1) {
       var mesh = quadrant[i];
 
-      if (mesh.check(to)) {
+      if (mesh.collision(to)) {
         var res = mesh.getIntersect(from, to);
 
         if (res != null) {
@@ -658,6 +666,23 @@ System.prototype = {
     return intersect;
   },
 
+  countCollisions: function countCollisions(point) {
+    // get n collisions
+
+    var collisions = 0;
+    var quadrant = this.quadrants.getQuadrant(point);
+
+    for (var i = 0; i < quadrant.length; i += 1) {
+      var mesh = quadrant[i];
+
+      if (mesh.collision(point)) {
+        collisions += 1;
+      }
+    }
+
+    return collisions;
+  },
+
   cacheItem: function cacheItem(cache, point, item) {
     cache.unshift({
       point: new THREE.Vector3(point.x, point.y, point.z),
@@ -665,7 +690,7 @@ System.prototype = {
     });
 
     if (cache.length > _Config2.default.system.cacheSize) {
-      cache.mesh.splice(cache.mesh.length - 1, 1);
+      cache.splice(cache.length - 1, 1);
     }
   },
 
@@ -777,19 +802,19 @@ var _Maths = __webpack_require__(1);
 var Player = function Player(domElement) {
   this.domElement = domElement;
   this.position = new THREE.Vector3(0, 0, 0);
-  this.rotation = new THREE.Vector3(0, 0, 0);
+  this.rotation = new THREE.Vector3(0, Math.PI, 0);
   this.offset = {
     rotation: new THREE.Vector3(0, 0, 0)
   };
   this.target = {
     position: new THREE.Vector3(0, 0, 0),
-    rotation: new THREE.Vector3(0, 0, 0),
+    rotation: new THREE.Vector3(0, Math.PI, 0),
     offset: {
       rotation: new THREE.Vector3(0, 0, 0)
     }
   };
   this.attributes = {
-    speed: 4,
+    speed: 6,
     height: 1.8,
     climb: 1,
     rotation: Math.PI * 0.85,
@@ -885,7 +910,7 @@ Player.prototype = {
       this.target.speed = 0;
     }
 
-    var y = collider.getCeiling(this.position);
+    var y = collider.ceiling(this.position);
 
     if (y != null) {
       this.position.y = y;
@@ -919,6 +944,12 @@ Player.prototype = {
     this.rotation.y += (0, _Maths.minAngleDifference)(this.rotation.y, this.target.rotation.y) * this.attributes.adjustFast;
     this.offset.rotation.x += (this.target.offset.rotation.x - this.offset.rotation.x) * this.attributes.adjust;
     this.offset.rotation.y += (this.target.offset.rotation.y - this.offset.rotation.y) * this.attributes.adjust;
+
+    if (this.rotation.y < 0) {
+      this.rotation.y += _Maths.twoPi;
+    } else if (this.rotation.y > _Maths.twoPi) {
+      this.rotation.y -= _Maths.twoPi;
+    }
 
     // set new camera position
     var yaw = this.rotation.y + this.offset.rotation.y;

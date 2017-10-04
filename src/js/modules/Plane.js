@@ -106,7 +106,7 @@ Plane.prototype = {
     return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
   },
 
-  getIntersect: function(p1, p2) {
+  intersect: function(p1, p2) {
     // get intersection of plane and line between p1, p2
 
     const vec = Maths.subtractVector(p2, p1);

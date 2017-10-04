@@ -1,21 +1,21 @@
-import { distanceBetween2D, minAngleDifference } from './Maths';
+import { distanceBetween2D, minAngleDifference, twoPi } from './Maths';
 
 const Player = function(domElement) {
   this.domElement = domElement;
   this.position = new THREE.Vector3(0, 0, 0);
-  this.rotation = new THREE.Vector3(0, 0, 0);
+  this.rotation = new THREE.Vector3(0, Math.PI, 0);
   this.offset = {
     rotation: new THREE.Vector3(0, 0, 0)
   };
   this.target = {
     position: new THREE.Vector3(0, 0, 0),
-    rotation: new THREE.Vector3(0, 0, 0),
+    rotation: new THREE.Vector3(0, Math.PI, 0),
     offset: {
       rotation: new THREE.Vector3(0, 0, 0)
     }
   }
   this.attributes = {
-    speed: 4,
+    speed: 6,
     height: 1.8,
     climb: 1,
     rotation: Math.PI * 0.85,
@@ -115,7 +115,7 @@ Player.prototype = {
       this.target.speed = 0;
     }
 
-    let y = collider.getCeiling(this.position);
+    let y = collider.ceiling(this.position);
 
     if (y != null) {
       this.position.y = y;
@@ -152,6 +152,12 @@ Player.prototype = {
     this.rotation.y += minAngleDifference(this.rotation.y, this.target.rotation.y) * this.attributes.adjustFast;
     this.offset.rotation.x += (this.target.offset.rotation.x - this.offset.rotation.x) * this.attributes.adjust;
     this.offset.rotation.y += (this.target.offset.rotation.y - this.offset.rotation.y) * this.attributes.adjust;
+
+    if (this.rotation.y < 0) {
+      this.rotation.y += twoPi;
+    } else if (this.rotation.y > twoPi) {
+      this.rotation.y -= twoPi;
+    }
 
     // set new camera position
     const yaw = this.rotation.y + this.offset.rotation.y;

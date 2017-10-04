@@ -60,7 +60,7 @@ Mesh.prototype = {
     }
   },
 
-  check: function(point) {
+  collision: function(point) {
     if (this.box.containsPoint(point)) {
       // reset
       for (let i=0; i<this.planes.length; i+=1) {
@@ -81,7 +81,7 @@ Mesh.prototype = {
 
       // second pass - get res
       for (let i=0; i<this.planes.length; i+=1) {
-        if (!this.planes[i].culled && this.planes[i].isPointAboveOrEqual(point)) {
+        if (!this.planes[i].culled && !this.planes[i].isPointBelowOrEqual(point)) {
           return false;
         }
       }
@@ -92,7 +92,7 @@ Mesh.prototype = {
     }
   },
 
-  getCeiling: function(point) {
+  ceiling: function(point) {
     // get ceiling above point
 
     let y = null;
@@ -101,13 +101,12 @@ Mesh.prototype = {
       const plane = this.planes[i];
 
       if (
-        (point.y <= plane.p1.y || point.y <= plane.p2.y || point.y <= plane.p3.y) &&
         plane.containsPointXZ(point) &&
         plane.isPointBelowOrEqual(point)
       ) {
         let newY = plane.getY(point.x, point.z);
 
-        if (y === null || newY < y) {
+        if (newY >= point.y && (y === null || newY < y)) {
           y = newY;
         }
       }
@@ -116,13 +115,13 @@ Mesh.prototype = {
     return y;
   },
 
-  getIntersect: function(p1, p2) {
+  intersect: function(p1, p2) {
     // get intersect of mesh and line
 
     let intersect = null;
 
     for (var i=0; i<this.planes.length; i+=1) {
-      const res = this.planes[i].getIntersect(p1, p2);
+      const res = this.planes[i].intersect(p1, p2);
 
       if (res != null) {
         intersect = res;

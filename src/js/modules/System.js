@@ -13,9 +13,15 @@ const System = function () {
     intersect: []
   };
   this.isColliderSystem = true;
+  this.init();
 };
 
 System.prototype = {
+  init: function() {
+    this.devCvs = document.getElementById('canvas');
+    this.devCtx = this.devCvs.getContext('2d');
+  },
+
   add: function() {
     // add mesh to quadrants
 
@@ -30,11 +36,10 @@ System.prototype = {
     }
   },
 
-  check: function(point) {
+  collision: function(point) {
     // search for collisions at point
-
     // check cache
-    if (isCached(point, this.cache.mesh)) {
+    if (this.isCached(point, this.cache.mesh)) {
       return true;
     }
 
@@ -45,7 +50,7 @@ System.prototype = {
     for (let i=0; i<quadrant.length; i+=1) {
       const mesh = quadrant[i];
 
-      if (mesh.check(point)) {
+      if (mesh.collision(point)) {
         collision = true;
         this.cacheItem(this.cache.mesh, point, mesh);
         break;
@@ -55,11 +60,11 @@ System.prototype = {
     return collision;
   },
 
-  getCeiling: function(point) {
+  ceiling: function(point) {
     // get height of plane above point
 
-    // check cache
-    if (isCached(point, this.cache.ceiling)) {
+    // check ceiling cache
+    if (this.isCached(point, this.cache.ceiling)) {
       return this.cache.ceiling[0].item;
     }
 
@@ -70,8 +75,8 @@ System.prototype = {
     for (let i=0; i<quadrant.length; i+=1) {
       const mesh = quadrant[i];
 
-      if (mesh.check(point)) {
-        let newY = mesh.getCeiling(point);
+      if (mesh.collision(point)) {
+        let newY = mesh.ceiling(point);
 
         if (y === null || newY > y) {
           y = newY;
@@ -85,10 +90,10 @@ System.prototype = {
     return y;
   },
 
-  getIntersect: function(from, to) {
+  intersect: function(from, to) {
     // get intersect of geometry and line
-    // check cache for intersect
-    if (isCached(from, this.cache.intersect)) {
+    // check intersect cache for intersect
+    if (this.isCached(from, this.cache.intersect)) {
       const cached = this.cache.intersect[0];
 
       if (to.x === cached.item.to.x && to.y === cached.item.to.y && to.z === cached.item.to.z) {
@@ -96,8 +101,8 @@ System.prototype = {
       }
     }
 
-    // check cache for mesh
-    if (isCached(from, this.cache.mesh) || isCached(to, this.cache.mesh)) {
+    // check mesh cache for collision
+    if (this.isCached(from, this.cache.mesh) || this.isCached(to, this.cache.mesh)) {
       const intersect = this.cache.mesh[0].getIntersect(from, to);
 
       // cache intersect
@@ -116,7 +121,7 @@ System.prototype = {
     for (let i=0; i<quadrant.length; i+=1) {
       const mesh = quadrant[i];
 
-      if (mesh.check(to)) {
+      if (mesh.collision(to)) {
         let res = mesh.getIntersect(from, to);
 
         if (res != null) {
@@ -134,6 +139,23 @@ System.prototype = {
     return intersect;
   },
 
+  countCollisions: function(point) {
+    // get n collisions
+
+    let collisions = 0;
+    const quadrant = this.quadrants.getQuadrant(point);
+
+    for (let i=0; i<quadrant.length; i+=1) {
+      const mesh = quadrant[i];
+
+      if (mesh.collision(point)) {
+        collisions += 1;
+      }
+    }
+
+    return collisions;
+  },
+
   cacheItem: function(cache, point, item) {
     cache.unshift({
       point: new THREE.Vector3(point.x, point.y, point.z),
@@ -141,7 +163,7 @@ System.prototype = {
     })
 
     if (cache.length > Config.system.cacheSize) {
-      cache.mesh.splice(cache.mesh.length - 1, 1);
+      cache.splice(cache.length - 1, 1);
     }
   },
 

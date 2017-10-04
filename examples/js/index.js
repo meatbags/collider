@@ -10,15 +10,19 @@ const App = {
     App.renderer.setClearColor(0xf9e5e2, 1);
     document.body.append(App.renderer.domElement);
 
+    // dev
+    App.devcvs = document.getElementById('canvas');
+    App.devctx = App.devcvs.getContext('2d');
+
     // scene
     App.scene = new THREE.Scene();
-    //App.camera = new THREE.PerspectiveCamera(45, 960/480, 0.1, 1000);
     App.player = new Collider.Player(App.renderer.domElement);
 
     // collision system
     App.colliderSystem = new Collider.System();
 
     // test
+    App.ready = false;
     App.mtlLoader = new THREE.MTLLoader();
     App.mtlLoader.setPath('./assets/');
     App.mtlLoader.load('sample.mtl', function(materials) {
@@ -34,7 +38,7 @@ const App = {
           App.colliderSystem.add(new Collider.Mesh(child.geometry));
         }
         App.scene.add(object);
-        //App.test();
+        App.ready = true;
       });
     });
 
@@ -56,6 +60,33 @@ const App = {
     // run!
     App.time = (new Date()).getTime();
     App.loop();
+  },
+
+  reduce: function(x) {
+    return Math.floor(x * 10) / 10;
+  },
+
+  dev: function() {
+    const x = 20;
+    App.devctx.clearRect(0, 0, App.devcvs.width, App.devcvs.height);
+    App.devctx.fillText(App.reduce(App.player.position.x) + ', ' + App.reduce(App.player.position.y) + ', ' + App.reduce(App.player.position.z), x, 20);
+    App.devctx.fillText(App.reduce(App.player.rotation.x + App.player.offset.rotation.x) + ', ' + App.reduce(App.player.rotation.y + App.player.offset.rotation.y), x, 40);
+
+    // testing
+    const cs = App.colliderSystem;
+
+    const ceilingCached = cs.isCached(App.player.position, cs.cache.ceiling) ? ' CACHED' : '';
+    let ceiling = cs.ceiling(App.player.position);
+    if (ceiling != null)
+      ceiling = App.reduce(ceiling);
+    const collisionCache = cs.isCached(App.player.position, cs.cache.mesh) ? ' CACHED' : '';
+    const collision = cs.collision(App.player.position);
+    const count = cs.countCollisions(App.player.position);
+    //const intersect = App.colliderSystem.intersect()
+
+    App.devctx.fillText('Collision: ' + collision + collisionCache, x, 60);
+    App.devctx.fillText('Collisions: ' + count, x, 80);
+    App.devctx.fillText('Y Ceiling: ' + ceiling + ceilingCached, x, 100);
   },
 
   test: function() {
@@ -108,8 +139,11 @@ const App = {
     const delta = (now - App.time) / 1000.;
     App.time = now;
 
-    App.update(delta);
-    App.render();
+    if (App.ready) {
+      App.dev();
+      App.update(delta);
+      App.render();
+    }
   }
 }
 
