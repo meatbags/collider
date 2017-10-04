@@ -6,9 +6,10 @@ const App = {
   init: function() {
     // set up 3JS
     App.renderer = new THREE.WebGLRenderer();
-    App.renderer.setSize(1000, 540);
+    App.renderer.setSize(1080, 540);
     App.renderer.setClearColor(0xf9e5e2, 1);
-    document.body.append(App.renderer.domElement);
+    document.getElementById('wrapper').appendChild(App.renderer.domElement);
+    //document.body.append(App.renderer.domElement);
 
     // dev
     App.devcvs = document.getElementById('canvas');
@@ -82,11 +83,21 @@ const App = {
     const collisionCache = cs.isCached(App.player.position, cs.cache.mesh) ? ' CACHED' : '';
     const collision = cs.collision(App.player.position);
     const count = cs.countCollisions(App.player.position);
-    //const intersect = App.colliderSystem.intersect()
+    const from = new THREE.Vector3(App.player.position.x, App.player.position.y + 0.1, App.player.position.z);
+    const to = new THREE.Vector3(App.player.position.x, App.player.position.y - 0.1, App.player.position.z);
+    const intersectCache = cs.isCached(from, cs.cache.intersect) ? ' CACHED' : '';
+    const intersect = cs.intersect(from, to);
+    let ix = iy = iz = null;
+    if (intersect != null) {
+      ix = App.reduce(intersect.x);
+      iy = App.reduce(intersect.y);
+      iz = App.reduce(intersect.z);
+    }
 
     App.devctx.fillText('Collision: ' + collision + collisionCache, x, 60);
     App.devctx.fillText('Collisions: ' + count, x, 80);
     App.devctx.fillText('Y Ceiling: ' + ceiling + ceilingCached, x, 100);
+    App.devctx.fillText('Intersect: ' + ix + ', ' + iy + ', ' + iz + intersectCache, x, 120);
   },
 
   test: function() {

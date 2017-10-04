@@ -9,8 +9,6 @@ const Plane = function(p1, p2, p3, n1, n2, n3) {
   this.n2 = n2;
   this.n3 = n3;
   this.culled = false;
-  this.above = false;
-  this.below = false;
   this.generatePlane();
 };
 
@@ -40,8 +38,7 @@ Plane.prototype = {
     this.D = -(this.normal.x * this.position.x) - (this.normal.y * this.position.y) - (this.normal.z * this.position.z);
 
     // create bounding box
-    const points = [this.p1, this.p2, this.p3];
-    this.box = new THREE.Box3().setFromPoints(points);
+    this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
   },
 
   isPointAbove: function(point) {
@@ -130,9 +127,13 @@ Plane.prototype = {
     const z = p1.z - ((vec.z * numPart) / denom);
     const point = new THREE.Vector3(x, y, z);
 
-    // return intersect if point is inside geometry
+    // return intersect if point is inside verts & line
     if (this.containsPoint(point)) {
-      return point;
+      const box = new THREE.Box3().setFromPoints([p1, p2]);
+
+      if (box.containsPoint(point)) {
+        return point;
+      }
     }
 
     return null;

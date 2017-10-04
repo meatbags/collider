@@ -19,7 +19,7 @@ const Player = function(domElement) {
     height: 1.8,
     climb: 1,
     rotation: Math.PI * 0.85,
-    fov: 50,
+    fov: 55,
     cameraThreshold: 0.33,
     maxRotationOffset: Math.PI * 0.25,
     adjust: 0.05,

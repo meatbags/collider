@@ -7,6 +7,20 @@
     <script type='text/javascript' src='../build/collider.min.js'></script>
     <script type='text/javascript' src='./js/index.js'></script>
     <style type='text/css'>
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #wrapper {
+        position: relative;
+      }
+
       #canvas {
         position: absolute;
         top: 0;
@@ -16,6 +30,8 @@
     </style>
   </head>
   <body>
-    <canvas id='canvas'></canvas>
+    <div id='wrapper'>
+      <canvas id='canvas'></canvas>
+    </div>
   </body>
 </html>

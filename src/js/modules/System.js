@@ -122,7 +122,7 @@ System.prototype = {
       const mesh = quadrant[i];
 
       if (mesh.collision(to)) {
-        let res = mesh.getIntersect(from, to);
+        let res = mesh.intersect(from, to);
 
         if (res != null) {
           intersect = res;
@@ -161,7 +161,7 @@ System.prototype = {
       point: new THREE.Vector3(point.x, point.y, point.z),
       item: item
     })
-
+    
     if (cache.length > Config.system.cacheSize) {
       cache.splice(cache.length - 1, 1);
     }
