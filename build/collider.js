@@ -329,7 +329,7 @@ Mesh.prototype = {
     for (var i = 0; i < this.planes.length; i += 1) {
       var plane = this.planes[i];
 
-      if (plane.containsPointXZ(point) && plane.isPointBelowOrEqual(point)) {
+      if (plane.containsPointXZ(point) && plane.isPointBelowOrEqual(point) && plane.normal.y >= 0) {
         var newY = plane.getY(point.x, point.z);
 
         if (newY >= point.y && (y === null || newY < y)) {

@@ -102,7 +102,8 @@ Mesh.prototype = {
 
       if (
         plane.containsPointXZ(point) &&
-        plane.isPointBelowOrEqual(point)
+        plane.isPointBelowOrEqual(point) &&
+        plane.normal.y >= 0
       ) {
         let newY = plane.getY(point.x, point.z);
 
