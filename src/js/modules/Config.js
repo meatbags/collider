@@ -4,9 +4,9 @@ const Config = {
   },
   quadrants: {
     size: {
-      x: 100,
-      y: 100,
-      z: 100,
+      x: 50,
+      y: 10,
+      z: 50,
     }
   },
   plane: {

@@ -68,23 +68,25 @@ const App = {
   },
 
   dev: function() {
-    const x = 20;
+    const x = 15;
     App.devctx.clearRect(0, 0, App.devcvs.width, App.devcvs.height);
-    App.devctx.fillText(App.reduce(App.player.position.x) + ', ' + App.reduce(App.player.position.y) + ', ' + App.reduce(App.player.position.z), x, 20);
-    App.devctx.fillText(App.reduce(App.player.rotation.x + App.player.offset.rotation.x) + ', ' + App.reduce(App.player.rotation.y + App.player.offset.rotation.y), x, 40);
+    App.devctx.fillText('P ' + App.reduce(App.player.position.x) + ', ' + App.reduce(App.player.position.y) + ', ' + App.reduce(App.player.position.z), x, 20);
+    App.devctx.fillText('M ' + App.reduce(App.player.movement.x) + ', ' + App.reduce(App.player.movement.y) + ', ' + App.reduce(App.player.movement.z), x, 40);
+    App.devctx.fillText('D ' + App.reduce(App.player.rotation.x + App.player.offset.rotation.x) + ', ' + App.reduce(App.player.rotation.y + App.player.offset.rotation.y), x, 60);
 
     // testing
     const cs = App.colliderSystem;
+    const pos = App.player.target.position;
 
-    const ceilingCached = cs.isCached(App.player.position, cs.cache.ceiling) ? ' CACHED' : '';
-    let ceiling = cs.ceiling(App.player.position);
+    const ceilingCached = cs.isCached(pos, cs.cache.ceiling) ? ' CACHED' : '';
+    let ceiling = cs.ceiling(pos);
     if (ceiling != null)
       ceiling = App.reduce(ceiling);
-    const collisionCache = cs.isCached(App.player.position, cs.cache.mesh) ? ' CACHED' : '';
-    const collision = cs.collision(App.player.position);
-    const count = cs.countCollisions(App.player.position);
-    const from = new THREE.Vector3(App.player.position.x, App.player.position.y + 0.1, App.player.position.z);
-    const to = new THREE.Vector3(App.player.position.x, App.player.position.y - 0.1, App.player.position.z);
+    const collisionCache = cs.isCached(pos, cs.cache.mesh) ? ' CACHED' : '';
+    const collision = cs.collision(pos);
+    const count = cs.countCollisions(pos);
+    const from = new THREE.Vector3(pos.x, pos.y + 0.1, pos.z);
+    const to = new THREE.Vector3(pos.x, pos.y - 0.1, pos.z);
     const intersectCache = cs.isCached(from, cs.cache.intersect) ? ' CACHED' : '';
     const intersect = cs.intersect(from, to);
     let ix = iy = iz = null;
@@ -94,10 +96,10 @@ const App = {
       iz = App.reduce(intersect.z);
     }
 
-    App.devctx.fillText('Collision: ' + collision + collisionCache, x, 60);
-    App.devctx.fillText('Collisions: ' + count, x, 80);
-    App.devctx.fillText('Y Ceiling: ' + ceiling + ceilingCached, x, 100);
-    App.devctx.fillText('Intersect: ' + ix + ', ' + iy + ', ' + iz + intersectCache, x, 120);
+    App.devctx.fillText('Collision: ' + collision + collisionCache, x, 80);
+    App.devctx.fillText('Collisions: ' + count, x, 100);
+    App.devctx.fillText('Y Ceiling: ' + ceiling + ceilingCached, x, 120);
+    App.devctx.fillText('Intersect: ' + ix + ', ' + iy + ', ' + iz + intersectCache, x, 140);
   },
 
   test: function() {

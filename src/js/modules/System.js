@@ -10,6 +10,7 @@ const System = function () {
   this.cache = {
     mesh: [],
     ceiling: [],
+    floor: [],
     intersect: []
   };
   this.isColliderSystem = true;
@@ -161,7 +162,7 @@ System.prototype = {
       point: new THREE.Vector3(point.x, point.y, point.z),
       item: item
     })
-    
+
     if (cache.length > Config.system.cacheSize) {
       cache.splice(cache.length - 1, 1);
     }

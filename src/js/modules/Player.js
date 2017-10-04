@@ -1,29 +1,39 @@
-import { distanceBetween2D, minAngleDifference, twoPi } from './Maths';
+import { addVector, scaleVector, distanceBetween2D, minAngleDifference, twoPi, pitchBetween } from './Maths';
 
 const Player = function(domElement) {
   this.domElement = domElement;
   this.position = new THREE.Vector3(0, 0, 0);
+  this.movement = new THREE.Vector3(0, 0, 0);
   this.rotation = new THREE.Vector3(0, Math.PI, 0);
   this.offset = {
     rotation: new THREE.Vector3(0, 0, 0)
   };
   this.target = {
     position: new THREE.Vector3(0, 0, 0),
+    movement: new THREE.Vector3(0, 0, 0),
     rotation: new THREE.Vector3(0, Math.PI, 0),
     offset: {
       rotation: new THREE.Vector3(0, 0, 0)
     }
   }
   this.attributes = {
-    speed: 6,
+    speed: 8,
     height: 1.8,
     climb: 1,
-    rotation: Math.PI * 0.85,
-    fov: 55,
-    cameraThreshold: 0.33,
-    maxRotationOffset: Math.PI * 0.25,
+    rotation: Math.PI * 0.75,
+    fov: 58,
+    cameraThreshold: 0.4,
+    maxRotationOffset: Math.PI * 0.3,
     adjust: 0.05,
-    adjustFast: 0.09
+    adjustFast: 0.09,
+    adjustInstant: 0.2,
+    climbUpThreshold: 1.5,
+    climbDownThreshold: 0.5,
+    gravity: {
+      accel: 10,
+      maxVelocity: 50,
+      jumpVelocity: 4.8,
+    }
   };
   this.camera = new THREE.PerspectiveCamera(this.attributes.fov, 1, 0.1, 10000);
   this.camera.up = new THREE.Vector3(0, 1, 0);
@@ -59,7 +69,8 @@ Player.prototype = {
 			up: false,
 			down: false,
 			left: false,
-			right: false
+			right: false,
+      jump: false
 		};
 		document.addEventListener("keydown", function(e) {
       self.handleKeyDown(e);
@@ -70,94 +81,85 @@ Player.prototype = {
 	},
 
 	update: function(delta, collider) {
-		if (this.keys.up || this.keys.down) {
-			const move = ((this.keys.up) ? 1: 0) + ((this.keys.down) ? -1 : 0);
-			const dx = Math.sin(this.rotation.y) * this.attributes.speed * delta * move;
-			const dz = Math.cos(this.rotation.y) * this.attributes.speed * delta * move;
-			const nextX = this.position.x + dx;
-			const nextZ = this.position.z + dz;
-			const testX = {x: nextX, y: this.position.y, z: this.position.z};
-			const testZ = {x: this.position.x, y: this.position.y, z: nextZ};
-			let collisionX = false;
-			let collisionZ = false;
+    // handle key presses and move player
 
-			// XZ collisions
-      /*
-			for (let i=0; i<objects.length; i+=1) {
-				const obj = objects[i];
-
-				if (obj.type === TYPE_BOX || obj.type === TYPE_RAMP) {
-					// test next X position
-					if (obj.collision(testX)) {
-						const y = obj.getTop(testX);
-
-						if (Math.abs(this.position.y - y) > this.climbThreshold) {
-							collisionX = true;
-						}
-					}
-
-					// test next Z position
-					if (obj.collision(testZ)) {
-						const y = obj.getTop(testZ);
-
-						if (Math.abs(this.position.y - y) > this.climbThreshold) {
-							collisionZ = true;
-						}
-					}
-				}
-			}
-      */
-
-			// update XZ position
-			this.position.x = (collisionX) ? this.position.x : nextX;
-			this.position.z = (collisionZ) ? this.position.z : nextZ;
-		} else {
-      this.target.speed = 0;
+    // update movement vector
+    if (this.movement.y == 0) {
+      if (this.keys.up || this.keys.down) {
+        const dir = ((this.keys.up) ? 1 : 0) + ((this.keys.down) ? -1 : 0);
+        const dx = Math.sin(this.rotation.y) * this.attributes.speed * dir;
+        const dz = Math.cos(this.rotation.y) * this.attributes.speed * dir;
+        this.movement.x = dx;
+        this.movement.z = dz;
+      } else {
+        this.movement.x = 0;
+        this.movement.z = 0;
+      }
     }
 
-    let y = collider.ceiling(this.position);
+    // jump
+    if (this.keys.jump) {
+      this.keys.jump = false;
 
-    if (y != null) {
-      this.position.y = y;
+      // if not falling
+      if (this.movement.y == 0) {
+        this.movement.y = this.attributes.gravity.jumpVelocity;
+      }
     }
 
-		// get next Y position
-    /*
-    let nextY = 0;
+    // check next p for collision
+    const next = addVector(this.target.position, scaleVector(this.movement, delta));
+    const collision = collider.collision(next);
 
-		for (let i=0; i<objects.length; i+=1) {
-			const obj = objects[i];
+    if (collision) {
+      next.y = collider.ceiling(next);
 
-			if (obj.type === TYPE_BOX || obj.type === TYPE_RAMP) {
-				if (obj.collision2D(this.position)) {
-					const y = obj.getTop(this.position);
+      // check if not climbable
+      if ((next.y - this.target.position.y) > this.attributes.climbUpThreshold) {
+        next.x = this.target.position.x;
+        next.y = this.target.position.y;
+        next.z = this.target.position.z;
+      }
 
-					if (Math.abs(this.position.y - y) <= this.climbThreshold && y > nextY) {
-						nextY = y;
-					}
-				}
-			}
-		}
-    */
+      // reset fall
+      this.movement.y = 0;
+    } else {
+      // if not falling, check for objects beneath
+      next.y -= this.attributes.climbDownThreshold;
 
-		//this.position.y += (nextY - this.position.y) * 0.3;
+      if (this.movement.y == 0 && collider.collision(next)) {
+        // land on object
+        next.y = collider.ceiling(next);
+      } else {
+        // fall, limit velocity
+        this.movement.y -= this.attributes.gravity.accel * delta;
+        this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
 
-		// get next rotation
-		if (this.keys.left || this.keys.right) {
-			const rotate = ((this.keys.left) ? 1 : 0) + ((this.keys.right) ? -1 : 0);
-			this.target.rotation.y += this.attributes.rotation * delta * rotate;
-		}
+        // update position
+        next.y = this.target.position.y + this.movement.y * delta;
+      }
+    }
 
-		// update rotation
+    // set new position target
+    this.target.position.x = next.x;
+    this.target.position.y = next.y;
+    this.target.position.z = next.z;
+
+    // smooth motion a little
+    this.position.x += (this.target.position.x - this.position.x) * this.attributes.adjustInstant;
+    this.position.y += (this.target.position.y - this.position.y) * this.attributes.adjustInstant;
+    this.position.z += (this.target.position.z - this.position.z) * this.attributes.adjustInstant;
+
+    // update rotation vector
+    if (this.keys.left || this.keys.right) {
+      const dir = ((this.keys.left) ? 1 : 0) + ((this.keys.right) ? -1 : 0);
+      this.target.rotation.y += this.attributes.rotation * delta * dir;
+    }
+
     this.rotation.y += minAngleDifference(this.rotation.y, this.target.rotation.y) * this.attributes.adjustFast;
     this.offset.rotation.x += (this.target.offset.rotation.x - this.offset.rotation.x) * this.attributes.adjust;
     this.offset.rotation.y += (this.target.offset.rotation.y - this.offset.rotation.y) * this.attributes.adjust;
-
-    if (this.rotation.y < 0) {
-      this.rotation.y += twoPi;
-    } else if (this.rotation.y > twoPi) {
-      this.rotation.y -= twoPi;
-    }
+    this.rotation.y += (this.rotation.y < 0) ? twoPi : ((this.rotation.y > twoPi) ? -twoPi : 0);
 
     // set new camera position
     const yaw = this.rotation.y + this.offset.rotation.y;
@@ -189,6 +191,9 @@ Player.prototype = {
       case 39:
       case 68:
         this.keys.right = true;
+        break;
+      case 32:
+        this.keys.jump = true;
         break;
       default:
         break;

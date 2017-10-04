@@ -93,7 +93,7 @@ Mesh.prototype = {
   },
 
   ceiling: function(point) {
-    // get ceiling above point
+    // get closest ceiling above point
 
     let y = null;
 

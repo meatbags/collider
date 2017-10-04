@@ -14,13 +14,12 @@ const Plane = function(p1, p2, p3, n1, n2, n3) {
 
 Plane.prototype = {
   generatePlane: function() {
-    // generate a plane
-
-    const edge12 = Maths.subtractVector(this.p2, this.p1);
-    const edge13 = Maths.subtractVector(this.p3, this.p1);
+    // edge vectors
+    const e12 = Maths.subtractVector(this.p2, this.p1);
+    const e13 = Maths.subtractVector(this.p3, this.p1);
 
     // get normal
-    this.normal = Maths.normalise(Maths.crossProduct(edge12, edge13));
+    this.normal = Maths.normalise(Maths.crossProduct(e12, e13));
 
     // reverse naughty normals
     if (Maths.dotProduct(this.normal, this.n1) < 0) {
@@ -33,6 +32,18 @@ Plane.prototype = {
       (this.p1.y + this.p2.y + this.p3.y) / 3,
       (this.p1.z + this.p2.z + this.p3.z) / 3
     );
+
+    // get edge centres & normals
+    this.e1 = Maths.scaleVector(Maths.addVector(this.p1, this.p2), 0.5);
+    this.e2 = Maths.scaleVector(Maths.addVector(this.p2, this.p3), 0.5);
+    this.e3 = Maths.scaleVector(Maths.addVector(this.p3, this.p1), 0.5);
+    this.e1n = Maths.subtractVector(this.e1, this.position);
+    this.e2n = Maths.subtractVector(this.e2, this.position);
+    this.e3n = Maths.subtractVector(this.e3, this.position);
+
+    // make 2D
+    this.e1.y = this.e2.y = this.e3.y = 0;
+    this.e1n.y = this.e2n.y = this.e3n.y = 0;
 
     // cache D for solving plane
     this.D = -(this.normal.x * this.position.x) - (this.normal.y * this.position.y) - (this.normal.z * this.position.z);
@@ -135,7 +146,7 @@ Plane.prototype = {
         return point;
       }
     }
-
+    
     return null;
   },
 

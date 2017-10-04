@@ -54,6 +54,24 @@ const distanceBetween2D = function(a, b) {
   return dist;
 }
 
+const pitchBetween = function(a, b) {
+  const xz = distanceBetween2D(a, b);
+  const y = b.y - a.y;
+  const pitch = Math.atan2(y, xz);
+
+  return pitch;
+}
+
+const scaleVector = function(v, scale) {
+  const vec = new THREE.Vector3(
+    v.x * scale,
+    v.y * scale,
+    v.z * scale
+  );
+
+  return vec;
+};
+
 const crossProduct = function(a, b) {
   const c = new THREE.Vector3(
     a.y * b.z - a.z * b.y,
@@ -74,4 +92,4 @@ const dotProduct = function(a, b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 };
 
-export { twoPi, distanceBetween2D, minAngleDifference, dotProduct, addVector, subtractVector, crossProduct, reverseVector, normalise };
+export { pitchBetween, twoPi, distanceBetween2D, minAngleDifference, dotProduct, addVector, subtractVector, scaleVector, crossProduct, reverseVector, normalise };

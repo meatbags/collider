@@ -80,9 +80,9 @@ var Config = {
   },
   quadrants: {
     size: {
-      x: 100,
-      y: 100,
-      z: 100
+      x: 50,
+      y: 10,
+      z: 50
     }
   },
   plane: {
@@ -150,6 +150,20 @@ var distanceBetween2D = function distanceBetween2D(a, b) {
   return dist;
 };
 
+var pitchBetween = function pitchBetween(a, b) {
+  var xz = distanceBetween2D(a, b);
+  var y = b.y - a.y;
+  var pitch = Math.atan2(y, xz);
+
+  return pitch;
+};
+
+var scaleVector = function scaleVector(v, scale) {
+  var vec = new THREE.Vector3(v.x * scale, v.y * scale, v.z * scale);
+
+  return vec;
+};
+
 var crossProduct = function crossProduct(a, b) {
   var c = new THREE.Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 
@@ -166,12 +180,14 @@ var dotProduct = function dotProduct(a, b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 };
 
+exports.pitchBetween = pitchBetween;
 exports.twoPi = twoPi;
 exports.distanceBetween2D = distanceBetween2D;
 exports.minAngleDifference = minAngleDifference;
 exports.dotProduct = dotProduct;
 exports.addVector = addVector;
 exports.subtractVector = subtractVector;
+exports.scaleVector = scaleVector;
 exports.crossProduct = crossProduct;
 exports.reverseVector = reverseVector;
 exports.normalise = normalise;
@@ -306,7 +322,7 @@ Mesh.prototype = {
   },
 
   ceiling: function ceiling(point) {
-    // get ceiling above point
+    // get closest ceiling above point
 
     var y = null;
 
@@ -380,13 +396,12 @@ var Plane = function Plane(p1, p2, p3, n1, n2, n3) {
 
 Plane.prototype = {
   generatePlane: function generatePlane() {
-    // generate a plane
-
-    var edge12 = Maths.subtractVector(this.p2, this.p1);
-    var edge13 = Maths.subtractVector(this.p3, this.p1);
+    // edge vectors
+    var e12 = Maths.subtractVector(this.p2, this.p1);
+    var e13 = Maths.subtractVector(this.p3, this.p1);
 
     // get normal
-    this.normal = Maths.normalise(Maths.crossProduct(edge12, edge13));
+    this.normal = Maths.normalise(Maths.crossProduct(e12, e13));
 
     // reverse naughty normals
     if (Maths.dotProduct(this.normal, this.n1) < 0) {
@@ -395,6 +410,18 @@ Plane.prototype = {
 
     // get position
     this.position = new THREE.Vector3((this.p1.x + this.p2.x + this.p3.x) / 3, (this.p1.y + this.p2.y + this.p3.y) / 3, (this.p1.z + this.p2.z + this.p3.z) / 3);
+
+    // get edge centres & normals
+    this.e1 = Maths.scaleVector(Maths.addVector(this.p1, this.p2), 0.5);
+    this.e2 = Maths.scaleVector(Maths.addVector(this.p2, this.p3), 0.5);
+    this.e3 = Maths.scaleVector(Maths.addVector(this.p3, this.p1), 0.5);
+    this.e1n = Maths.subtractVector(this.e1, this.position);
+    this.e2n = Maths.subtractVector(this.e2, this.position);
+    this.e3n = Maths.subtractVector(this.e3, this.position);
+
+    // make 2D
+    this.e1.y = this.e2.y = this.e3.y = 0;
+    this.e1n.y = this.e2n.y = this.e3n.y = 0;
 
     // cache D for solving plane
     this.D = -(this.normal.x * this.position.x) - this.normal.y * this.position.y - this.normal.z * this.position.z;
@@ -538,6 +565,7 @@ var System = function System() {
   this.cache = {
     mesh: [],
     ceiling: [],
+    floor: [],
     intersect: []
   };
   this.isColliderSystem = true;
@@ -803,27 +831,37 @@ var _Maths = __webpack_require__(1);
 var Player = function Player(domElement) {
   this.domElement = domElement;
   this.position = new THREE.Vector3(0, 0, 0);
+  this.movement = new THREE.Vector3(0, 0, 0);
   this.rotation = new THREE.Vector3(0, Math.PI, 0);
   this.offset = {
     rotation: new THREE.Vector3(0, 0, 0)
   };
   this.target = {
     position: new THREE.Vector3(0, 0, 0),
+    movement: new THREE.Vector3(0, 0, 0),
     rotation: new THREE.Vector3(0, Math.PI, 0),
     offset: {
       rotation: new THREE.Vector3(0, 0, 0)
     }
   };
   this.attributes = {
-    speed: 6,
+    speed: 8,
     height: 1.8,
     climb: 1,
-    rotation: Math.PI * 0.85,
-    fov: 55,
-    cameraThreshold: 0.33,
-    maxRotationOffset: Math.PI * 0.25,
+    rotation: Math.PI * 0.75,
+    fov: 58,
+    cameraThreshold: 0.4,
+    maxRotationOffset: Math.PI * 0.3,
     adjust: 0.05,
-    adjustFast: 0.09
+    adjustFast: 0.09,
+    adjustInstant: 0.2,
+    climbUpThreshold: 1.5,
+    climbDownThreshold: 0.5,
+    gravity: {
+      accel: 10,
+      maxVelocity: 50,
+      jumpVelocity: 4.8
+    }
   };
   this.camera = new THREE.PerspectiveCamera(this.attributes.fov, 1, 0.1, 10000);
   this.camera.up = new THREE.Vector3(0, 1, 0);
@@ -859,7 +897,8 @@ Player.prototype = {
       up: false,
       down: false,
       left: false,
-      right: false
+      right: false,
+      jump: false
     };
     document.addEventListener("keydown", function (e) {
       self.handleKeyDown(e);
@@ -870,87 +909,85 @@ Player.prototype = {
   },
 
   update: function update(delta, collider) {
-    if (this.keys.up || this.keys.down) {
-      var move = (this.keys.up ? 1 : 0) + (this.keys.down ? -1 : 0);
-      var dx = Math.sin(this.rotation.y) * this.attributes.speed * delta * move;
-      var dz = Math.cos(this.rotation.y) * this.attributes.speed * delta * move;
-      var nextX = this.position.x + dx;
-      var nextZ = this.position.z + dz;
-      var testX = { x: nextX, y: this.position.y, z: this.position.z };
-      var testZ = { x: this.position.x, y: this.position.y, z: nextZ };
-      var collisionX = false;
-      var collisionZ = false;
+    // handle key presses and move player
 
-      // XZ collisions
-      /*
-      for (let i=0; i<objects.length; i+=1) {
-      const obj = objects[i];
-      if (obj.type === TYPE_BOX || obj.type === TYPE_RAMP) {
-      // test next X position
-      if (obj.collision(testX)) {
-      const y = obj.getTop(testX);
-      		if (Math.abs(this.position.y - y) > this.climbThreshold) {
-      	collisionX = true;
+    // update movement vector
+    if (this.movement.y == 0) {
+      if (this.keys.up || this.keys.down) {
+        var dir = (this.keys.up ? 1 : 0) + (this.keys.down ? -1 : 0);
+        var dx = Math.sin(this.rotation.y) * this.attributes.speed * dir;
+        var dz = Math.cos(this.rotation.y) * this.attributes.speed * dir;
+        this.movement.x = dx;
+        this.movement.z = dz;
+      } else {
+        this.movement.x = 0;
+        this.movement.z = 0;
       }
-      }
-      	// test next Z position
-      if (obj.collision(testZ)) {
-      const y = obj.getTop(testZ);
-      		if (Math.abs(this.position.y - y) > this.climbThreshold) {
-      	collisionZ = true;
-      }
-      }
-      }
-      }
-      */
+    }
 
-      // update XZ position
-      this.position.x = collisionX ? this.position.x : nextX;
-      this.position.z = collisionZ ? this.position.z : nextZ;
+    // jump
+    if (this.keys.jump) {
+      this.keys.jump = false;
+
+      // if not falling
+      if (this.movement.y == 0) {
+        this.movement.y = this.attributes.gravity.jumpVelocity;
+      }
+    }
+
+    // check next p for collision
+    var next = (0, _Maths.addVector)(this.target.position, (0, _Maths.scaleVector)(this.movement, delta));
+    var collision = collider.collision(next);
+
+    if (collision) {
+      next.y = collider.ceiling(next);
+
+      // check if not climbable
+      if (next.y - this.target.position.y > this.attributes.climbUpThreshold) {
+        next.x = this.target.position.x;
+        next.y = this.target.position.y;
+        next.z = this.target.position.z;
+      }
+
+      // reset fall
+      this.movement.y = 0;
     } else {
-      this.target.speed = 0;
+      // if not falling, check for objects beneath
+      next.y -= this.attributes.climbDownThreshold;
+
+      if (this.movement.y == 0 && collider.collision(next)) {
+        // land on object
+        next.y = collider.ceiling(next);
+      } else {
+        // fall, limit velocity
+        this.movement.y -= this.attributes.gravity.accel * delta;
+        this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
+
+        // update position
+        next.y = this.target.position.y + this.movement.y * delta;
+      }
     }
 
-    var y = collider.ceiling(this.position);
+    // set new position target
+    this.target.position.x = next.x;
+    this.target.position.y = next.y;
+    this.target.position.z = next.z;
 
-    if (y != null) {
-      this.position.y = y;
-    }
+    // smooth motion a little
+    this.position.x += (this.target.position.x - this.position.x) * this.attributes.adjustInstant;
+    this.position.y += (this.target.position.y - this.position.y) * this.attributes.adjustInstant;
+    this.position.z += (this.target.position.z - this.position.z) * this.attributes.adjustInstant;
 
-    // get next Y position
-    /*
-    let nextY = 0;
-    for (let i=0; i<objects.length; i+=1) {
-    const obj = objects[i];
-    	if (obj.type === TYPE_BOX || obj.type === TYPE_RAMP) {
-    if (obj.collision2D(this.position)) {
-    	const y = obj.getTop(this.position);
-    			if (Math.abs(this.position.y - y) <= this.climbThreshold && y > nextY) {
-    		nextY = y;
-    	}
-    }
-    }
-    }
-    */
-
-    //this.position.y += (nextY - this.position.y) * 0.3;
-
-    // get next rotation
+    // update rotation vector
     if (this.keys.left || this.keys.right) {
-      var rotate = (this.keys.left ? 1 : 0) + (this.keys.right ? -1 : 0);
-      this.target.rotation.y += this.attributes.rotation * delta * rotate;
+      var _dir = (this.keys.left ? 1 : 0) + (this.keys.right ? -1 : 0);
+      this.target.rotation.y += this.attributes.rotation * delta * _dir;
     }
 
-    // update rotation
     this.rotation.y += (0, _Maths.minAngleDifference)(this.rotation.y, this.target.rotation.y) * this.attributes.adjustFast;
     this.offset.rotation.x += (this.target.offset.rotation.x - this.offset.rotation.x) * this.attributes.adjust;
     this.offset.rotation.y += (this.target.offset.rotation.y - this.offset.rotation.y) * this.attributes.adjust;
-
-    if (this.rotation.y < 0) {
-      this.rotation.y += _Maths.twoPi;
-    } else if (this.rotation.y > _Maths.twoPi) {
-      this.rotation.y -= _Maths.twoPi;
-    }
+    this.rotation.y += this.rotation.y < 0 ? _Maths.twoPi : this.rotation.y > _Maths.twoPi ? -_Maths.twoPi : 0;
 
     // set new camera position
     var yaw = this.rotation.y + this.offset.rotation.y;
@@ -978,6 +1015,9 @@ Player.prototype = {
       case 39:
       case 68:
         this.keys.right = true;
+        break;
+      case 32:
+        this.keys.jump = true;
         break;
       default:
         break;
