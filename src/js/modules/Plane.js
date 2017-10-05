@@ -50,6 +50,7 @@ Plane.prototype = {
 
     // create bounding box
     this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
+    //this.box.expandByScalar(0.05);
   },
 
   isPointAbove: function(point) {
@@ -146,7 +147,7 @@ Plane.prototype = {
         return point;
       }
     }
-    
+
     return null;
   },
 

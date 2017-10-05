@@ -35,7 +35,8 @@ const App = {
         for (let i=0; i<object.children.length; i+=1) {
           const child = object.children[i];
           child.material.transparent = true;
-          child.material.opacity = 0.5;
+          //child.material.side = THREE.DoubleSide;
+          child.material.opacity = 0.6;
           App.colliderSystem.add(new Collider.Mesh(child.geometry));
         }
         App.scene.add(object);
@@ -87,19 +88,18 @@ const App = {
     const count = cs.countCollisions(pos);
     const from = new THREE.Vector3(pos.x, pos.y + 0.1, pos.z);
     const to = new THREE.Vector3(pos.x, pos.y - 0.1, pos.z);
-    const intersectCache = cs.isCached(from, cs.cache.intersect) ? ' CACHED' : '';
-    const intersect = cs.intersect(from, to);
+    const intersect = (cs.cache.intersect.length > 0) ? cs.cache.intersect[0].item.intersect : null;
     let ix = iy = iz = null;
     if (intersect != null) {
-      ix = App.reduce(intersect.x);
-      iy = App.reduce(intersect.y);
-      iz = App.reduce(intersect.z);
+      ix = App.reduce(intersect.intersect.x);
+      iy = App.reduce(intersect.intersect.y);
+      iz = App.reduce(intersect.intersect.z);
     }
 
     App.devctx.fillText('Collision: ' + collision + collisionCache, x, 80);
     App.devctx.fillText('Collisions: ' + count, x, 100);
     App.devctx.fillText('Y Ceiling: ' + ceiling + ceilingCached, x, 120);
-    App.devctx.fillText('Intersect: ' + ix + ', ' + iy + ', ' + iz + intersectCache, x, 140);
+    App.devctx.fillText('Intersect: ' + ix + ', ' + iy + ', ' + iz, x, 140);
   },
 
   test: function() {

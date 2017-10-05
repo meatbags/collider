@@ -102,19 +102,6 @@ System.prototype = {
       }
     }
 
-    // check mesh cache for collision
-    if (this.isCached(from, this.cache.mesh) || this.isCached(to, this.cache.mesh)) {
-      const intersect = this.cache.mesh[0].getIntersect(from, to);
-
-      // cache intersect
-      this.cacheItem(this.cache.intersect, from, {
-        to: to,
-        intersect: intersect
-      });
-
-      return intersect;
-    }
-
     // search
     const quadrant = this.quadrants.getQuadrant(to);
     let intersect = null;
@@ -125,7 +112,7 @@ System.prototype = {
       if (mesh.collision(to)) {
         let res = mesh.intersect(from, to);
 
-        if (res != null) {
+        if (res != null && (intersect === null || res.distance < intersect.distance)) {
           intersect = res;
         }
       }
@@ -138,6 +125,27 @@ System.prototype = {
     });
 
     return intersect;
+  },
+
+  countIntersects: function(from, to) {
+    // get n intersects between points in geometric set
+
+    const quadrant = this.quadrants.getQuadrant(to);
+    let count = 0;
+
+    for (let i=0; i<quadrant.length; i+=1) {
+      const mesh = quadrant[i];
+
+      if (mesh.collision(to)) {
+        let res = mesh.intersect(from, to);
+
+        if (res != null) {
+          count += 1;
+        }
+      }
+    }
+
+    return count;
   },
 
   countCollisions: function(point) {

@@ -27,11 +27,13 @@ const normalise = function(a){
     return a;
   }
 
-  a.x /= mag;
-  a.y /= mag;
-  a.z /= mag;
+  const normal = new THREE.Vector3(
+    a.x / mag,
+    a.y / mag,
+    a.z / mag
+  );
 
-  return a;
+  return normal;
 };
 
 const reverseVector = function(a) {
@@ -72,6 +74,10 @@ const scaleVector = function(v, scale) {
   return vec;
 };
 
+const isVectorEqual = function(a, b) {
+  return (a.x === b.x && a.y === b.y & a.z === b.z);
+}
+
 const crossProduct = function(a, b) {
   const c = new THREE.Vector3(
     a.y * b.z - a.z * b.y,
@@ -92,4 +98,4 @@ const dotProduct = function(a, b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 };
 
-export { pitchBetween, twoPi, distanceBetween2D, minAngleDifference, dotProduct, addVector, subtractVector, scaleVector, crossProduct, reverseVector, normalise };
+export { isVectorEqual, pitchBetween, twoPi, distanceBetween, distanceBetween2D, minAngleDifference, dotProduct, addVector, subtractVector, scaleVector, crossProduct, reverseVector, normalise };

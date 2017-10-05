@@ -1,5 +1,6 @@
 import Config from './Config';
 import Plane from './Plane';
+import { distanceBetween } from './Maths';
 
 const Mesh = function(geometry) {
   this.isColliderMesh = true;
@@ -125,7 +126,11 @@ Mesh.prototype = {
       const res = this.planes[i].intersect(p1, p2);
 
       if (res != null) {
-        intersect = res;
+        intersect = {
+          intersect: res,
+          plane: this.planes[i],
+          distance: distanceBetween(p1, res)
+        };
       }
     }
 

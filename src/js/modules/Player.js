@@ -1,4 +1,4 @@
-import { addVector, scaleVector, distanceBetween2D, minAngleDifference, twoPi, pitchBetween } from './Maths';
+import * as Maths from './Maths';
 
 const Player = function(domElement) {
   this.domElement = domElement;
@@ -18,12 +18,14 @@ const Player = function(domElement) {
   }
   this.attributes = {
     speed: 8,
+    speedWhileJumping: 4,
     height: 1.8,
     climb: 1,
     rotation: Math.PI * 0.75,
     fov: 58,
     cameraThreshold: 0.4,
     maxRotationOffset: Math.PI * 0.3,
+    adjustSlow: 0.02,
     adjust: 0.05,
     adjustFast: 0.09,
     adjustInstant: 0.2,
@@ -32,7 +34,7 @@ const Player = function(domElement) {
     gravity: {
       accel: 10,
       maxVelocity: 50,
-      jumpVelocity: 4.8,
+      jumpVelocity: 5,
     }
   };
   this.camera = new THREE.PerspectiveCamera(this.attributes.fov, 1, 0.1, 10000);
@@ -83,21 +85,29 @@ Player.prototype = {
 	update: function(delta, collider) {
     // handle key presses and move player
 
-    // update movement vector
-    if (this.movement.y == 0) {
-      if (this.keys.up || this.keys.down) {
-        const dir = ((this.keys.up) ? 1 : 0) + ((this.keys.down) ? -1 : 0);
-        const dx = Math.sin(this.rotation.y) * this.attributes.speed * dir;
-        const dz = Math.cos(this.rotation.y) * this.attributes.speed * dir;
-        this.movement.x = dx;
-        this.movement.z = dz;
-      } else {
-        this.movement.x = 0;
-        this.movement.z = 0;
-      }
+    // update XZ target movement vector
+    if (this.keys.up || this.keys.down) {
+      const dir = ((this.keys.up) ? 1 : 0) + ((this.keys.down) ? -1 : 0);
+      const yaw = this.rotation.y + this.offset.rotation.y;
+      const dx = Math.sin(yaw) * this.attributes.speed * dir;
+      const dz = Math.cos(yaw) * this.attributes.speed * dir;
+      this.target.movement.x = dx;
+      this.target.movement.z = dz;
+    } else {
+      this.target.movement.x = 0;
+      this.target.movement.z = 0;
     }
 
-    // jump
+    // reduce movement if jumping/ falling
+    if (this.movement.y == 0) {
+      this.movement.x = this.target.movement.x;
+      this.movement.z = this.target.movement.z;
+    } else {
+      this.movement.x += (this.target.movement.x - this.movement.x) * this.attributes.adjustSlow;
+      this.movement.z += (this.target.movement.z - this.movement.z) * this.attributes.adjustSlow;
+    }
+
+    // jump key
     if (this.keys.jump) {
       this.keys.jump = false;
 
@@ -108,21 +118,58 @@ Player.prototype = {
     }
 
     // check next p for collision
-    const next = addVector(this.target.position, scaleVector(this.movement, delta));
+    const next = Maths.addVector(this.target.position, Maths.scaleVector(this.movement, delta));
     const collision = collider.collision(next);
 
     if (collision) {
-      next.y = collider.ceiling(next);
+      // get object top
+      const objectTop = collider.ceiling(next);
 
-      // check if not climbable
-      if ((next.y - this.target.position.y) > this.attributes.climbUpThreshold) {
-        next.x = this.target.position.x;
-        next.y = this.target.position.y;
-        next.z = this.target.position.z;
+      // check if climbable
+      if (objectTop != null && (objectTop - this.target.position.y) <= this.attributes.climbUpThreshold) {
+        // climb
+        next.y = objectTop;
+
+        // reset fall
+        this.movement.y = 0;
+      } else {
+        // get intersected plane
+        const intersect = collider.intersect(this.target.position, next);
+
+        if (intersect != null) {
+          // get XY vectors perpendicular vector
+          const normal = intersect.plane.normal;
+          const right = new THREE.Vector3(-normal.z, 0, normal.x);
+          const left = new THREE.Vector3(normal.z, 0, -normal.x);
+
+          // select appropriate direction
+          let dir = Maths.subtractVector(next, this.target.position);
+          dir.y = 0;
+          dir = Maths.normalise(dir);
+          const rightDot = Maths.dotProduct(right, dir);
+          const leftDot = Maths.dotProduct(left, dir);
+
+          if (rightDot > leftDot) {
+            next.x = this.target.position.x + right.x * rightDot * this.attributes.speed * delta;
+            next.z = this.target.position.z + right.z * rightDot * this.attributes.speed * delta;
+          } else {
+            next.x = this.target.position.x + left.x * leftDot * this.attributes.speed * delta;
+            next.z = this.target.position.z + left.z * leftDot * this.attributes.speed * delta;
+          }
+
+          // check next position
+          const count = collider.countIntersects(this.target.position, next);
+
+          if (count != 0) {
+            next.x = this.target.position.x;
+            next.z = this.target.position.z;
+          }
+        } else {
+          // bad intersect, stop movement
+          next.x = this.target.position.x;
+          next.z = this.target.position.z;
+        }
       }
-
-      // reset fall
-      this.movement.y = 0;
     } else {
       // if not falling, check for objects beneath
       next.y -= this.attributes.climbDownThreshold;
@@ -156,10 +203,10 @@ Player.prototype = {
       this.target.rotation.y += this.attributes.rotation * delta * dir;
     }
 
-    this.rotation.y += minAngleDifference(this.rotation.y, this.target.rotation.y) * this.attributes.adjustFast;
+    this.rotation.y += Maths.minAngleDifference(this.rotation.y, this.target.rotation.y) * this.attributes.adjustFast;
     this.offset.rotation.x += (this.target.offset.rotation.x - this.offset.rotation.x) * this.attributes.adjust;
     this.offset.rotation.y += (this.target.offset.rotation.y - this.offset.rotation.y) * this.attributes.adjust;
-    this.rotation.y += (this.rotation.y < 0) ? twoPi : ((this.rotation.y > twoPi) ? -twoPi : 0);
+    this.rotation.y += (this.rotation.y < 0) ? Maths.twoPi : ((this.rotation.y > Maths.twoPi) ? -Maths.twoPi : 0);
 
     // set new camera position
     const yaw = this.rotation.y + this.offset.rotation.y;
