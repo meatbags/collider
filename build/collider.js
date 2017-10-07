@@ -519,6 +519,26 @@ Plane.prototype = {
     return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
   },
 
+  getNormalIntersect: function getNormalIntersect(point) {
+    var point2 = void 0;
+    if (!this.isPointBelowOrEqual(point)) {
+      point2 = Maths.addVector(point, this.normal);
+    } else {
+      point2 = Maths.subtractVector(point, this.normal);
+    }
+    var vec = Maths.subtractVector(point2, point);
+    var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
+    var denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
+    var x = point.x - vec.x * numPart / denom;
+    var y = point.y - vec.y * numPart / denom;
+    var z = point.z - vec.z * numPart / denom;
+    var intersect = new THREE.Vector3(x, y, z);
+
+    //console.log(intersect)
+
+    return intersect;
+  },
+
   intersect: function intersect(p1, p2) {
     // get intersection of plane and line between p1, p2
 
@@ -711,14 +731,16 @@ System.prototype = {
 
   intersect: function intersect(from, to) {
     // get intersect of geometry and line
-    // check intersect cache for intersect
-    if (this.isCached(from, this.cache.intersect)) {
-      var cached = this.cache.intersect[0];
 
-      if (to.x === cached.item.to.x && to.y === cached.item.to.y && to.z === cached.item.to.z) {
+    // check intersect cache for intersect
+    /*
+    if (this.isCached(from, this.cache.intersect)) {
+      const cached = this.cache.intersect[0];
+        if (to.x === cached.item.to.x && to.y === cached.item.to.y && to.z === cached.item.to.z) {
         return cached.item.intersect;
       }
     }
+    */
 
     // search
     var quadrant = this.quadrants.getQuadrant(to);
@@ -727,7 +749,7 @@ System.prototype = {
     for (var i = 0; i < quadrant.length; i += 1) {
       var mesh = quadrant[i];
 
-      if (mesh.collision(to)) {
+      if (mesh.collision(to) || mesh.collision(from)) {
         var res = mesh.intersect(from, to);
 
         if (res != null && (intersect === null || res.distance < intersect.distance)) {
@@ -1025,84 +1047,77 @@ Player.prototype = {
     }
 
     // check next position for collision
-    var next = Maths.addVector(this.target.position, Maths.scaleVector(this.movement, delta));
+    var next = Maths.addVector(Maths.scaleVector(this.movement, delta), this.target.position);
     var collision = collider.collision(next);
 
     if (collision) {
-      // CASE A: Collision, and player is on surface or jumping
-      //if (this.movement.y >= 0) {
+      // fall by default
+      this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
       var ceiling = collider.ceilingPlane(next);
-      var climbable = ceiling.y != null && ceiling.y - this.target.position.y <= this.attributes.climb.up && ceiling.plane.normal.y >= this.attributes.climb.minYNormal;
 
-      // climb up
-      if (climbable) {
+      // check if climbable
+      if (ceiling.y != null && ceiling.y - this.target.position.y <= this.attributes.climb.up && ceiling.plane.normal.y >= this.attributes.climb.minYNormal) {
+        // climb up
+        console.log('CLIMB');
         this.movement.y = 0;
         next.y = ceiling.y;
       } else {
-        // alter vector
+        // get intersect
         var intersect = collider.intersect(this.target.position, next);
-
-        if (intersect != null) {
-          // get XY vectors perpendicular vector
-          var normal = intersect.plane.normal;
-          var perp = intersect.plane.getPerpendicularNormals();
-
-          // select appropriate direction
-          var _dir = Maths.subtractVector(next, this.target.position);
-          _dir.y = 0;
-          _dir = Maths.normalise(_dir);
-          var rightDot = Maths.dotProduct(perp.right, _dir);
-          var leftDot = Maths.dotProduct(perp.left, _dir);
-
-          if (rightDot > leftDot) {
-            next.x = this.target.position.x + perp.right.x * rightDot * this.attributes.speed * delta;
-            next.z = this.target.position.z + perp.right.z * rightDot * this.attributes.speed * delta;
-          } else {
-            next.x = this.target.position.x + perp.left.x * leftDot * this.attributes.speed * delta;
-            next.z = this.target.position.z + perp.left.z * leftDot * this.attributes.speed * delta;
-          }
-
-          // check next position
-          var count = collider.countIntersects(this.target.position, next);
-
-          if (count != 0) {
-            next.x = this.target.position.x;
-            next.z = this.target.position.z;
-          }
-        } else {
-          // bad intersect, stop movement
+        next.x = this.target.position.x;
+        next.z = this.target.position.z;
+        if (intersect === null) {
+          // badly formed mesh, stop player (prevent crazy physics)
           next.x = this.target.position.x;
           next.z = this.target.position.z;
+        } else {
+          // extrude position to point on plane
+          var extrude = intersect.plane.getNormalIntersect(next);
+          console.log(extrude);
+
+          next.x = extrude.x;
+          next.z = extrude.z;
+          /*
+          const normal = intersect.plane.normal;
+          const extrude = Maths.copyVector(next);
+          extrude.x += normal.x * 1;
+          extrude.z += normal.z * 1;
+          const newPos = collider.intersect(next, extrude);
+            if (newPos != null) {
+            // check if new path blocked
+            const count = collider.countIntersects(this.target.position, newPos.intersect);
+              if (count <= 1) {
+              // go to new position
+              next.x = newPos.intersect.x;
+              next.z = newPos.intersect.z;
+            } else {
+              // stop
+              next.x = this.target.position.x;
+              next.z = this.target.position.z;
+            }
+          }
+          */
         }
       }
-      //}
-    }
-
-    // no collision, try and descend slope
-    if (!collision) {
+    } else {
+      // check if on downward slope
       var testUnder = Maths.copyVector(next);
       testUnder.y -= this.attributes.climb.down;
 
-      // check if player can descend slope
       if (this.movement.y == 0 && collider.collision(testUnder)) {
         var _ceiling = collider.ceilingPlane(testUnder);
 
+        // snap to slope if not too steep
         if (_ceiling.plane.normal.y >= this.attributes.climb.minYNormal) {
           next.y = _ceiling.y;
           collision = true;
         }
       }
-    }
 
-    // no floor found, fall
-    if (!collision) {
-      this.movement.y -= this.attributes.gravity.accel * delta;
-      this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
-    } else if (this.movement.y != 0) {
-      // bound off surface here
-
-      this.movement.y -= this.attributes.gravity.accel * delta;
-      this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
+      // if no collision, fall
+      if (!collision) {
+        this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
+      }
     }
 
     // set new position target
@@ -1117,8 +1132,8 @@ Player.prototype = {
 
     // update rotation vector
     if (this.keys.left || this.keys.right) {
-      var _dir2 = (this.keys.left ? 1 : 0) + (this.keys.right ? -1 : 0);
-      this.target.rotation.y += this.attributes.rotation * delta * _dir2;
+      var _dir = (this.keys.left ? 1 : 0) + (this.keys.right ? -1 : 0);
+      this.target.rotation.y += this.attributes.rotation * delta * _dir;
     }
 
     this.rotation.y += Maths.minAngleDifference(this.rotation.y, this.target.rotation.y) * this.attributes.adjust.fast;

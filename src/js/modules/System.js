@@ -118,7 +118,9 @@ System.prototype = {
 
   intersect: function(from, to) {
     // get intersect of geometry and line
+
     // check intersect cache for intersect
+    /*
     if (this.isCached(from, this.cache.intersect)) {
       const cached = this.cache.intersect[0];
 
@@ -126,6 +128,7 @@ System.prototype = {
         return cached.item.intersect;
       }
     }
+    */
 
     // search
     const quadrant = this.quadrants.getQuadrant(to);
@@ -134,7 +137,7 @@ System.prototype = {
     for (let i=0; i<quadrant.length; i+=1) {
       const mesh = quadrant[i];
 
-      if (mesh.collision(to)) {
+      if (mesh.collision(to) || mesh.collision(from)) {
         let res = mesh.intersect(from, to);
 
         if (res != null && (intersect === null || res.distance < intersect.distance)) {

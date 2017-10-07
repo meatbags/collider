@@ -153,7 +153,7 @@ Mesh.prototype = {
 
     for (var i=0; i<this.planes.length; i+=1) {
       const res = this.planes[i].intersect(p1, p2);
-
+      
       if (res != null) {
         intersect = {
           intersect: res,

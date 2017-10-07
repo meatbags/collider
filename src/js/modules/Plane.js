@@ -103,6 +103,26 @@ Plane.prototype = {
     return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
   },
 
+  getNormalIntersect: function(point) {
+    let point2;
+    if (!this.isPointBelowOrEqual(point)) {
+      point2 = Maths.addVector(point, this.normal);
+    } else {
+      point2 = Maths.subtractVector(point, this.normal)
+    }
+    const vec = Maths.subtractVector(point2, point);
+    const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
+    const denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
+    const x = point.x - ((vec.x * numPart) / denom);
+    const y = point.y - ((vec.y * numPart) / denom);
+    const z = point.z - ((vec.z * numPart) / denom);
+    const intersect = new THREE.Vector3(x, y, z);
+
+    //console.log(intersect)
+
+    return intersect;
+  },
+
   intersect: function(p1, p2) {
     // get intersection of plane and line between p1, p2
 

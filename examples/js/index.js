@@ -14,6 +14,7 @@ const App = {
     // dev
     App.devcvs = document.getElementById('canvas');
     App.devctx = App.devcvs.getContext('2d');
+    App.tick = 0;
 
     // scene
     App.scene = new THREE.Scene();

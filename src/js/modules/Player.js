@@ -122,87 +122,86 @@ Player.prototype = {
     }
 
     // check next position for collision
-    const next = Maths.addVector(this.target.position, Maths.scaleVector(this.movement, delta));
+    let next = Maths.addVector(Maths.scaleVector(this.movement, delta), this.target.position);
     let collision = collider.collision(next);
 
     if (collision) {
-      // CASE A: Collision, and player is on surface or jumping
-      //if (this.movement.y >= 0) {
-        const ceiling = collider.ceilingPlane(next);
-        const climbable = (ceiling.y != null &&
-          (ceiling.y - this.target.position.y <= this.attributes.climb.up) &&
-          (ceiling.plane.normal.y >= this.attributes.climb.minYNormal)
-        );
+      // fall by default
+      this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
+      const ceiling = collider.ceilingPlane(next);
 
+      // check if climbable
+      if (
+        ceiling.y != null &&
+        ceiling.y - this.target.position.y <= this.attributes.climb.up &&
+        ceiling.plane.normal.y >= this.attributes.climb.minYNormal
+      ) {
         // climb up
-        if (climbable) {
-          this.movement.y = 0;
-          next.y = ceiling.y;
+        console.log('CLIMB')
+        this.movement.y = 0;
+        next.y = ceiling.y;
+      } else {
+        // get intersect
+        const intersect = collider.intersect(this.target.position, next);
+        next.x = this.target.position.x;
+        next.z = this.target.position.z;
+        if (intersect === null) {
+          // badly formed mesh, stop player (prevent crazy physics)
+          next.x = this.target.position.x;
+          next.z = this.target.position.z;
         } else {
-          // alter vector
-          const intersect = collider.intersect(this.target.position, next);
+          // extrude position to point on plane
+          const extrude = intersect.plane.getNormalIntersect(next);
+          console.log(extrude);
 
-          if (intersect != null) {
-            // get XY vectors perpendicular vector
-            const normal = intersect.plane.normal;
-            const perp = intersect.plane.getPerpendicularNormals();
+          next.x = extrude.x;
+          next.z = extrude.z;
+          /*
+          const normal = intersect.plane.normal;
+          const extrude = Maths.copyVector(next);
+          extrude.x += normal.x * 1;
+          extrude.z += normal.z * 1;
+          const newPos = collider.intersect(next, extrude);
 
-            // select appropriate direction
-            let dir = Maths.subtractVector(next, this.target.position);
-            dir.y = 0;
-            dir = Maths.normalise(dir);
-            const rightDot = Maths.dotProduct(perp.right, dir);
-            const leftDot = Maths.dotProduct(perp.left, dir);
+          if (newPos != null) {
+            // check if new path blocked
+            const count = collider.countIntersects(this.target.position, newPos.intersect);
 
-            if (rightDot > leftDot) {
-              next.x = this.target.position.x + perp.right.x * rightDot * this.attributes.speed * delta;
-              next.z = this.target.position.z + perp.right.z * rightDot * this.attributes.speed * delta;
+            if (count <= 1) {
+              // go to new position
+              next.x = newPos.intersect.x;
+              next.z = newPos.intersect.z;
             } else {
-              next.x = this.target.position.x + perp.left.x * leftDot * this.attributes.speed * delta;
-              next.z = this.target.position.z + perp.left.z * leftDot * this.attributes.speed * delta;
-            }
-
-            // check next position
-            const count = collider.countIntersects(this.target.position, next);
-
-            if (count != 0) {
+              // stop
               next.x = this.target.position.x;
               next.z = this.target.position.z;
             }
-          } else {
-            // bad intersect, stop movement
-            next.x = this.target.position.x;
-            next.z = this.target.position.z;
           }
+          */
         }
-      //}
-    }
-
-    // no collision, try and descend slope
-    if (!collision) {
+      }
+    } else {
+      // check if on downward slope
       const testUnder = Maths.copyVector(next);
       testUnder.y -= this.attributes.climb.down;
 
-      // check if player can descend slope
       if (this.movement.y == 0 && collider.collision(testUnder)) {
         const ceiling = collider.ceilingPlane(testUnder);
 
+        // snap to slope if not too steep
         if (ceiling.plane.normal.y >= this.attributes.climb.minYNormal) {
           next.y = ceiling.y;
           collision = true;
         }
       }
-    }
 
-    // no floor found, fall
-    if (!collision) {
-      this.movement.y -= this.attributes.gravity.accel * delta;
-      this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
-    } else if (this.movement.y != 0) {
-      // bound off surface here
-      
-      this.movement.y -= this.attributes.gravity.accel * delta;
-      this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
+      // if no collision, fall
+      if (!collision) {
+        this.movement.y = Math.max(
+          this.movement.y - this.attributes.gravity.accel * delta,
+          -this.attributes.gravity.maxVelocity
+        );
+      }
     }
 
     // set new position target
