@@ -1,5 +1,15 @@
 const twoPi = Math.PI * 2;
 
+const copyVector = function(vec) {
+  const copied = new THREE.Vector3(
+    vec.x,
+    vec.y,
+    vec.z
+  );
+
+  return copied;
+};
+
 const addVector = function(a, b) {
   const c = new THREE.Vector3(
     a.x + b.x,
@@ -98,4 +108,4 @@ const dotProduct = function(a, b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 };
 
-export { isVectorEqual, pitchBetween, twoPi, distanceBetween, distanceBetween2D, minAngleDifference, dotProduct, addVector, subtractVector, scaleVector, crossProduct, reverseVector, normalise };
+export { copyVector, isVectorEqual, pitchBetween, twoPi, distanceBetween, distanceBetween2D, minAngleDifference, dotProduct, addVector, subtractVector, scaleVector, crossProduct, reverseVector, normalise };

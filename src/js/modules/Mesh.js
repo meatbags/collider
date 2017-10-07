@@ -117,6 +117,35 @@ Mesh.prototype = {
     return y;
   },
 
+  ceilingPlane: function(point) {
+    // get closest ceiling plane
+
+    let yPlane = null;
+    let y = null;
+
+    for (let i=0; i<this.planes.length; i+=1) {
+      const plane = this.planes[i];
+
+      if (
+        plane.containsPointXZ(point) &&
+        plane.isPointBelowOrEqual(point) &&
+        plane.normal.y >= 0
+      ) {
+        let newY = plane.getY(point.x, point.z);
+
+        if (newY >= point.y && (y === null || newY < y)) {
+          y = newY;
+          yPlane = plane;
+        }
+      }
+    }
+
+    return {
+      y: y,
+      plane: yPlane
+    };
+  },
+
   intersect: function(p1, p2) {
     // get intersect of mesh and line
 

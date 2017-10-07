@@ -104,6 +104,12 @@ Object.defineProperty(exports, "__esModule", {
 });
 var twoPi = Math.PI * 2;
 
+var copyVector = function copyVector(vec) {
+  var copied = new THREE.Vector3(vec.x, vec.y, vec.z);
+
+  return copied;
+};
+
 var addVector = function addVector(a, b) {
   var c = new THREE.Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
 
@@ -182,6 +188,7 @@ var dotProduct = function dotProduct(a, b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 };
 
+exports.copyVector = copyVector;
 exports.isVectorEqual = isVectorEqual;
 exports.pitchBetween = pitchBetween;
 exports.twoPi = twoPi;
@@ -347,6 +354,31 @@ Mesh.prototype = {
     return y;
   },
 
+  ceilingPlane: function ceilingPlane(point) {
+    // get closest ceiling plane
+
+    var yPlane = null;
+    var y = null;
+
+    for (var i = 0; i < this.planes.length; i += 1) {
+      var plane = this.planes[i];
+
+      if (plane.containsPointXZ(point) && plane.isPointBelowOrEqual(point) && plane.normal.y >= 0) {
+        var newY = plane.getY(point.x, point.z);
+
+        if (newY >= point.y && (y === null || newY < y)) {
+          y = newY;
+          yPlane = plane;
+        }
+      }
+    }
+
+    return {
+      y: y,
+      plane: yPlane
+    };
+  },
+
   intersect: function intersect(p1, p2) {
     // get intersect of mesh and line
 
@@ -420,18 +452,6 @@ Plane.prototype = {
 
     // get position
     this.position = new THREE.Vector3((this.p1.x + this.p2.x + this.p3.x) / 3, (this.p1.y + this.p2.y + this.p3.y) / 3, (this.p1.z + this.p2.z + this.p3.z) / 3);
-
-    // get edge centres & normals
-    this.e1 = Maths.scaleVector(Maths.addVector(this.p1, this.p2), 0.5);
-    this.e2 = Maths.scaleVector(Maths.addVector(this.p2, this.p3), 0.5);
-    this.e3 = Maths.scaleVector(Maths.addVector(this.p3, this.p1), 0.5);
-    this.e1n = Maths.subtractVector(this.e1, this.position);
-    this.e2n = Maths.subtractVector(this.e2, this.position);
-    this.e3n = Maths.subtractVector(this.e3, this.position);
-
-    // make 2D
-    this.e1.y = this.e2.y = this.e3.y = 0;
-    this.e1n.y = this.e2n.y = this.e3n.y = 0;
 
     // cache D for solving plane
     this.D = -(this.normal.x * this.position.x) - this.normal.y * this.position.y - this.normal.z * this.position.z;
@@ -541,6 +561,13 @@ Plane.prototype = {
     var y = (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
 
     return y;
+  },
+
+  getPerpendicularNormals: function getPerpendicularNormals() {
+    return {
+      right: new THREE.Vector3(-this.normal.z, 0, this.normal.x),
+      left: new THREE.Vector3(this.normal.z, 0, -this.normal.x)
+    };
   }
 };
 
@@ -655,6 +682,31 @@ System.prototype = {
     this.cacheItem(this.cache.ceiling, point, y);
 
     return y;
+  },
+
+  ceilingPlane: function ceilingPlane(point) {
+    // search
+    var quadrant = this.quadrants.getQuadrant(point);
+    var y = null;
+    var plane = null;
+
+    for (var i = 0; i < quadrant.length; i += 1) {
+      var mesh = quadrant[i];
+
+      if (mesh.collision(point)) {
+        var res = mesh.ceilingPlane(point);
+
+        if (y === null || res.y > y) {
+          y = res.y;
+          plane = res.plane;
+        }
+      }
+    }
+
+    return {
+      y: y,
+      plane: plane
+    };
   },
 
   intersect: function intersect(from, to) {
@@ -871,17 +923,21 @@ var Player = function Player(domElement) {
     speed: 8,
     speedWhileJumping: 4,
     height: 1.8,
-    climb: 1,
     rotation: Math.PI * 0.75,
     fov: 58,
     cameraThreshold: 0.4,
     maxRotationOffset: Math.PI * 0.3,
-    adjustSlow: 0.02,
-    adjust: 0.05,
-    adjustFast: 0.09,
-    adjustInstant: 0.2,
-    climbUpThreshold: 1.5,
-    climbDownThreshold: 0.5,
+    adjust: {
+      slow: 0.02,
+      normal: 0.05,
+      fast: 0.09,
+      veryFast: 0.2
+    },
+    climb: {
+      up: 1,
+      down: 0.5,
+      minYNormal: 0.5
+    },
     gravity: {
       accel: 10,
       maxVelocity: 50,
@@ -936,7 +992,7 @@ Player.prototype = {
   update: function update(delta, collider) {
     // handle key presses and move player
 
-    // update XZ target movement vector
+    // get movement vector from controls
     if (this.keys.up || this.keys.down) {
       var dir = (this.keys.up ? 1 : 0) + (this.keys.down ? -1 : 0);
       var _yaw = this.rotation.y + this.offset.rotation.y;
@@ -949,63 +1005,61 @@ Player.prototype = {
       this.target.movement.z = 0;
     }
 
-    // reduce movement if jumping/ falling
-    if (this.movement.y == 0) {
-      this.movement.x = this.target.movement.x;
-      this.movement.z = this.target.movement.z;
-    } else {
-      this.movement.x += (this.target.movement.x - this.movement.x) * this.attributes.adjustSlow;
-      this.movement.z += (this.target.movement.z - this.movement.z) * this.attributes.adjustSlow;
-    }
-
     // jump key
     if (this.keys.jump) {
       this.keys.jump = false;
 
-      // if not falling
+      // jump if not falling
       if (this.movement.y == 0) {
         this.movement.y = this.attributes.gravity.jumpVelocity;
       }
     }
 
-    // check next p for collision
+    // reduce movement if falling
+    if (this.movement.y == 0) {
+      this.movement.x = this.target.movement.x;
+      this.movement.z = this.target.movement.z;
+    } else {
+      this.movement.x += (this.target.movement.x - this.movement.x) * this.attributes.adjust.slow;
+      this.movement.z += (this.target.movement.z - this.movement.z) * this.attributes.adjust.slow;
+    }
+
+    // check next position for collision
     var next = Maths.addVector(this.target.position, Maths.scaleVector(this.movement, delta));
     var collision = collider.collision(next);
 
     if (collision) {
-      // get object top
-      var objectTop = collider.ceiling(next);
+      // CASE A: Collision, and player is on surface or jumping
+      //if (this.movement.y >= 0) {
+      var ceiling = collider.ceilingPlane(next);
+      var climbable = ceiling.y != null && ceiling.y - this.target.position.y <= this.attributes.climb.up && ceiling.plane.normal.y >= this.attributes.climb.minYNormal;
 
-      // check if climbable
-      if (objectTop != null && objectTop - this.target.position.y <= this.attributes.climbUpThreshold) {
-        // climb
-        next.y = objectTop;
-
-        // reset fall
+      // climb up
+      if (climbable) {
         this.movement.y = 0;
+        next.y = ceiling.y;
       } else {
-        // get intersected plane
+        // alter vector
         var intersect = collider.intersect(this.target.position, next);
 
         if (intersect != null) {
           // get XY vectors perpendicular vector
           var normal = intersect.plane.normal;
-          var right = new THREE.Vector3(-normal.z, 0, normal.x);
-          var left = new THREE.Vector3(normal.z, 0, -normal.x);
+          var perp = intersect.plane.getPerpendicularNormals();
 
           // select appropriate direction
           var _dir = Maths.subtractVector(next, this.target.position);
           _dir.y = 0;
           _dir = Maths.normalise(_dir);
-          var rightDot = Maths.dotProduct(right, _dir);
-          var leftDot = Maths.dotProduct(left, _dir);
+          var rightDot = Maths.dotProduct(perp.right, _dir);
+          var leftDot = Maths.dotProduct(perp.left, _dir);
 
           if (rightDot > leftDot) {
-            next.x = this.target.position.x + right.x * rightDot * this.attributes.speed * delta;
-            next.z = this.target.position.z + right.z * rightDot * this.attributes.speed * delta;
+            next.x = this.target.position.x + perp.right.x * rightDot * this.attributes.speed * delta;
+            next.z = this.target.position.z + perp.right.z * rightDot * this.attributes.speed * delta;
           } else {
-            next.x = this.target.position.x + left.x * leftDot * this.attributes.speed * delta;
-            next.z = this.target.position.z + left.z * leftDot * this.attributes.speed * delta;
+            next.x = this.target.position.x + perp.left.x * leftDot * this.attributes.speed * delta;
+            next.z = this.target.position.z + perp.left.z * leftDot * this.attributes.speed * delta;
           }
 
           // check next position
@@ -1021,21 +1075,34 @@ Player.prototype = {
           next.z = this.target.position.z;
         }
       }
-    } else {
-      // if not falling, check for objects beneath
-      next.y -= this.attributes.climbDownThreshold;
+      //}
+    }
 
-      if (this.movement.y == 0 && collider.collision(next)) {
-        // land on object
-        next.y = collider.ceiling(next);
-      } else {
-        // fall, limit velocity
-        this.movement.y -= this.attributes.gravity.accel * delta;
-        this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
+    // no collision, try and descend slope
+    if (!collision) {
+      var testUnder = Maths.copyVector(next);
+      testUnder.y -= this.attributes.climb.down;
 
-        // update position
-        next.y = this.target.position.y + this.movement.y * delta;
+      // check if player can descend slope
+      if (this.movement.y == 0 && collider.collision(testUnder)) {
+        var _ceiling = collider.ceilingPlane(testUnder);
+
+        if (_ceiling.plane.normal.y >= this.attributes.climb.minYNormal) {
+          next.y = _ceiling.y;
+          collision = true;
+        }
       }
+    }
+
+    // no floor found, fall
+    if (!collision) {
+      this.movement.y -= this.attributes.gravity.accel * delta;
+      this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
+    } else if (this.movement.y != 0) {
+      // bound off surface here
+
+      this.movement.y -= this.attributes.gravity.accel * delta;
+      this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
     }
 
     // set new position target
@@ -1044,9 +1111,9 @@ Player.prototype = {
     this.target.position.z = next.z;
 
     // smooth motion a little
-    this.position.x += (this.target.position.x - this.position.x) * this.attributes.adjustInstant;
-    this.position.y += (this.target.position.y - this.position.y) * this.attributes.adjustInstant;
-    this.position.z += (this.target.position.z - this.position.z) * this.attributes.adjustInstant;
+    this.position.x += (this.target.position.x - this.position.x) * this.attributes.adjust.veryFast;
+    this.position.y += (this.target.position.y - this.position.y) * this.attributes.adjust.veryFast;
+    this.position.z += (this.target.position.z - this.position.z) * this.attributes.adjust.veryFast;
 
     // update rotation vector
     if (this.keys.left || this.keys.right) {
@@ -1054,9 +1121,9 @@ Player.prototype = {
       this.target.rotation.y += this.attributes.rotation * delta * _dir2;
     }
 
-    this.rotation.y += Maths.minAngleDifference(this.rotation.y, this.target.rotation.y) * this.attributes.adjustFast;
-    this.offset.rotation.x += (this.target.offset.rotation.x - this.offset.rotation.x) * this.attributes.adjust;
-    this.offset.rotation.y += (this.target.offset.rotation.y - this.offset.rotation.y) * this.attributes.adjust;
+    this.rotation.y += Maths.minAngleDifference(this.rotation.y, this.target.rotation.y) * this.attributes.adjust.fast;
+    this.offset.rotation.x += (this.target.offset.rotation.x - this.offset.rotation.x) * this.attributes.adjust.normal;
+    this.offset.rotation.y += (this.target.offset.rotation.y - this.offset.rotation.y) * this.attributes.adjust.normal;
     this.rotation.y += this.rotation.y < 0 ? Maths.twoPi : this.rotation.y > Maths.twoPi ? -Maths.twoPi : 0;
 
     // set new camera position

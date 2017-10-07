@@ -33,18 +33,6 @@ Plane.prototype = {
       (this.p1.z + this.p2.z + this.p3.z) / 3
     );
 
-    // get edge centres & normals
-    this.e1 = Maths.scaleVector(Maths.addVector(this.p1, this.p2), 0.5);
-    this.e2 = Maths.scaleVector(Maths.addVector(this.p2, this.p3), 0.5);
-    this.e3 = Maths.scaleVector(Maths.addVector(this.p3, this.p1), 0.5);
-    this.e1n = Maths.subtractVector(this.e1, this.position);
-    this.e2n = Maths.subtractVector(this.e2, this.position);
-    this.e3n = Maths.subtractVector(this.e3, this.position);
-
-    // make 2D
-    this.e1.y = this.e2.y = this.e3.y = 0;
-    this.e1n.y = this.e2n.y = this.e3n.y = 0;
-
     // cache D for solving plane
     this.D = -(this.normal.x * this.position.x) - (this.normal.y * this.position.y) - (this.normal.z * this.position.z);
 
@@ -157,6 +145,13 @@ Plane.prototype = {
     const y = (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
 
     return y;
+  },
+
+  getPerpendicularNormals: function() {
+    return {
+      right: new THREE.Vector3(-this.normal.z, 0, this.normal.x),
+      left: new THREE.Vector3(this.normal.z, 0, -this.normal.x)
+    };
   }
 };
 

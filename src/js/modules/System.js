@@ -91,6 +91,31 @@ System.prototype = {
     return y;
   },
 
+  ceilingPlane: function(point) {
+    // search
+    const quadrant = this.quadrants.getQuadrant(point);
+    let y = null;
+    let plane = null;
+
+    for (let i=0; i<quadrant.length; i+=1) {
+      const mesh = quadrant[i];
+
+      if (mesh.collision(point)) {
+        let res = mesh.ceilingPlane(point);
+
+        if (y === null || res.y > y) {
+          y = res.y;
+          plane = res.plane;
+        }
+      }
+    }
+
+    return {
+      y: y,
+      plane: plane
+    };
+  },
+
   intersect: function(from, to) {
     // get intersect of geometry and line
     // check intersect cache for intersect

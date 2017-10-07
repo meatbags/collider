@@ -35,7 +35,7 @@ const App = {
         for (let i=0; i<object.children.length; i+=1) {
           const child = object.children[i];
           child.material.transparent = true;
-          //child.material.side = THREE.DoubleSide;
+          child.material.side = THREE.DoubleSide;
           child.material.opacity = 0.6;
           App.colliderSystem.add(new Collider.Mesh(child.geometry));
         }

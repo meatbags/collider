@@ -20,17 +20,21 @@ const Player = function(domElement) {
     speed: 8,
     speedWhileJumping: 4,
     height: 1.8,
-    climb: 1,
     rotation: Math.PI * 0.75,
     fov: 58,
     cameraThreshold: 0.4,
     maxRotationOffset: Math.PI * 0.3,
-    adjustSlow: 0.02,
-    adjust: 0.05,
-    adjustFast: 0.09,
-    adjustInstant: 0.2,
-    climbUpThreshold: 1.5,
-    climbDownThreshold: 0.5,
+    adjust: {
+      slow: 0.02,
+      normal: 0.05,
+      fast: 0.09,
+      veryFast: 0.2,
+    },
+    climb: {
+      up: 1,
+      down: 0.5,
+      minYNormal: 0.5
+    },
     gravity: {
       accel: 10,
       maxVelocity: 50,
@@ -85,7 +89,7 @@ Player.prototype = {
 	update: function(delta, collider) {
     // handle key presses and move player
 
-    // update XZ target movement vector
+    // get movement vector from controls
     if (this.keys.up || this.keys.down) {
       const dir = ((this.keys.up) ? 1 : 0) + ((this.keys.down) ? -1 : 0);
       const yaw = this.rotation.y + this.offset.rotation.y;
@@ -98,93 +102,107 @@ Player.prototype = {
       this.target.movement.z = 0;
     }
 
-    // reduce movement if jumping/ falling
-    if (this.movement.y == 0) {
-      this.movement.x = this.target.movement.x;
-      this.movement.z = this.target.movement.z;
-    } else {
-      this.movement.x += (this.target.movement.x - this.movement.x) * this.attributes.adjustSlow;
-      this.movement.z += (this.target.movement.z - this.movement.z) * this.attributes.adjustSlow;
-    }
-
     // jump key
     if (this.keys.jump) {
       this.keys.jump = false;
 
-      // if not falling
+      // jump if not falling
       if (this.movement.y == 0) {
         this.movement.y = this.attributes.gravity.jumpVelocity;
       }
     }
 
-    // check next p for collision
+    // reduce movement if falling
+    if (this.movement.y == 0) {
+      this.movement.x = this.target.movement.x;
+      this.movement.z = this.target.movement.z;
+    } else {
+      this.movement.x += (this.target.movement.x - this.movement.x) * this.attributes.adjust.slow;
+      this.movement.z += (this.target.movement.z - this.movement.z) * this.attributes.adjust.slow;
+    }
+
+    // check next position for collision
     const next = Maths.addVector(this.target.position, Maths.scaleVector(this.movement, delta));
-    const collision = collider.collision(next);
+    let collision = collider.collision(next);
 
     if (collision) {
-      // get object top
-      const objectTop = collider.ceiling(next);
+      // CASE A: Collision, and player is on surface or jumping
+      //if (this.movement.y >= 0) {
+        const ceiling = collider.ceilingPlane(next);
+        const climbable = (ceiling.y != null &&
+          (ceiling.y - this.target.position.y <= this.attributes.climb.up) &&
+          (ceiling.plane.normal.y >= this.attributes.climb.minYNormal)
+        );
 
-      // check if climbable
-      if (objectTop != null && (objectTop - this.target.position.y) <= this.attributes.climbUpThreshold) {
-        // climb
-        next.y = objectTop;
+        // climb up
+        if (climbable) {
+          this.movement.y = 0;
+          next.y = ceiling.y;
+        } else {
+          // alter vector
+          const intersect = collider.intersect(this.target.position, next);
 
-        // reset fall
-        this.movement.y = 0;
-      } else {
-        // get intersected plane
-        const intersect = collider.intersect(this.target.position, next);
+          if (intersect != null) {
+            // get XY vectors perpendicular vector
+            const normal = intersect.plane.normal;
+            const perp = intersect.plane.getPerpendicularNormals();
 
-        if (intersect != null) {
-          // get XY vectors perpendicular vector
-          const normal = intersect.plane.normal;
-          const right = new THREE.Vector3(-normal.z, 0, normal.x);
-          const left = new THREE.Vector3(normal.z, 0, -normal.x);
+            // select appropriate direction
+            let dir = Maths.subtractVector(next, this.target.position);
+            dir.y = 0;
+            dir = Maths.normalise(dir);
+            const rightDot = Maths.dotProduct(perp.right, dir);
+            const leftDot = Maths.dotProduct(perp.left, dir);
 
-          // select appropriate direction
-          let dir = Maths.subtractVector(next, this.target.position);
-          dir.y = 0;
-          dir = Maths.normalise(dir);
-          const rightDot = Maths.dotProduct(right, dir);
-          const leftDot = Maths.dotProduct(left, dir);
+            if (rightDot > leftDot) {
+              next.x = this.target.position.x + perp.right.x * rightDot * this.attributes.speed * delta;
+              next.z = this.target.position.z + perp.right.z * rightDot * this.attributes.speed * delta;
+            } else {
+              next.x = this.target.position.x + perp.left.x * leftDot * this.attributes.speed * delta;
+              next.z = this.target.position.z + perp.left.z * leftDot * this.attributes.speed * delta;
+            }
 
-          if (rightDot > leftDot) {
-            next.x = this.target.position.x + right.x * rightDot * this.attributes.speed * delta;
-            next.z = this.target.position.z + right.z * rightDot * this.attributes.speed * delta;
+            // check next position
+            const count = collider.countIntersects(this.target.position, next);
+
+            if (count != 0) {
+              next.x = this.target.position.x;
+              next.z = this.target.position.z;
+            }
           } else {
-            next.x = this.target.position.x + left.x * leftDot * this.attributes.speed * delta;
-            next.z = this.target.position.z + left.z * leftDot * this.attributes.speed * delta;
-          }
-
-          // check next position
-          const count = collider.countIntersects(this.target.position, next);
-
-          if (count != 0) {
+            // bad intersect, stop movement
             next.x = this.target.position.x;
             next.z = this.target.position.z;
           }
-        } else {
-          // bad intersect, stop movement
-          next.x = this.target.position.x;
-          next.z = this.target.position.z;
+        }
+      //}
+    }
+
+    // no collision, try and descend slope
+    if (!collision) {
+      const testUnder = Maths.copyVector(next);
+      testUnder.y -= this.attributes.climb.down;
+
+      // check if player can descend slope
+      if (this.movement.y == 0 && collider.collision(testUnder)) {
+        const ceiling = collider.ceilingPlane(testUnder);
+
+        if (ceiling.plane.normal.y >= this.attributes.climb.minYNormal) {
+          next.y = ceiling.y;
+          collision = true;
         }
       }
-    } else {
-      // if not falling, check for objects beneath
-      next.y -= this.attributes.climbDownThreshold;
+    }
 
-      if (this.movement.y == 0 && collider.collision(next)) {
-        // land on object
-        next.y = collider.ceiling(next);
-      } else {
-        // fall, limit velocity
-        this.movement.y -= this.attributes.gravity.accel * delta;
-        this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
-
-        // update position
-        next.y = this.target.position.y + this.movement.y * delta;
-      }
+    // no floor found, fall
+    if (!collision) {
+      this.movement.y -= this.attributes.gravity.accel * delta;
+      this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
+    } else if (this.movement.y != 0) {
+      // bound off surface here
+      
+      this.movement.y -= this.attributes.gravity.accel * delta;
+      this.movement.y = Math.max(this.movement.y, -this.attributes.gravity.maxVelocity);
     }
 
     // set new position target
@@ -193,9 +211,9 @@ Player.prototype = {
     this.target.position.z = next.z;
 
     // smooth motion a little
-    this.position.x += (this.target.position.x - this.position.x) * this.attributes.adjustInstant;
-    this.position.y += (this.target.position.y - this.position.y) * this.attributes.adjustInstant;
-    this.position.z += (this.target.position.z - this.position.z) * this.attributes.adjustInstant;
+    this.position.x += (this.target.position.x - this.position.x) * this.attributes.adjust.veryFast;
+    this.position.y += (this.target.position.y - this.position.y) * this.attributes.adjust.veryFast;
+    this.position.z += (this.target.position.z - this.position.z) * this.attributes.adjust.veryFast;
 
     // update rotation vector
     if (this.keys.left || this.keys.right) {
@@ -203,9 +221,9 @@ Player.prototype = {
       this.target.rotation.y += this.attributes.rotation * delta * dir;
     }
 
-    this.rotation.y += Maths.minAngleDifference(this.rotation.y, this.target.rotation.y) * this.attributes.adjustFast;
-    this.offset.rotation.x += (this.target.offset.rotation.x - this.offset.rotation.x) * this.attributes.adjust;
-    this.offset.rotation.y += (this.target.offset.rotation.y - this.offset.rotation.y) * this.attributes.adjust;
+    this.rotation.y += Maths.minAngleDifference(this.rotation.y, this.target.rotation.y) * this.attributes.adjust.fast;
+    this.offset.rotation.x += (this.target.offset.rotation.x - this.offset.rotation.x) * this.attributes.adjust.normal;
+    this.offset.rotation.y += (this.target.offset.rotation.y - this.offset.rotation.y) * this.attributes.adjust.normal;
     this.rotation.y += (this.rotation.y < 0) ? Maths.twoPi : ((this.rotation.y > Maths.twoPi) ? -Maths.twoPi : 0);
 
     // set new camera position
