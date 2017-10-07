@@ -17,14 +17,14 @@ var geometry = new THREE.TorusBufferGeometry(3, 1, 6, 12);
 var material = new THREE.MeshLambertMaterial({color: 0x888888 });
 var torus = new THREE.Mesh(geometry, material);
 
-// create collision object
-var collision = new Collider.Mesh(torus.geometry);
+// create collision map
+var map = new Collider.Mesh(torus.geometry);
 
 // a point within the torus' ring -> returns true
-collision.check(new THREE.Vector3(3, 0, 0));
+map.collision(new THREE.Vector3(3, 0, 0));
 
 // a point within the hollow centre of the torus -> returns false
-collision.check(new THREE.Vector3(0, 0, 0));
+map.collision(new THREE.Vector3(0, 0, 0));
 ```
 
 ![collider_torus_2](/screenshots/screen_3.png?raw=true)
