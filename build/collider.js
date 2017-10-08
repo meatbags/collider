@@ -86,7 +86,7 @@ var Config = {
     }
   },
   plane: {
-    dotBuffer: 0.0001 // account for dot product precision limitations
+    dotBuffer: 0.001 // account for dot product precision limitations
   }
 };
 
@@ -366,7 +366,7 @@ Mesh.prototype = {
       if (plane.containsPointXZ(point) && plane.isPointBelowOrEqual(point) && plane.normal.y >= 0) {
         var newY = plane.getY(point.x, point.z);
 
-        if (newY >= point.y && (y === null || newY < y)) {
+        if (newY >= point.y && (y == null || newY < y)) {
           y = newY;
           yPlane = plane;
         }
@@ -388,11 +388,15 @@ Mesh.prototype = {
       var res = this.planes[i].intersect(p1, p2);
 
       if (res != null) {
-        intersect = {
-          intersect: res,
-          plane: this.planes[i],
-          distance: (0, _Maths.distanceBetween)(p1, res)
-        };
+        var dist = (0, _Maths.distanceBetween)(p1, res);
+
+        if (intersect == null || dist < intersect.distance) {
+          intersect = {
+            intersect: res,
+            plane: this.planes[i],
+            distance: dist
+          };
+        }
       }
     }
 
@@ -458,7 +462,6 @@ Plane.prototype = {
 
     // create bounding box
     this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
-    //this.box.expandByScalar(0.05);
   },
 
   isPointAbove: function isPointAbove(point) {
@@ -501,6 +504,14 @@ Plane.prototype = {
     return res;
   },
 
+  isPointOnSurface: function isPointOnSurface(point) {
+    var vec = Maths.subtractVector(point, this.position);
+    var dot = Maths.dotProduct(vec, this.normal);
+    var res = dot <= _Config2.default.plane.dotBuffer && dot >= -_Config2.default.plane.dotBuffer;
+
+    return res;
+  },
+
   isPlaneAbove: function isPlaneAbove(plane) {
     // check if whole plane is above
 
@@ -520,14 +531,9 @@ Plane.prototype = {
   },
 
   getNormalIntersect: function getNormalIntersect(point) {
+    // get intersect which extends normal vector (or inverse) to point
+
     var point2 = Maths.addVector(point, this.normal);
-    /*
-    if (!this.isPointBelowOrEqual(point)) {
-      point2 = Maths.addVector(point, this.normal);
-    } else {
-      point2 = Maths.subtractVector(point, this.normal)
-    }
-    */
     var vec = Maths.subtractVector(point2, point);
     var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
     var denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
@@ -535,8 +541,6 @@ Plane.prototype = {
     var y = point.y - vec.y * numPart / denom;
     var z = point.z - vec.z * numPart / denom;
     var intersect = new THREE.Vector3(x, y, z);
-
-    //console.log(intersect)
 
     return intersect;
   },
@@ -548,7 +552,7 @@ Plane.prototype = {
     var dot = Maths.dotProduct(this.normal, Maths.normalise(vec));
 
     // check for parallel lines
-    if (dot == 0) {
+    if (Math.abs(dot) <= _Config2.default.plane.dotBuffer) {
       return null;
     }
 
@@ -731,6 +735,29 @@ System.prototype = {
     };
   },
 
+  ceilingPlanes: function ceilingPlanes(point) {
+    // search
+    var quadrant = this.quadrants.getQuadrant(point);
+    var planes = [];
+
+    for (var i = 0; i < quadrant.length; i += 1) {
+      var mesh = quadrant[i];
+
+      if (mesh.collision(point)) {
+        var res = mesh.ceilingPlane(point);
+
+        if (res.y != null) {
+          planes.push({
+            y: res.y,
+            plane: res.plane
+          });
+        }
+      }
+    }
+
+    return planes;
+  },
+
   intersect: function intersect(from, to) {
     // get intersect of geometry and line
 
@@ -750,7 +777,7 @@ System.prototype = {
     for (var i = 0; i < quadrant.length; i += 1) {
       var mesh = quadrant[i];
 
-      if (mesh.collision(to) || mesh.collision(from)) {
+      if (mesh.collision(to)) {
         var res = mesh.intersect(from, to);
 
         if (res != null && (intersect === null || res.distance < intersect.distance)) {
@@ -766,6 +793,26 @@ System.prototype = {
     });
 
     return intersect;
+  },
+
+  intersects: function intersects(from, to) {
+    // get array of intersects between points
+    var quadrant = this.quadrants.getQuadrant(to);
+    var intersects = [];
+
+    for (var i = 0; i < quadrant.length; i += 1) {
+      var mesh = quadrant[i];
+
+      if (mesh.collision(to)) {
+        var res = mesh.intersect(from, to);
+
+        if (res != null) {
+          intersects.push(res);
+        }
+      }
+    }
+
+    return intersects;
   },
 
   countIntersects: function countIntersects(from, to) {
@@ -950,6 +997,7 @@ var Player = function Player(domElement) {
     fov: 58,
     cameraThreshold: 0.4,
     maxRotationOffset: Math.PI * 0.3,
+    falling: false,
     adjust: {
       slow: 0.02,
       normal: 0.05,
@@ -1038,8 +1086,11 @@ Player.prototype = {
       }
     }
 
+    // set falling
+    this.falling = this.movement.y != 0;
+
     // reduce movement if falling
-    if (this.movement.y == 0) {
+    if (!this.falling) {
       this.movement.x = this.target.movement.x;
       this.movement.z = this.target.movement.z;
     } else {
@@ -1051,55 +1102,76 @@ Player.prototype = {
     var next = Maths.addVector(Maths.scaleVector(this.movement, delta), this.target.position);
     var collision = collider.collision(next);
 
+    // apply gravity
+    this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
+
     if (collision) {
       // check for floors
-      var ceiling = collider.ceilingPlane(next);
+      var ceilings = collider.ceilingPlanes(next);
+      var obstructed = false;
+      var extruded = false;
+      var climbed = false;
 
-      // check if climbable
-      if (ceiling.y != null && ceiling.y - this.target.position.y <= this.attributes.climb.up && ceiling.plane.normal.y >= this.attributes.climb.minYNormal) {
+      for (var i = 0; i < ceilings.length; i += 1) {
+        var ceil = ceilings[i];
+
         // climb up
-        this.movement.y = 0;
-        next.y = ceiling.y;
-      } else {
-        // fall by default
-        //this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
+        if (ceil.y - this.target.position.y <= this.attributes.climb.up && ceil.plane.normal.y >= this.attributes.climb.minYNormal && ceil.y >= next.y) {
+          this.movement.y = 0;
+          next.y = ceil.y;
+          climbed = true;
+        } else {
+          obstructed = true;
+        }
+      }
 
-        // get intersect
+      if (obstructed) {
+        // check for walls
+        console.log('OBSTRUCTED');
         var intersect = collider.intersect(this.target.position, next);
 
-        console.log(intersect);
-
-        if (intersect === null) {
-          // badly formed mesh, stop player (prevent crazy physics)
-          //next.x = this.target.position.x;
-          //next.z = this.target.position.z;
-        } else {
+        if (intersect != null) {
           // extrude position to point on plane
           var extrude = intersect.plane.getNormalIntersect(next);
-          console.log(extrude);
-
           next.x = extrude.x;
           next.z = extrude.z;
-          /*
-          const normal = intersect.plane.normal;
-          const extrude = Maths.copyVector(next);
-          extrude.x += normal.x * 1;
-          extrude.z += normal.z * 1;
-          const newPos = collider.intersect(next, extrude);
-            if (newPos != null) {
-            // check if new path blocked
-            const count = collider.countIntersects(this.target.position, newPos.intersect);
-              if (count <= 1) {
-              // go to new position
-              next.x = newPos.intersect.x;
-              next.z = newPos.intersect.z;
-            } else {
-              // stop
+          extruded = true;
+
+          // check for more walls
+          var from = intersect.intersect;
+          var to = Maths.copyVector(extrude);
+          var plane = intersect.plane;
+          var intersects = collider.intersects(from, to);
+
+          for (var _i = 0; _i < intersects.length; _i += 1) {
+            var minY = intersects[_i].plane.normal.y;
+
+            if (!(minY < 0) && minY <= this.attributes.climb.minYNormal) {
               next.x = this.target.position.x;
               next.z = this.target.position.z;
+              extruded = false;
+              break;
             }
           }
-          */
+        } else {
+          next.x = this.target.position.x;
+          next.z = this.target.position.z;
+        }
+      }
+
+      // correct y position
+      if (extruded) {
+        ceilings = collider.ceilingPlanes(next);
+
+        for (var _i2 = 0; _i2 < ceilings.length; _i2 += 1) {
+          var _ceil = ceilings[_i2];
+
+          // climb up
+          if (_ceil.y - this.target.position.y <= this.attributes.climb.up && _ceil.plane.normal.y >= this.attributes.climb.minYNormal && _ceil.y >= next.y) {
+            this.movement.y = 0;
+            next.y = _ceil.y;
+            climbed = true;
+          }
         }
       }
     } else {
@@ -1107,19 +1179,14 @@ Player.prototype = {
       var testUnder = Maths.copyVector(next);
       testUnder.y -= this.attributes.climb.down;
 
-      if (this.movement.y == 0 && collider.collision(testUnder)) {
-        var _ceiling = collider.ceilingPlane(testUnder);
+      if (!this.falling && collider.collision(testUnder)) {
+        var ceiling = collider.ceilingPlane(testUnder);
 
         // snap to slope if not too steep
-        if (_ceiling.plane.normal.y >= this.attributes.climb.minYNormal) {
-          next.y = _ceiling.y;
-          collision = true;
+        if (ceiling.plane.normal.y >= this.attributes.climb.minYNormal) {
+          next.y = ceiling.y;
+          this.movement.y = 0;
         }
-      }
-
-      // if no collision, fall
-      if (!collision) {
-        this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
       }
     }
 

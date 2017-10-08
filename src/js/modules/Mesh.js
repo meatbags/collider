@@ -133,7 +133,7 @@ Mesh.prototype = {
       ) {
         let newY = plane.getY(point.x, point.z);
 
-        if (newY >= point.y && (y === null || newY < y)) {
+        if (newY >= point.y && (y == null || newY < y)) {
           y = newY;
           yPlane = plane;
         }
@@ -153,13 +153,17 @@ Mesh.prototype = {
 
     for (var i=0; i<this.planes.length; i+=1) {
       const res = this.planes[i].intersect(p1, p2);
-      
+
       if (res != null) {
-        intersect = {
-          intersect: res,
-          plane: this.planes[i],
-          distance: distanceBetween(p1, res)
-        };
+        const dist = distanceBetween(p1, res);
+
+        if (intersect == null || dist < intersect.distance) {
+          intersect = {
+            intersect: res,
+            plane: this.planes[i],
+            distance: dist
+          };
+        }
       }
     }
 

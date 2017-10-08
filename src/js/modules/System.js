@@ -116,6 +116,29 @@ System.prototype = {
     };
   },
 
+  ceilingPlanes: function(point) {
+    // search
+    const quadrant = this.quadrants.getQuadrant(point);
+    let planes = [];
+
+    for (let i=0; i<quadrant.length; i+=1) {
+      const mesh = quadrant[i];
+
+      if (mesh.collision(point)) {
+        let res = mesh.ceilingPlane(point);
+
+        if (res.y != null) {
+          planes.push({
+            y: res.y,
+            plane: res.plane
+          });
+        }
+      }
+    }
+
+    return planes;
+  },
+
   intersect: function(from, to) {
     // get intersect of geometry and line
 
@@ -135,7 +158,7 @@ System.prototype = {
     for (let i=0; i<quadrant.length; i+=1) {
       const mesh = quadrant[i];
 
-      if (mesh.collision(to) || mesh.collision(from)) {
+      if (mesh.collision(to)) {
         let res = mesh.intersect(from, to);
 
         if (res != null && (intersect === null || res.distance < intersect.distance)) {
@@ -151,6 +174,26 @@ System.prototype = {
     });
 
     return intersect;
+  },
+
+  intersects: function(from, to) {
+    // get array of intersects between points
+    const quadrant = this.quadrants.getQuadrant(to);
+    let intersects = [];
+
+    for (let i=0; i<quadrant.length; i+=1) {
+      const mesh = quadrant[i];
+
+      if (mesh.collision(to)) {
+        let res = mesh.intersect(from, to);
+
+        if (res != null) {
+          intersects.push(res);
+        }
+      }
+    }
+
+    return intersects;
   },
 
   countIntersects: function(from, to) {

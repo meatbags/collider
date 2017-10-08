@@ -38,7 +38,6 @@ Plane.prototype = {
 
     // create bounding box
     this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
-    //this.box.expandByScalar(0.05);
   },
 
   isPointAbove: function(point) {
@@ -81,6 +80,14 @@ Plane.prototype = {
     return res;
   },
 
+  isPointOnSurface: function(point) {
+    const vec = Maths.subtractVector(point, this.position);
+    const dot = Maths.dotProduct(vec, this.normal);
+    const res = (dot <= Config.plane.dotBuffer && dot >= -Config.plane.dotBuffer);
+
+    return res;
+  },
+
   isPlaneAbove: function(plane) {
     // check if whole plane is above
 
@@ -104,14 +111,9 @@ Plane.prototype = {
   },
 
   getNormalIntersect: function(point) {
-    let point2 =  Maths.addVector(point, this.normal);
-    /*
-    if (!this.isPointBelowOrEqual(point)) {
-      point2 = Maths.addVector(point, this.normal);
-    } else {
-      point2 = Maths.subtractVector(point, this.normal)
-    }
-    */
+    // get intersect which extends normal vector (or inverse) to point
+
+    const point2 =  Maths.addVector(point, this.normal);
     const vec = Maths.subtractVector(point2, point);
     const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
     const denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
@@ -119,8 +121,6 @@ Plane.prototype = {
     const y = point.y - ((vec.y * numPart) / denom);
     const z = point.z - ((vec.z * numPart) / denom);
     const intersect = new THREE.Vector3(x, y, z);
-
-    //console.log(intersect)
 
     return intersect;
   },
@@ -132,7 +132,7 @@ Plane.prototype = {
     const dot = Maths.dotProduct(this.normal, Maths.normalise(vec));
 
     // check for parallel lines
-    if (dot == 0) {
+    if (Math.abs(dot) <= Config.plane.dotBuffer) {
       return null;
     }
 

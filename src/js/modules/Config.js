@@ -10,7 +10,7 @@ const Config = {
     }
   },
   plane: {
-    dotBuffer: 0.0001 // account for dot product precision limitations
+    dotBuffer: 0.001 // account for dot product precision limitations
   }
 };
 
