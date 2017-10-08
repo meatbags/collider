@@ -520,12 +520,14 @@ Plane.prototype = {
   },
 
   getNormalIntersect: function getNormalIntersect(point) {
-    var point2 = void 0;
+    var point2 = Maths.addVector(point, this.normal);
+    /*
     if (!this.isPointBelowOrEqual(point)) {
       point2 = Maths.addVector(point, this.normal);
     } else {
-      point2 = Maths.subtractVector(point, this.normal);
+      point2 = Maths.subtractVector(point, this.normal)
     }
+    */
     var vec = Maths.subtractVector(point2, point);
     var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
     var denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
@@ -565,7 +567,7 @@ Plane.prototype = {
 
     // return intersect if point is inside verts & line
     if (this.containsPoint(point)) {
-      var box = new THREE.Box3().setFromPoints([p1, p2]);
+      var box = new THREE.Box3().setFromPoints([p2, p1]).expandByScalar(0.05);
 
       if (box.containsPoint(point)) {
         return point;
@@ -733,14 +735,13 @@ System.prototype = {
     // get intersect of geometry and line
 
     // check intersect cache for intersect
-    /*
     if (this.isCached(from, this.cache.intersect)) {
-      const cached = this.cache.intersect[0];
-        if (to.x === cached.item.to.x && to.y === cached.item.to.y && to.z === cached.item.to.z) {
+      var cached = this.cache.intersect[0];
+
+      if (to.x === cached.item.to.x && to.y === cached.item.to.y && to.z === cached.item.to.z) {
         return cached.item.intersect;
       }
     }
-    */
 
     // search
     var quadrant = this.quadrants.getQuadrant(to);
@@ -1051,25 +1052,27 @@ Player.prototype = {
     var collision = collider.collision(next);
 
     if (collision) {
-      // fall by default
-      this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
+      // check for floors
       var ceiling = collider.ceilingPlane(next);
 
       // check if climbable
       if (ceiling.y != null && ceiling.y - this.target.position.y <= this.attributes.climb.up && ceiling.plane.normal.y >= this.attributes.climb.minYNormal) {
         // climb up
-        console.log('CLIMB');
         this.movement.y = 0;
         next.y = ceiling.y;
       } else {
+        // fall by default
+        //this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
+
         // get intersect
         var intersect = collider.intersect(this.target.position, next);
-        next.x = this.target.position.x;
-        next.z = this.target.position.z;
+
+        console.log(intersect);
+
         if (intersect === null) {
           // badly formed mesh, stop player (prevent crazy physics)
-          next.x = this.target.position.x;
-          next.z = this.target.position.z;
+          //next.x = this.target.position.x;
+          //next.z = this.target.position.z;
         } else {
           // extrude position to point on plane
           var extrude = intersect.plane.getNormalIntersect(next);

@@ -120,7 +120,6 @@ System.prototype = {
     // get intersect of geometry and line
 
     // check intersect cache for intersect
-    /*
     if (this.isCached(from, this.cache.intersect)) {
       const cached = this.cache.intersect[0];
 
@@ -128,7 +127,6 @@ System.prototype = {
         return cached.item.intersect;
       }
     }
-    */
 
     // search
     const quadrant = this.quadrants.getQuadrant(to);

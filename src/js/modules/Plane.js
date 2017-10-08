@@ -104,12 +104,14 @@ Plane.prototype = {
   },
 
   getNormalIntersect: function(point) {
-    let point2;
+    let point2 =  Maths.addVector(point, this.normal);
+    /*
     if (!this.isPointBelowOrEqual(point)) {
       point2 = Maths.addVector(point, this.normal);
     } else {
       point2 = Maths.subtractVector(point, this.normal)
     }
+    */
     const vec = Maths.subtractVector(point2, point);
     const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
     const denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
@@ -149,7 +151,7 @@ Plane.prototype = {
 
     // return intersect if point is inside verts & line
     if (this.containsPoint(point)) {
-      const box = new THREE.Box3().setFromPoints([p1, p2]);
+      const box = new THREE.Box3().setFromPoints([p2, p1]).expandByScalar(0.05);
 
       if (box.containsPoint(point)) {
         return point;

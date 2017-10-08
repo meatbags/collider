@@ -126,9 +126,8 @@ Player.prototype = {
     let collision = collider.collision(next);
 
     if (collision) {
-      // fall by default
-      this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
-      const ceiling = collider.ceilingPlane(next);
+      // check for floors
+      let ceiling = collider.ceilingPlane(next);
 
       // check if climbable
       if (
@@ -137,18 +136,21 @@ Player.prototype = {
         ceiling.plane.normal.y >= this.attributes.climb.minYNormal
       ) {
         // climb up
-        console.log('CLIMB')
         this.movement.y = 0;
         next.y = ceiling.y;
       } else {
+        // fall by default
+        //this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
+
         // get intersect
         const intersect = collider.intersect(this.target.position, next);
-        next.x = this.target.position.x;
-        next.z = this.target.position.z;
+
+        console.log(intersect);
+
         if (intersect === null) {
           // badly formed mesh, stop player (prevent crazy physics)
-          next.x = this.target.position.x;
-          next.z = this.target.position.z;
+          //next.x = this.target.position.x;
+          //next.z = this.target.position.z;
         } else {
           // extrude position to point on plane
           const extrude = intersect.plane.getNormalIntersect(next);
