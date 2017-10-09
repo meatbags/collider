@@ -20,6 +20,7 @@ Plane.prototype = {
 
     // get normal
     this.normal = Maths.normalise(Maths.crossProduct(e12, e13));
+    this.normalXZ = new THREE.Vector3(this.normal.x, 0, this.normal.z);
 
     // reverse naughty normals
     if (Maths.dotProduct(this.normal, this.n1) < 0) {
@@ -38,6 +39,7 @@ Plane.prototype = {
 
     // create bounding box
     this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
+    this.boxExpanded = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]).expandByScalar(Config.plane.surfaceCollisionThreshold);
   },
 
   isPointAbove: function(point) {
@@ -110,6 +112,18 @@ Plane.prototype = {
     return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
   },
 
+  containsPointThreshold: function(point) {
+    return this.boxExpanded.containsPoint(point);
+  },
+
+  distanceToPlane: function(point) {
+    return (
+      Math.abs(
+        this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D
+      )
+    );
+  },
+
   getNormalIntersect: function(point) {
     // get intersect which extends normal vector (or inverse) to point
 
@@ -121,6 +135,18 @@ Plane.prototype = {
     const y = point.y - ((vec.y * numPart) / denom);
     const z = point.z - ((vec.z * numPart) / denom);
     const intersect = new THREE.Vector3(x, y, z);
+
+    return intersect;
+  },
+
+  getNormalIntersectXZ(point) {
+    // get 2D (xz) intersect which extends from point to surface
+
+    const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
+    const denom = this.normal.x * this.normal.x + this.normal.z * this.normal.z;
+    const x = point.x - ((this.normal.x * numPart) / denom);
+    const z = point.z - ((this.normal.z * numPart) / denom);
+    const intersect = new THREE.Vector3(x, point.y, z);
 
     return intersect;
   },

@@ -10,7 +10,8 @@ const Config = {
     }
   },
   plane: {
-    dotBuffer: 0.001 // account for dot product precision limitations
+    dotBuffer: 0.001,
+    collisionThreshold: 0.5
   }
 };
 

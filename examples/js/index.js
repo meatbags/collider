@@ -19,6 +19,7 @@ const App = {
     // scene
     App.scene = new THREE.Scene();
     App.player = new Collider.Player(App.renderer.domElement);
+    App.scene.add(App.player.object);
 
     // collision system
     App.colliderSystem = new Collider.System();
@@ -76,31 +77,9 @@ const App = {
     App.devctx.fillText('M ' + App.reduce(App.player.movement.x) + ', ' + App.reduce(App.player.movement.y) + ', ' + App.reduce(App.player.movement.z), x, 40);
     App.devctx.fillText('D ' + App.reduce(App.player.rotation.x + App.player.offset.rotation.x) + ', ' + App.reduce(App.player.rotation.y + App.player.offset.rotation.y), x, 60);
 
-    // testing
-    const cs = App.colliderSystem;
-    const pos = App.player.target.position;
-
-    const ceilingCached = cs.isCached(pos, cs.cache.ceiling) ? ' CACHED' : '';
-    let ceiling = cs.ceiling(pos);
-    if (ceiling != null)
-      ceiling = App.reduce(ceiling);
-    const collisionCache = cs.isCached(pos, cs.cache.mesh) ? ' CACHED' : '';
-    const collision = cs.collision(pos);
-    const count = cs.countCollisions(pos);
-    const from = new THREE.Vector3(pos.x, pos.y + 0.1, pos.z);
-    const to = new THREE.Vector3(pos.x, pos.y - 0.1, pos.z);
-    const intersect = (cs.cache.intersect.length > 0) ? cs.cache.intersect[0].item.intersect : null;
-    let ix = iy = iz = null;
-    if (intersect != null) {
-      ix = App.reduce(intersect.intersect.x);
-      iy = App.reduce(intersect.intersect.y);
-      iz = App.reduce(intersect.intersect.z);
+    for (let i=0; i<App.player.outputLog.length; i+=1) {
+      App.devctx.fillText(App.player.outputLog[i], x, 80 + i * 20);
     }
-
-    App.devctx.fillText('Collision: ' + collision + collisionCache, x, 80);
-    App.devctx.fillText('Collisions: ' + count, x, 100);
-    App.devctx.fillText('Y Ceiling: ' + ceiling + ceilingCached, x, 120);
-    App.devctx.fillText('Intersect: ' + ix + ', ' + iy + ', ' + iz, x, 140);
   },
 
   test: function() {

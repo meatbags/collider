@@ -61,6 +61,23 @@ System.prototype = {
     return collision;
   },
 
+  collisions: function(point) {
+    // get all meshes which collide
+    
+    let collisions = [];
+    const quadrant = this.quadrants.getQuadrant(point);
+
+    for (let i=0; i<quadrant.length; i+=1) {
+      const mesh = quadrant[i];
+
+      if (mesh.collision(point)) {
+        collisions.push(mesh);
+      }
+    }
+
+    return collisions;
+  },
+
   ceiling: function(point) {
     // get height of plane above point
 

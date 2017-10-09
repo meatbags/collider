@@ -1,6 +1,6 @@
 import Config from './Config';
 import Plane from './Plane';
-import { distanceBetween } from './Maths';
+import { subtractVector, dotProduct, normalise, distanceBetween } from './Maths';
 
 const Mesh = function(geometry) {
   this.isColliderMesh = true;
@@ -163,6 +163,28 @@ Mesh.prototype = {
             plane: this.planes[i],
             distance: dist
           };
+        }
+      }
+    }
+
+    return intersect;
+  },
+
+  nearest2DIntersect: function(p1, p2) {
+    let intersect = p2;
+    let distance = null;
+    let pointBox = new THREE.Box3().setFromPoints([p1, p2]);
+
+    for (var i=0; i<this.planes.length; i+=1) {
+      if (pointBox.intersectsBox(this.planes[i].box)) {
+        if (this.planes[i].distanceToPlane(p2) <= Config.plane.collisionThreshold) {
+          let contact = this.planes[i].getNormalIntersectXZ(p2);
+          let dist = distanceBetween(contact, p2);
+
+          if (distance == null || dist < distance) {
+            distance = dist;
+            intersect = contact;
+          }
         }
       }
     }

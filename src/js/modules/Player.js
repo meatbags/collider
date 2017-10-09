@@ -42,6 +42,7 @@ const Player = function(domElement) {
       jumpVelocity: 5,
     }
   };
+  this.outputLog = [];
   this.camera = new THREE.PerspectiveCamera(this.attributes.fov, 1, 0.1, 10000);
   this.camera.up = new THREE.Vector3(0, 1, 0);
 	this.init();
@@ -49,6 +50,10 @@ const Player = function(domElement) {
 
 Player.prototype = {
 	init: function() {
+    this.object = new THREE.Mesh(
+      new THREE.SphereBufferGeometry(0.05),
+      new THREE.MeshPhongMaterial()
+    );
 		this.bindControls();
     this.resizeCamera();
 	},
@@ -87,8 +92,18 @@ Player.prototype = {
 		}, false);
 	},
 
+  log: function() {
+    let text = '';
+    for (let i=0; i<arguments.length; i+=1) {
+      text += arguments[i] + ' ';
+    }
+    this.outputLog.push(text);
+  },
+
 	update: function(delta, collider) {
     // handle key presses and move player
+
+    this.outputLog = [];
 
     // get movement vector from controls
     if (this.keys.up || this.keys.down) {
@@ -127,89 +142,94 @@ Player.prototype = {
 
     // check next position for collision
     let next = Maths.addVector(Maths.scaleVector(this.movement, delta), this.target.position);
-    let collision = collider.collision(next);
+    let collisions = collider.collisions(next);
 
     // apply gravity
     this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
 
-    if (collision) {
-      // check for floors
-      let ceilings = collider.ceilingPlanes(next);
-      let obstructed = false;
-      let extruded = false;
-      let climbed = false;
+    if (collisions.length > 0) {
+      this.log('Collisions', collisions.length);
 
-      for (let i=0; i<ceilings.length; i+=1) {
-        const ceil = ceilings[i];
+      // check for floor
 
-        // climb up
-        if (ceil.y - this.target.position.y <= this.attributes.climb.up &&
-          ceil.plane.normal.y >= this.attributes.climb.minYNormal &&
-          ceil.y >= next.y
+      for (let i=0; i<collisions.length; i+=1) {
+        const ceiling = collisions[i].ceilingPlane(next);
+
+        if (
+          ceiling.y != null &&
+          ceiling.plane.normal.y >= this.attributes.climb.minYNormal &&
+          (ceiling.y - this.target.position.y) <= this.attributes.climb.up
         ) {
+          // ground
           this.movement.y = 0;
-          next.y = ceil.y;
-          climbed = true;
-        } else {
-          obstructed = true;
+
+          // ascend
+          if (ceiling.y >= next.y) {
+            next.y = ceiling.y;
+            this.log('CLIMBED')
+          }
         }
       }
 
-      if (obstructed) {
-        // check for walls
-        console.log('OBSTRUCTED')
-        const intersect = collider.intersect(this.target.position, next);
+      // check for walls
 
-        if (intersect != null) {
-          // extrude position to point on plane
-          const extrude = intersect.plane.getNormalIntersect(next);
-          next.x = extrude.x;
-          next.z = extrude.z;
-          extruded = true;
+      collisions = collider.collisions(next);
+      let walls = [];
 
-          // check for more walls
-          const from = intersect.intersect;
-          const to = Maths.copyVector(extrude);
-          const plane = intersect.plane;
-          const intersects = collider.intersects(from, to);
+      for (let i=0; i<collisions.length; i+=1) {
+        const ceiling = collisions[i].ceilingPlane(next);
 
-          for (let i=0; i<intersects.length; i+=1) {
-            const minY = intersects[i].plane.normal.y;
+        if (
+          ceiling.y != null && (
+          ceiling.plane.normal.y < this.attributes.climb.minYNormal ||
+          (ceiling.y - this.target.position.y) > this.attributes.climb.up)
+        ){
+          walls.push(collisions[i]);
+        }
+      }
 
-            if (!(minY < 0) && minY <= this.attributes.climb.minYNormal) {
-              next.x = this.target.position.x;
-              next.z = this.target.position.z;
-              extruded = false;
-              break;
-            }
+      // if inside a wall, extrude out
+
+      if (walls.length > 0) {
+        let extrude = Maths.copyVector(next);
+
+        for (let i=0; i<walls.length; i+=1) {
+          const mesh = walls[i];
+          extrude = mesh.nearest2DIntersect(this.target.position, next);
+        }
+
+        next.x = extrude.x;
+        next.z = extrude.z;
+
+        // helper
+
+        this.object.position.set(next.x, next.y, next.z);
+
+        // check extruded point for collisions
+
+        let hits = 0;
+        collisions = collider.collisions(next);
+
+        for (let i=0; i<collisions.length; i+=1) {
+          const ceiling = collisions[i].ceilingPlane(next);
+
+          if (
+            ceiling.y != null &&
+            (ceiling.plane.normal.y < this.attributes.climb.minYNormal ||
+            (ceiling.y - this.target.position.y) > this.attributes.climb.up)
+          ) {
+            hits += 1;
           }
-        } else {
+        }
+
+        // if contact with > 1 walls, stop motion
+
+        if (hits > 1) {
           next.x = this.target.position.x;
           next.z = this.target.position.z;
         }
       }
-
-      // correct y position
-      if (extruded) {
-        ceilings = collider.ceilingPlanes(next);
-
-        for (let i=0; i<ceilings.length; i+=1) {
-          const ceil = ceilings[i];
-
-          // climb up
-          if (ceil.y - this.target.position.y <= this.attributes.climb.up &&
-            ceil.plane.normal.y >= this.attributes.climb.minYNormal &&
-            ceil.y >= next.y
-          ) {
-            this.movement.y = 0;
-            next.y = ceil.y;
-            climbed = true;
-          }
-        }
-      }
-    }
-    else
-    {
+    } else {
       // check if on downward slope
       const testUnder = Maths.copyVector(next);
       testUnder.y -= this.attributes.climb.down;
