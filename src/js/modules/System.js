@@ -19,8 +19,6 @@ const System = function () {
 
 System.prototype = {
   init: function() {
-    this.devCvs = document.getElementById('canvas');
-    this.devCtx = this.devCvs.getContext('2d');
   },
 
   add: function() {
@@ -63,7 +61,7 @@ System.prototype = {
 
   collisions: function(point) {
     // get all meshes which collide
-    
+
     let collisions = [];
     const quadrant = this.quadrants.getQuadrant(point);
 

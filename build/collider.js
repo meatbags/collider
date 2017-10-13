@@ -683,10 +683,7 @@ var System = function System() {
 };
 
 System.prototype = {
-  init: function init() {
-    this.devCvs = document.getElementById('canvas');
-    this.devCtx = this.devCvs.getContext('2d');
-  },
+  init: function init() {},
 
   add: function add() {
     // add mesh to quadrants
