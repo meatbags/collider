@@ -101,13 +101,19 @@ Plane.prototype = {
   },
 
   containsPoint: function(point) {
-    // is inside bounding box
-
     return this.box.containsPoint(point);
   },
 
-  containsPointXZ: function(point) {
-    // is X, Z inside bounding box
+  containsBox: function(box) {
+    return this.box.containsBox(box);
+  },
+
+  intersectsBox: function(box) {
+    return this.box.intersectsBox(box);
+  },
+
+  containsPoint2D: function(point) {
+    // is x, y inside bounding box
 
     return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
   },
@@ -124,34 +130,7 @@ Plane.prototype = {
     );
   },
 
-  getNormalIntersect: function(point) {
-    // get intersect which extends normal vector (or inverse) to point
-
-    const point2 =  Maths.addVector(point, this.normal);
-    const vec = Maths.subtractVector(point2, point);
-    const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
-    const denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
-    const x = point.x - ((vec.x * numPart) / denom);
-    const y = point.y - ((vec.y * numPart) / denom);
-    const z = point.z - ((vec.z * numPart) / denom);
-    const intersect = new THREE.Vector3(x, y, z);
-
-    return intersect;
-  },
-
-  getNormalIntersectXZ(point) {
-    // get 2D (xz) intersect which extends from point to surface
-
-    const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
-    const denom = this.normal.x * this.normal.x + this.normal.z * this.normal.z;
-    const x = point.x - ((this.normal.x * numPart) / denom);
-    const z = point.z - ((this.normal.z * numPart) / denom);
-    const intersect = new THREE.Vector3(x, point.y, z);
-
-    return intersect;
-  },
-
-  intersect: function(p1, p2) {
+  getIntersect: function(p1, p2) {
     // get intersection of plane and line between p1, p2
 
     const vec = Maths.subtractVector(p2, p1);
@@ -185,6 +164,33 @@ Plane.prototype = {
     }
 
     return null;
+  },
+
+  getNormalIntersect: function(point) {
+    // get intersect which extends normal vector (or inverse) to point
+
+    const point2 =  Maths.addVector(point, this.normal);
+    const vec = Maths.subtractVector(point2, point);
+    const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
+    const denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
+    const x = point.x - ((vec.x * numPart) / denom);
+    const y = point.y - ((vec.y * numPart) / denom);
+    const z = point.z - ((vec.z * numPart) / denom);
+    const intersect = new THREE.Vector3(x, y, z);
+
+    return intersect;
+  },
+
+  getNormalIntersect2D(point) {
+    // get 2D (xz) intersect which extends from point to surface
+
+    const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
+    const denom = this.normal.x * this.normal.x + this.normal.z * this.normal.z;
+    const x = point.x - ((this.normal.x * numPart) / denom);
+    const z = point.z - ((this.normal.z * numPart) / denom);
+    const intersect = new THREE.Vector3(x, point.y, z);
+
+    return intersect;
   },
 
   getY: function(x, z) {

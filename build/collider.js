@@ -75,19 +75,64 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 var Config = {
-  system: {
-    cacheSize: 10
-  },
+  system: {},
   quadrants: {
     size: {
       x: 50,
-      y: 10,
+      y: 50,
       z: 50
     }
   },
   plane: {
     dotBuffer: 0.001,
     collisionThreshold: 0.5
+  },
+  sandbox: {
+    physics: {
+      gravity: 12,
+      maxVelocity: 50
+    },
+    player: {
+      height: 2,
+      position: {
+        x: 0,
+        y: 0,
+        z: 0
+      },
+      rotation: {
+        pitch: 0,
+        yaw: Math.PI * 0.29,
+        roll: 0,
+        maxPitch: Math.PI * 0.25,
+        minPitch: Math.PI * -0.25
+      },
+      speed: {
+        normal: 9,
+        slowed: 5,
+        rotation: Math.PI * 0.75,
+        jump: 13,
+        fallTimerThreshold: 0.1
+      },
+      climb: {
+        up: 1,
+        down: 0.5,
+        minPlaneYAngle: 0.55
+      }
+    },
+    camera: {
+      fov: 58,
+      aspect: 1,
+      near: 0.1,
+      far: 10000
+    },
+    adjust: {
+      verySlow: 0.01,
+      slow: 0.025,
+      normal: 0.05,
+      fast: 0.09,
+      rapid: 0.12,
+      veryFast: 0.2
+    }
   }
 };
 
@@ -214,7 +259,7 @@ exports.normalise = normalise;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Player = exports.System = exports.Mesh = undefined;
+exports.Logger = exports.Player = exports.System = exports.Mesh = undefined;
 
 var _Mesh = __webpack_require__(3);
 
@@ -228,13 +273,20 @@ var _Player = __webpack_require__(7);
 
 var _Player2 = _interopRequireDefault(_Player);
 
+var _Logger = __webpack_require__(8);
+
+var _Logger2 = _interopRequireDefault(_Logger);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * @author meatbags / https://github.com/meatbags
+*/
 
 exports.Mesh = _Mesh2.default;
 exports.System = _System2.default;
-exports.Player = _Player2.default; /**
-                                    * @author meatbags / https://github.com/meatbags
-                                   */
+exports.Player = _Player2.default;
+exports.Logger = _Logger2.default;
 
 /***/ }),
 /* 3 */
@@ -268,6 +320,9 @@ var Mesh = function Mesh(geometry) {
     this.min = this.box.min;
     this.max = this.box.max;
     this.planes = [];
+    // TODO: activate & change bbox stuff
+    this.translate = new THREE.Vector3(0, 0, 0);
+    this.rotate = new THREE.Vector3(0, 0, 0);
     this.generatePlanes();
   } else {
     throw 'Error: Input is not THREE.BufferGeometry';
@@ -303,7 +358,7 @@ Mesh.prototype = {
     }
   },
 
-  collision: function collision(point) {
+  getCollision: function getCollision(point) {
     if (this.box.containsPoint(point)) {
       // reset
       for (var i = 0; i < this.planes.length; i += 1) {
@@ -322,7 +377,7 @@ Mesh.prototype = {
         }
       }
 
-      // second pass - get res
+      // second pass - get result
       for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
         if (!this.planes[_i3].culled && !this.planes[_i3].isPointBelowOrEqual(point)) {
           return false;
@@ -335,19 +390,19 @@ Mesh.prototype = {
     }
   },
 
-  ceiling: function ceiling(point) {
-    // get closest ceiling above point
+  getCollision2D: function getCollision2D(point) {
+    return point.x >= this.min.x && point.x <= this.max.x && point.z >= this.min.z && point.z <= this.max.z;
+  },
 
+  getCeiling2D: function getCeiling2D(point) {
     var y = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
-      var plane = this.planes[i];
+      if (this.planes[i].containsPoint2D(point)) {
+        var planeCeiling = plane.getY(point.x, point.z);
 
-      if (plane.containsPointXZ(point) && plane.isPointBelowOrEqual(point) && plane.normal.y >= 0) {
-        var newY = plane.getY(point.x, point.z);
-
-        if (newY >= point.y && (y === null || newY < y)) {
-          y = newY;
+        if (y === null || planeCeiling > y) {
+          y = planeCeiling;
         }
       }
     }
@@ -355,75 +410,91 @@ Mesh.prototype = {
     return y;
   },
 
-  ceilingPlane: function ceilingPlane(point) {
-    // get closest ceiling plane
+  getCeiling: function getCeiling(point) {
+    // get ceiling *above* point
 
-    var yPlane = null;
     var y = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
-      var plane = this.planes[i];
+      if (this.planes[i].containsPoint2D(point) && this.planes[i].isPointBelowOrEqual(point)) {
+        var planeCeiling = plane.getY(point.x, point.z);
 
-      if (plane.containsPointXZ(point) && plane.isPointBelowOrEqual(point) && plane.normal.y >= 0) {
-        var newY = plane.getY(point.x, point.z);
-
-        if (newY >= point.y && (y == null || newY < y)) {
-          y = newY;
-          yPlane = plane;
+        if (planeCeiling >= point.y && (y === null || planeCeiling < y)) {
+          y = planeCeiling;
         }
       }
     }
 
-    return {
-      y: y,
-      plane: yPlane
-    };
+    return y;
   },
 
-  intersect: function intersect(p1, p2) {
-    // get intersect of mesh and line
+  getCeilingPlane: function getCeilingPlane(point) {
+    // get ceiling and plane *above* point
 
-    var intersect = null;
+    var plane = null;
+    var y = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
-      var res = this.planes[i].intersect(p1, p2);
+      if (this.planes[i].containsPoint2D(point) && this.planes[i].isPointBelowOrEqual(point)) {
+        var planeCeiling = this.planes[i].getY(point.x, point.z);
 
-      if (res != null) {
-        var dist = (0, _Maths.distanceBetween)(p1, res);
-
-        if (intersect == null || dist < intersect.distance) {
-          intersect = {
-            intersect: res,
-            plane: this.planes[i],
-            distance: dist
-          };
+        if (planeCeiling >= point.y && (y == null || planeCeiling < y)) {
+          y = planeCeiling;
+          plane = plane;
         }
       }
     }
 
-    return intersect;
+    return { y: y, plane: plane };
   },
 
-  nearest2DIntersect: function nearest2DIntersect(p1, p2) {
-    var intersect = p2;
-    var distance = null;
-    var pointBox = new THREE.Box3().setFromPoints([p1, p2]);
+  getIntersectPlane: function getIntersectPlane(p1, p2) {
+    var box = new THREE.Box3().setFromPoints([p1, p2]);
+    var intersectPlane = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
-      if (pointBox.intersectsBox(this.planes[i].box)) {
-        if (this.planes[i].distanceToPlane(p2) <= _Config2.default.plane.collisionThreshold) {
-          var contact = this.planes[i].getNormalIntersectXZ(p2);
-          var dist = (0, _Maths.distanceBetween)(contact, p2);
+      if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
+        var intersect = this.planes[i].getIntersect(p1, p2);
 
-          if (distance == null || dist < distance) {
-            distance = dist;
-            intersect = contact;
+        if (intersect != null) {
+          var distance = (0, _Maths.distanceBetween)(p1, intersect);
+
+          if (intersectPlane === null || distance < intersectPlane.distance) {
+            intersectPlane = {
+              intersect: intersect,
+              plane: this.planes[i],
+              distance: distance
+            };
           }
         }
       }
     }
 
-    return intersect;
+    return intersectPlane;
+  },
+
+  getIntersectPlane2D: function getIntersectPlane2D(p1, p2) {
+    // find 2D intersect *nearest* to p2
+
+    var box = new THREE.Box3().setFromPoints([p1, p2]);
+    var intersectPlane = null;
+
+    for (var i = 0; i < this.planes.length; i += 1) {
+      if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
+        var intersect2D = this.planes[i].getNormalIntersect2D(p2);
+        var distance = (0, _Maths.distanceBetween)(p2, intersect2D);
+
+        if (intersectPlane === null || distance < intersectPlane.distance) {
+          intersectPlane = {
+            plane: this.planes[i],
+            intersect: intersect2D,
+            distance: distance
+          };
+        }
+      }
+    }
+
+    return intersectPlane;
   }
 };
 
@@ -544,13 +615,19 @@ Plane.prototype = {
   },
 
   containsPoint: function containsPoint(point) {
-    // is inside bounding box
-
     return this.box.containsPoint(point);
   },
 
-  containsPointXZ: function containsPointXZ(point) {
-    // is X, Z inside bounding box
+  containsBox: function containsBox(box) {
+    return this.box.containsBox(box);
+  },
+
+  intersectsBox: function intersectsBox(box) {
+    return this.box.intersectsBox(box);
+  },
+
+  containsPoint2D: function containsPoint2D(point) {
+    // is x, y inside bounding box
 
     return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
   },
@@ -563,35 +640,7 @@ Plane.prototype = {
     return Math.abs(this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D);
   },
 
-  getNormalIntersect: function getNormalIntersect(point) {
-    // get intersect which extends normal vector (or inverse) to point
-
-    var point2 = Maths.addVector(point, this.normal);
-    var vec = Maths.subtractVector(point2, point);
-    var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
-    var denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
-    var x = point.x - vec.x * numPart / denom;
-    var y = point.y - vec.y * numPart / denom;
-    var z = point.z - vec.z * numPart / denom;
-    var intersect = new THREE.Vector3(x, y, z);
-
-    return intersect;
-  },
-
-  getNormalIntersectXZ: function getNormalIntersectXZ(point) {
-    // get 2D (xz) intersect which extends from point to surface
-
-    var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
-    var denom = this.normal.x * this.normal.x + this.normal.z * this.normal.z;
-    var x = point.x - this.normal.x * numPart / denom;
-    var z = point.z - this.normal.z * numPart / denom;
-    var intersect = new THREE.Vector3(x, point.y, z);
-
-    return intersect;
-  },
-
-
-  intersect: function intersect(p1, p2) {
+  getIntersect: function getIntersect(p1, p2) {
     // get intersection of plane and line between p1, p2
 
     var vec = Maths.subtractVector(p2, p1);
@@ -626,6 +675,34 @@ Plane.prototype = {
 
     return null;
   },
+
+  getNormalIntersect: function getNormalIntersect(point) {
+    // get intersect which extends normal vector (or inverse) to point
+
+    var point2 = Maths.addVector(point, this.normal);
+    var vec = Maths.subtractVector(point2, point);
+    var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
+    var denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
+    var x = point.x - vec.x * numPart / denom;
+    var y = point.y - vec.y * numPart / denom;
+    var z = point.z - vec.z * numPart / denom;
+    var intersect = new THREE.Vector3(x, y, z);
+
+    return intersect;
+  },
+
+  getNormalIntersect2D: function getNormalIntersect2D(point) {
+    // get 2D (xz) intersect which extends from point to surface
+
+    var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
+    var denom = this.normal.x * this.normal.x + this.normal.z * this.normal.z;
+    var x = point.x - this.normal.x * numPart / denom;
+    var z = point.z - this.normal.z * numPart / denom;
+    var intersect = new THREE.Vector3(x, point.y, z);
+
+    return intersect;
+  },
+
 
   getY: function getY(x, z) {
     // solve plane for x, z
@@ -672,50 +749,33 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var System = function System() {
   this.quadrants = new _Quadrants2.default();
-  this.cache = {
-    mesh: [],
-    ceiling: [],
-    floor: [],
-    intersect: []
-  };
   this.isColliderSystem = true;
-  this.init();
 };
 
 System.prototype = {
-  init: function init() {},
-
   add: function add() {
     // add mesh to quadrants
 
     for (var i = 0; i < arguments.length; i += 1) {
-      var mesh = arguments[i];
+      var _mesh = arguments[i];
 
-      if (mesh.isColliderMesh) {
-        this.quadrants.add(mesh);
+      if (_mesh.isColliderMesh) {
+        this.quadrants.add(_mesh);
       } else {
         throw 'Error: Input must be Collider.Mesh';
       }
     }
   },
 
-  collision: function collision(point) {
-    // search for collisions at point
-    // check cache
-    if (this.isCached(point, this.cache.mesh)) {
-      return true;
-    }
+  getCollision: function getCollision(point) {
+    // check for collision at point
 
-    // search meshes
     var collision = false;
     var quadrant = this.quadrants.getQuadrant(point);
 
     for (var i = 0; i < quadrant.length; i += 1) {
-      var mesh = quadrant[i];
-
-      if (mesh.collision(point)) {
+      if (quadrant[i].getCollision(point)) {
         collision = true;
-        this.cacheItem(this.cache.mesh, point, mesh);
         break;
       }
     }
@@ -723,209 +783,59 @@ System.prototype = {
     return collision;
   },
 
-  collisions: function collisions(point) {
-    // get all meshes which collide
+  getCollisionMeshes: function getCollisionMeshes(point) {
+    // get all meshes which collide with point
 
     var collisions = [];
     var quadrant = this.quadrants.getQuadrant(point);
 
     for (var i = 0; i < quadrant.length; i += 1) {
-      var mesh = quadrant[i];
-
-      if (mesh.collision(point)) {
-        collisions.push(mesh);
+      if (quadrant[i].getCollision(point)) {
+        collisions.push(quadrant[i]);
       }
     }
 
     return collisions;
   },
 
-  ceiling: function ceiling(point) {
-    // get height of plane above point
+  getCeiling2D: function getCeiling2D(point) {
+    // get absolute ceiling for x, z
 
-    // check ceiling cache
-    if (this.isCached(point, this.cache.ceiling)) {
-      return this.cache.ceiling[0].item;
-    }
-
-    // search
-    var quadrant = this.quadrants.getQuadrant(point);
     var y = null;
+    var quadrant = this.quadrants.getQuadrant(point);
 
     for (var i = 0; i < quadrant.length; i += 1) {
-      var mesh = quadrant[i];
+      if (quadrant[i].getCollision2D(point)) {
+        var meshCeiling = mesh.getCeiling2D(point);
 
-      if (mesh.collision(point)) {
-        var newY = mesh.ceiling(point);
-
-        if (y === null || newY > y) {
-          y = newY;
+        if (y === null || meshCeiling > y) {
+          y = meshCeiling;
         }
       }
     }
-
-    // cache
-    this.cacheItem(this.cache.ceiling, point, y);
 
     return y;
   },
 
-  ceilingPlane: function ceilingPlane(point) {
-    // search
-    var quadrant = this.quadrants.getQuadrant(point);
+  getCeilingPlane: function getCeilingPlane(point) {
+    // get ceiling and corresponding plane *above* point
+
     var y = null;
     var plane = null;
-
-    for (var i = 0; i < quadrant.length; i += 1) {
-      var mesh = quadrant[i];
-
-      if (mesh.collision(point)) {
-        var res = mesh.ceilingPlane(point);
-
-        if (y === null || res.y > y) {
-          y = res.y;
-          plane = res.plane;
-        }
-      }
-    }
-
-    return {
-      y: y,
-      plane: plane
-    };
-  },
-
-  ceilingPlanes: function ceilingPlanes(point) {
-    // search
-    var quadrant = this.quadrants.getQuadrant(point);
-    var planes = [];
-
-    for (var i = 0; i < quadrant.length; i += 1) {
-      var mesh = quadrant[i];
-
-      if (mesh.collision(point)) {
-        var res = mesh.ceilingPlane(point);
-
-        if (res.y != null) {
-          planes.push({
-            y: res.y,
-            plane: res.plane
-          });
-        }
-      }
-    }
-
-    return planes;
-  },
-
-  intersect: function intersect(from, to) {
-    // get intersect of geometry and line
-
-    // check intersect cache for intersect
-    if (this.isCached(from, this.cache.intersect)) {
-      var cached = this.cache.intersect[0];
-
-      if (to.x === cached.item.to.x && to.y === cached.item.to.y && to.z === cached.item.to.z) {
-        return cached.item.intersect;
-      }
-    }
-
-    // search
-    var quadrant = this.quadrants.getQuadrant(to);
-    var intersect = null;
-
-    for (var i = 0; i < quadrant.length; i += 1) {
-      var mesh = quadrant[i];
-
-      if (mesh.collision(to)) {
-        var res = mesh.intersect(from, to);
-
-        if (res != null && (intersect === null || res.distance < intersect.distance)) {
-          intersect = res;
-        }
-      }
-    }
-
-    // cache
-    this.cacheItem(this.cache.intersect, from, {
-      to: to,
-      intersect: intersect
-    });
-
-    return intersect;
-  },
-
-  intersects: function intersects(from, to) {
-    // get array of intersects between points
-    var quadrant = this.quadrants.getQuadrant(to);
-    var intersects = [];
-
-    for (var i = 0; i < quadrant.length; i += 1) {
-      var mesh = quadrant[i];
-
-      if (mesh.collision(to)) {
-        var res = mesh.intersect(from, to);
-
-        if (res != null) {
-          intersects.push(res);
-        }
-      }
-    }
-
-    return intersects;
-  },
-
-  countIntersects: function countIntersects(from, to) {
-    // get n intersects between points in geometric set
-
-    var quadrant = this.quadrants.getQuadrant(to);
-    var count = 0;
-
-    for (var i = 0; i < quadrant.length; i += 1) {
-      var mesh = quadrant[i];
-
-      if (mesh.collision(to)) {
-        var res = mesh.intersect(from, to);
-
-        if (res != null) {
-          count += 1;
-        }
-      }
-    }
-
-    return count;
-  },
-
-  countCollisions: function countCollisions(point) {
-    // get n collisions
-
-    var collisions = 0;
     var quadrant = this.quadrants.getQuadrant(point);
 
     for (var i = 0; i < quadrant.length; i += 1) {
-      var mesh = quadrant[i];
+      if (quadrant[i].getCollision(point)) {
+        var result = mesh.getCeilingPlane(point);
 
-      if (mesh.collision(point)) {
-        collisions += 1;
+        if (y === null || result.y != null && result.y > y) {
+          y = result.y;
+          plane = result.plane;
+        }
       }
     }
 
-    return collisions;
-  },
-
-  cacheItem: function cacheItem(cache, point, item) {
-    cache.unshift({
-      point: new THREE.Vector3(point.x, point.y, point.z),
-      item: item
-    });
-
-    if (cache.length > _Config2.default.system.cacheSize) {
-      cache.splice(cache.length - 1, 1);
-    }
-  },
-
-  isCached: function isCached(point, cache) {
-    return cache.length > 0 && point.x === cache[0].point.x && point.y === cache[0].point.y && point.z === cache[0].point.z;
+    return { y: y, plane: plane };
   }
 };
 
@@ -1031,116 +941,83 @@ var _Maths = __webpack_require__(1);
 
 var Maths = _interopRequireWildcard(_Maths);
 
+var _Config = __webpack_require__(0);
+
+var _Config2 = _interopRequireDefault(_Config);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 var Player = function Player(domElement) {
   this.domElement = domElement;
-  this.position = new THREE.Vector3(0, 0, 0);
+  this.config = _Config2.default.sandbox.player;
+  this.config.adjust = _Config2.default.sandbox.adjust;
+  this.config.physics = _Config2.default.sandbox.physics;
+  this.position = new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z);
+  this.rotation = {
+    pitch: this.config.rotation.pitch,
+    yaw: this.config.rotation.yaw,
+    roll: this.config.rotation.roll
+  };
   this.movement = new THREE.Vector3(0, 0, 0);
-  this.rotation = new THREE.Vector3(0, Math.PI, 0);
   this.offset = {
-    rotation: new THREE.Vector3(0, 0, 0)
+    rotation: {
+      pitch: 0,
+      yaw: 0,
+      roll: 0
+    }
   };
   this.target = {
-    position: new THREE.Vector3(0, 0, 0),
+    position: new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z),
+    rotation: {
+      pitch: this.config.rotation.pitch,
+      yaw: this.config.rotation.yaw,
+      roll: this.config.rotation.roll
+    },
     movement: new THREE.Vector3(0, 0, 0),
-    rotation: new THREE.Vector3(0, Math.PI, 0),
     offset: {
-      rotation: new THREE.Vector3(0, 0, 0)
+      rotation: {
+        pitch: 0,
+        yaw: 0,
+        roll: 0
+      }
     }
   };
-  this.attributes = {
-    speed: 8,
-    speedWhileJumping: 4,
-    height: 1.8,
-    rotation: Math.PI * 0.75,
-    fov: 58,
-    cameraThreshold: 0.4,
-    maxRotationOffset: Math.PI * 0.3,
-    falling: false,
-    adjust: {
-      slow: 0.02,
-      normal: 0.05,
-      fast: 0.09,
-      veryFast: 0.2
-    },
-    climb: {
-      up: 1,
-      down: 0.5,
-      minYNormal: 0.5
-    },
-    gravity: {
-      accel: 10,
-      maxVelocity: 50,
-      jumpVelocity: 5
-    }
-  };
-  this.outputLog = [];
-  this.camera = new THREE.PerspectiveCamera(this.attributes.fov, 1, 0.1, 10000);
+  this.falling = false;
+  this.fallTimer = 0;
+  this.camera = new THREE.PerspectiveCamera(_Config2.default.sandbox.camera.fov, _Config2.default.sandbox.camera.aspect, _Config2.default.sandbox.camera.near, _Config2.default.sandbox.camera.far);
   this.camera.up = new THREE.Vector3(0, 1, 0);
+  this.object = new THREE.Group();
   this.init();
 };
 
 Player.prototype = {
   init: function init() {
-    this.object = new THREE.Mesh(new THREE.SphereBufferGeometry(0.05), new THREE.MeshPhongMaterial());
     this.bindControls();
     this.resizeCamera();
   },
 
-  resizeCamera: function resizeCamera() {
-    var w = this.domElement.width;
-    var h = this.domElement.height;
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
+  update: function update(delta, objects) {
+    // handle mkb input and move player
+    this.handleInput(delta);
+    this.checkCollisions(delta, objects);
+    this.move();
   },
 
-  bindControls: function bindControls() {
-    var self = this;
-
-    // mouse
-    self.domElement.addEventListener('mousemove', function (e) {
-      self.handleMouseMove(e);
-    }, false);
-    self.domElement.addEventListener('mousedown', function (e) {
-      self.handleMouseDown(e);
-    }, false);
-
-    // keyboard
-    self.keys = {
-      up: false,
-      down: false,
-      left: false,
-      right: false,
-      jump: false
-    };
-    document.addEventListener("keydown", function (e) {
-      self.handleKeyDown(e);
-    }, false);
-    document.addEventListener("keyup", function (e) {
-      self.handleKeyUp(e);
-    }, false);
-  },
-
-  log: function log() {
-    var text = '';
-    for (var i = 0; i < arguments.length; i += 1) {
-      text += arguments[i] + ' ';
+  handleInput: function handleInput(delta) {
+    // left/ right keys
+    if (this.keys.left || this.keys.right) {
+      var dir = (this.keys.left ? 1 : 0) + (this.keys.right ? -1 : 0);
+      this.target.rotation.yaw += this.config.speed.rotation * delta * dir;
     }
-    this.outputLog.push(text);
-  },
 
-  update: function update(delta, collider) {
-    // handle key presses and move player
-
-    this.outputLog = [];
-
-    // get movement vector from controls
+    // up/ down keys
     if (this.keys.up || this.keys.down) {
-      var dir = (this.keys.up ? 1 : 0) + (this.keys.down ? -1 : 0);
-      var _yaw = this.rotation.y + this.offset.rotation.y;
-      var dx = Math.sin(_yaw) * this.attributes.speed * dir;
-      var dz = Math.cos(_yaw) * this.attributes.speed * dir;
+      var _dir = (this.keys.up ? 1 : 0) + (this.keys.down ? -1 : 0);
+      var yaw = this.rotation.yaw + this.offset.rotation.yaw;
+      var dx = Math.sin(yaw) * this.config.speed.normal * _dir;
+      var dz = Math.cos(yaw) * this.config.speed.normal * _dir;
       this.target.movement.x = dx;
       this.target.movement.z = dz;
     } else {
@@ -1148,149 +1025,158 @@ Player.prototype = {
       this.target.movement.z = 0;
     }
 
-    // jump key
+    // jumping
     if (this.keys.jump) {
       this.keys.jump = false;
 
       // jump if not falling
-      if (this.movement.y == 0) {
-        this.movement.y = this.attributes.gravity.jumpVelocity;
+      if (this.movement.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
+        this.movement.y = this.config.speed.jump;
       }
     }
 
-    // set falling
+    // falling
     this.falling = this.movement.y != 0;
+    this.fallTimer = this.falling ? this.fallTimer + delta : 0;
 
     // reduce movement if falling
     if (!this.falling) {
       this.movement.x = this.target.movement.x;
       this.movement.z = this.target.movement.z;
     } else {
-      this.movement.x += (this.target.movement.x - this.movement.x) * this.attributes.adjust.slow;
-      this.movement.z += (this.target.movement.z - this.movement.z) * this.attributes.adjust.slow;
+      this.movement.x += (this.target.movement.x - this.movement.x) * this.config.adjust.slow;
+      this.movement.z += (this.target.movement.z - this.movement.z) * this.config.adjust.slow;
     }
+  },
 
+  checkCollisions: function checkCollisions(delta, objects) {
     // check next position for collision
     var next = Maths.addVector(Maths.scaleVector(this.movement, delta), this.target.position);
-    var collisions = collider.collisions(next);
+
+    // get collisions
+    var meshes = objects.getCollisionMeshes(next);
 
     // apply gravity
-    this.movement.y = Math.max(this.movement.y - this.attributes.gravity.accel * delta, -this.attributes.gravity.maxVelocity);
+    this.movement.y = Math.max(this.movement.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
 
-    if (collisions.length > 0) {
-      this.log('Collisions', collisions.length);
+    if (meshes.length > 0) {
+      // check for floor and change position
+      var positionChanged = false;
 
-      // check for floor
+      for (var i = 0; i < meshes.length; i += 1) {
+        var cp = meshes[i].getCeilingPlane(next);
 
-      for (var i = 0; i < collisions.length; i += 1) {
-        var ceiling = collisions[i].ceilingPlane(next);
-
-        if (ceiling.y != null && ceiling.plane.normal.y >= this.attributes.climb.minYNormal && ceiling.y - this.target.position.y <= this.attributes.climb.up) {
-          // ground
+        if (cp.y != null && cp.plane.normal.y >= this.config.climb.minPlaneYAngle && cp.y - this.target.position.y <= this.config.climb.up) {
+          // climb up
           this.movement.y = 0;
 
-          // ascend
           if (ceiling.y >= next.y) {
+            positionChanged = true;
             next.y = ceiling.y;
-            this.log('CLIMBED');
           }
         }
       }
 
-      // check for walls
+      // check *new* position for collisions
+      if (positionChanged) {
+        meshes = objects.getCollisionMeshes(next);
+      }
 
-      collisions = collider.collisions(next);
+      // check which collisions are walls
       var walls = [];
 
-      for (var _i = 0; _i < collisions.length; _i += 1) {
-        var _ceiling = collisions[_i].ceilingPlane(next);
+      for (var _i = 0; _i < meshes.length; _i += 1) {
+        var _ceiling = meshes[_i].getCeilingPlane(next);
 
-        if (_ceiling.y != null && (_ceiling.plane.normal.y < this.attributes.climb.minYNormal || _ceiling.y - this.target.position.y > this.attributes.climb.up)) {
-          walls.push(collisions[_i]);
+        if (_ceiling.y != null && (_ceiling.plane.normal.y < this.config.climb.minPlaneYAngle || _ceiling.y - this.target.position.y > this.config.climb.up)) {
+          // record wall
+          walls.push(meshes[_i]);
         }
       }
 
       // if inside a wall, extrude out
-
       if (walls.length > 0) {
         var extrude = Maths.copyVector(next);
 
-        for (var _i2 = 0; _i2 < walls.length; _i2 += 1) {
-          var mesh = walls[_i2];
-          extrude = mesh.nearest2DIntersect(this.target.position, next);
-        }
+        // test first wall
+        var intersectPlane = walls[0].getIntersectPlane2D(this.target.position, next);
 
-        next.x = extrude.x;
-        next.z = extrude.z;
+        if (intersectPlane != null) {
+          next.x = intersectPlane.intersect.x;
+          next.z = intersectPlane.intersect.z;
 
-        // helper
+          // check extruded point for collisions
+          var hits = 0;
+          collisions = objects.getCollisionMeshes(next);
 
-        this.object.position.set(next.x, next.y, next.z);
+          for (var _i2 = 0; _i2 < collisions.length; _i2 += 1) {
+            var _ceiling2 = collisions[_i2].ceilingPlane(next);
 
-        // check extruded point for collisions
+            if (_ceiling2.y != null && (_ceiling2.plane.normal.y < this.config.climb.minPlaneYAngle || _ceiling2.y - this.target.position.y > this.config.climb.up)) {
+              hits += 1;
+            }
+          }
 
-        var hits = 0;
-        collisions = collider.collisions(next);
-
-        for (var _i3 = 0; _i3 < collisions.length; _i3 += 1) {
-          var _ceiling2 = collisions[_i3].ceilingPlane(next);
-
-          if (_ceiling2.y != null && (_ceiling2.plane.normal.y < this.attributes.climb.minYNormal || _ceiling2.y - this.target.position.y > this.attributes.climb.up)) {
-            hits += 1;
+          // if contact with > 1 walls, stop motion
+          if (hits > 1) {
+            next.x = this.target.position.x;
+            next.z = this.target.position.z;
           }
         }
-
-        // if contact with > 1 walls, stop motion
-
-        if (hits > 1) {
-          next.x = this.target.position.x;
-          next.z = this.target.position.z;
-        }
       }
-    } else {
+    } else if (this.movement.y < 0) {
       // check if on downward slope
       var testUnder = Maths.copyVector(next);
-      testUnder.y -= this.attributes.climb.down;
+      testUnder.y -= this.config.climb.down;
 
-      if (!this.falling && collider.collision(testUnder)) {
-        var _ceiling3 = collider.ceilingPlane(testUnder);
+      if (!this.falling && objects.collision(testUnder)) {
+        var _ceiling3 = objects.ceilingPlane(testUnder);
 
         // snap to slope if not too steep
-        if (_ceiling3.plane.normal.y >= this.attributes.climb.minYNormal) {
+        if (_ceiling3.plane.normal.y >= this.config.climb.minPlaneYAngle) {
           next.y = _ceiling3.y;
           this.movement.y = 0;
         }
       }
     }
 
-    // set new position target
+    // set new target position
     this.target.position.x = next.x;
     this.target.position.y = next.y;
     this.target.position.z = next.z;
+  },
 
-    // smooth motion a little
-    this.position.x += (this.target.position.x - this.position.x) * this.attributes.adjust.veryFast;
-    this.position.y += (this.target.position.y - this.position.y) * this.attributes.adjust.veryFast;
-    this.position.z += (this.target.position.z - this.position.z) * this.attributes.adjust.veryFast;
+  move: function move() {
+    // move
+    this.position.x += (this.target.position.x - this.position.x) * this.config.adjust.veryFast;
+    this.position.y += (this.target.position.y - this.position.y) * this.config.adjust.rapid;
+    this.position.z += (this.target.position.z - this.position.z) * this.config.adjust.veryFast;
 
-    // update rotation vector
-    if (this.keys.left || this.keys.right) {
-      var _dir = (this.keys.left ? 1 : 0) + (this.keys.right ? -1 : 0);
-      this.target.rotation.y += this.attributes.rotation * delta * _dir;
-    }
+    // rotate
+    this.rotation.yaw += Maths.minAngleDifference(this.rotation.yaw, this.target.rotation.yaw) * this.config.adjust.fast;
+    this.offset.rotation.yaw += (this.target.offset.rotation.yaw - this.offset.rotation.yaw) * this.config.adjust.normal;
+    this.rotation.yaw += this.rotation.yaw < 0 ? Maths.twoPi : this.rotation.yaw > Maths.twoPi ? -Maths.twoPi : 0;
+    this.rotation.pitch += (this.target.rotation.pitch - this.rotation.pitch) * this.config.adjust.normal;
+    this.offset.rotation.pitch += (this.target.offset.rotation.pitch - this.offset.rotation.pitch) * this.config.adjust.normal;
+    this.rotation.roll += (this.target.rotation.roll - this.rotation.roll) * this.config.adjust.fast;
 
-    this.rotation.y += Maths.minAngleDifference(this.rotation.y, this.target.rotation.y) * this.attributes.adjust.fast;
-    this.offset.rotation.x += (this.target.offset.rotation.x - this.offset.rotation.x) * this.attributes.adjust.normal;
-    this.offset.rotation.y += (this.target.offset.rotation.y - this.offset.rotation.y) * this.attributes.adjust.normal;
-    this.rotation.y += this.rotation.y < 0 ? Maths.twoPi : this.rotation.y > Maths.twoPi ? -Maths.twoPi : 0;
+    // set camera
+    var pitch = this.rotation.pitch + this.offset.rotation.pitch;
+    var yaw = this.rotation.yaw + this.offset.rotation.yaw;
+    var height = this.position.y + this.config.height;
 
-    // set new camera position
-    var yaw = this.rotation.y + this.offset.rotation.y;
-    var pitch = this.rotation.x + this.offset.rotation.x;
-    var height = this.position.y + this.attributes.height;
+    // set camera roll
+    this.camera.up.z = -Math.sin(this.rotation.yaw) * this.rotation.roll;
+    this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
 
+    // set position
     this.camera.position.set(this.position.x, height, this.position.z);
+
+    // look
     this.camera.lookAt(new THREE.Vector3(this.position.x + Math.sin(yaw), height + Math.sin(pitch), this.position.z + Math.cos(yaw)));
+
+    // set world object
+    this.object.position.set(this.position.x, this.position.y, this.position.z);
   },
 
   handleKeyDown: function handleKeyDown(e) {
@@ -1336,51 +1222,164 @@ Player.prototype = {
       case 68:
         this.keys.right = false;
         break;
+      default:
+        break;
     }
   },
   handleMouseDown: function handleMouseDown(e) {
-    var bound = this.domElement.getBoundingClientRect();
-    var w = this.domElement.width;
-    var x = (e.clientX - bound.left) / w;
-    var t = this.attributes.cameraThreshold;
+    if (!this.mouse.locked) {
+      var self = this;
+      var bound = this.domElement.getBoundingClientRect();
 
-    // adjust camera
-    if (x < t) {
-      this.target.rotation.y = this.rotation.y + (t - x) / t * this.attributes.maxRotationOffset;
-    } else if (x > 1 - t) {
-      this.target.rotation.y = this.rotation.y + (x - (1 - t)) / t * -this.attributes.maxRotationOffset;
-    } else {
-      this.target.rotation.y = this.rotation.y;
+      this.mouse.active = true;
+      this.mouse.rotation.pitch = this.rotation.pitch;
+      this.mouse.rotation.yaw = this.rotation.yaw;
+      this.mouse.start.x = e.clientX / this.domElement.width * 2 - 1;
+      this.mouse.start.y = (e.clientY - bound.y) / this.domElement.height * 2 - 1;
     }
   },
   handleMouseMove: function handleMouseMove(e) {
-    var bound = this.domElement.getBoundingClientRect();
+    if (this.mouse.active && !((this.keys.left || this.keys.right) && !this.ship.active)) {
+      var bound = this.domElement.getBoundingClientRect();
+
+      this.mouse.x = e.clientX / this.domElement.width * 2 - 1;
+      this.mouse.y = (e.clientY - bound.y) / this.domElement.height * 2 - 1;
+      this.mouse.delta.x = this.mouse.x - this.mouse.start.x;
+      this.mouse.delta.y = this.mouse.y - this.mouse.start.y;
+
+      // target rotation yaw
+      this.target.rotation.yaw = this.mouse.rotation.yaw + this.mouse.delta.x;
+
+      // target rotation pitch
+      var pitch = this.mouse.rotation.pitch + this.mouse.delta.y;
+
+      // if limit reached, reset start point
+      if (pitch > this.config.rotation.maxPitch || pitch < this.config.rotation.minPitch) {
+        pitch = Math.max(this.config.rotation.minPitch, Math.min(this.config.rotation.maxPitch, pitch));
+        this.mouse.start.y = this.mouse.y;
+        this.mouse.rotation.pitch = pitch;
+      }
+
+      this.target.rotation.pitch = pitch;
+    }
+  },
+  handleMouseUp: function handleMouseUp(e) {
+    this.mouse.active = false;
+  },
+
+
+  resizeCamera: function resizeCamera() {
     var w = this.domElement.width;
     var h = this.domElement.height;
-    var x = (e.clientX - bound.left) / w;
-    var y = (e.clientY - bound.top) / h;
-    var t = this.attributes.cameraThreshold;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+  },
 
-    // adjust camera
-    if (x < t) {
-      this.target.offset.rotation.y = (t - x) / t * this.attributes.maxRotationOffset;
-    } else if (x > 1 - t) {
-      this.target.offset.rotation.y = (x - (1 - t)) / t * -this.attributes.maxRotationOffset;
-    } else {
-      this.target.offset.rotation.y = 0;
-    }
+  bindControls: function bindControls() {
+    var self = this;
 
-    if (y < t) {
-      this.target.offset.rotation.x = (t - y) / t * this.attributes.maxRotationOffset;
-    } else if (y > 1 - t) {
-      this.target.offset.rotation.x = (y - (1 - t)) / t * -this.attributes.maxRotationOffset;
-    } else {
-      this.target.offset.rotation.x = 0;
-    }
+    // keys
+    self.keys = {
+      up: false,
+      down: false,
+      left: false,
+      right: false,
+      jump: false
+    };
+    self.mouse = {
+      x: 0,
+      y: 0,
+      start: {
+        x: 0,
+        y: 0
+      },
+      delta: {
+        x: 0,
+        y: 0
+      },
+      rotation: {
+        pitch: 0,
+        yaw: 0
+      },
+      locked: false,
+      active: false
+    };
+
+    // mouse
+    self.domElement.addEventListener('click', function (e) {
+      //  console.log(self)
+    }, false);
+    self.domElement.addEventListener('mousedown', function (e) {
+      self.handleMouseDown(e);
+    }, false);
+    self.domElement.addEventListener('mousemove', function (e) {
+      self.handleMouseMove(e);
+    }, false);
+    self.domElement.addEventListener('mouseup', function (e) {
+      self.handleMouseUp(e);
+    }, false);
+    self.domElement.addEventListener('mouseleave', function (e) {
+      self.handleMouseUp(e);
+    }, false);
+
+    // keyboard
+    document.addEventListener('keydown', function (e) {
+      self.handleKeyDown(e);
+    }, false);
+    document.addEventListener('keyup', function (e) {
+      self.handleKeyUp(e);
+    }, false);
   }
 };
 
 exports.default = Player;
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var Logger = function Logger() {
+  this.cvs = document.createElement('canvas');
+  this.ctx = this.cvs.getContext('2d');
+  this.init();
+};
+
+Logger.prototype = {
+  init: function init() {
+    document.body.append(this.cvs);
+    this.setStyle();
+  },
+
+  setStyle: function setStyle() {
+    this.cvs.style.position = 'fixed';
+    this.cvs.width = window.innerWidth;
+    this.cvs.style.pointerEvents = 'none';
+    this.cvs.height = 400;
+    this.cvs.style.zIndex = 10;
+    this.cvs.style.top = 0;
+    this.cvs.style.left = 0;
+  },
+
+  clear: function clear() {
+    this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
+  },
+
+  print: function print() {
+    this.clear();
+
+    for (var i = 0; i < arguments.length; i += 1) {
+      this.ctx.fillText(arguments[i], 20, 20 + i * 20);
+    }
+  }
+};
+
+exports.default = Logger;
 
 /***/ })
 /******/ ]);

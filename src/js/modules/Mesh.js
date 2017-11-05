@@ -11,6 +11,9 @@ const Mesh = function(geometry) {
     this.min = this.box.min;
     this.max = this.box.max;
     this.planes = [];
+    // TODO: activate & change bbox stuff
+    this.translate = new THREE.Vector3(0, 0, 0);
+    this.rotate = new THREE.Vector3(0, 0, 0);
     this.generatePlanes();
   } else {
     throw('Error: Input is not THREE.BufferGeometry');
@@ -61,7 +64,7 @@ Mesh.prototype = {
     }
   },
 
-  collision: function(point) {
+  getCollision: function(point) {
     if (this.box.containsPoint(point)) {
       // reset
       for (let i=0; i<this.planes.length; i+=1) {
@@ -80,7 +83,7 @@ Mesh.prototype = {
         }
       }
 
-      // second pass - get res
+      // second pass - get result
       for (let i=0; i<this.planes.length; i+=1) {
         if (!this.planes[i].culled && !this.planes[i].isPointBelowOrEqual(point)) {
           return false;
@@ -93,23 +96,22 @@ Mesh.prototype = {
     }
   },
 
-  ceiling: function(point) {
-    // get closest ceiling above point
+  getCollision2D: function(point) {
+    return (
+      point.x >= this.min.x && point.x <= this.max.x &&
+      point.z >= this.min.z && point.z <= this.max.z
+    );
+  },
 
+  getCeiling2D: function(point) {
     let y = null;
 
     for (let i=0; i<this.planes.length; i+=1) {
-      const plane = this.planes[i];
+      if (this.planes[i].containsPoint2D(point)) {
+        let planeCeiling = plane.getY(point.x, point.z);
 
-      if (
-        plane.containsPointXZ(point) &&
-        plane.isPointBelowOrEqual(point) &&
-        plane.normal.y >= 0
-      ) {
-        let newY = plane.getY(point.x, point.z);
-
-        if (newY >= point.y && (y === null || newY < y)) {
-          y = newY;
+        if (y === null || planeCeiling > y) {
+          y = planeCeiling;
         }
       }
     }
@@ -117,79 +119,91 @@ Mesh.prototype = {
     return y;
   },
 
-  ceilingPlane: function(point) {
-    // get closest ceiling plane
+  getCeiling: function(point) {
+    // get ceiling *above* point
 
-    let yPlane = null;
     let y = null;
 
     for (let i=0; i<this.planes.length; i+=1) {
-      const plane = this.planes[i];
+      if (this.planes[i].containsPoint2D(point) && this.planes[i].isPointBelowOrEqual(point)) {
+        let planeCeiling = plane.getY(point.x, point.z);
 
-      if (
-        plane.containsPointXZ(point) &&
-        plane.isPointBelowOrEqual(point) &&
-        plane.normal.y >= 0
-      ) {
-        let newY = plane.getY(point.x, point.z);
-
-        if (newY >= point.y && (y == null || newY < y)) {
-          y = newY;
-          yPlane = plane;
+        if (planeCeiling >= point.y && (y === null || planeCeiling < y)) {
+          y = planeCeiling;
         }
       }
     }
 
-    return {
-      y: y,
-      plane: yPlane
-    };
+    return y;
   },
 
-  intersect: function(p1, p2) {
-    // get intersect of mesh and line
+  getCeilingPlane: function(point) {
+    // get ceiling and plane *above* point
 
-    let intersect = null;
+    let plane = null;
+    let y = null;
 
-    for (var i=0; i<this.planes.length; i+=1) {
-      const res = this.planes[i].intersect(p1, p2);
+    for (let i=0; i<this.planes.length; i+=1) {
+      if (this.planes[i].containsPoint2D(point) && this.planes[i].isPointBelowOrEqual(point)) {
+        let planeCeiling = this.planes[i].getY(point.x, point.z);
 
-      if (res != null) {
-        const dist = distanceBetween(p1, res);
-
-        if (intersect == null || dist < intersect.distance) {
-          intersect = {
-            intersect: res,
-            plane: this.planes[i],
-            distance: dist
-          };
+        if (planeCeiling >= point.y && (y == null || planeCeiling < y)) {
+          y = planeCeiling;
+          plane = plane;
         }
       }
     }
 
-    return intersect;
+    return {y: y, plane: plane};
   },
 
-  nearest2DIntersect: function(p1, p2) {
-    let intersect = p2;
-    let distance = null;
-    let pointBox = new THREE.Box3().setFromPoints([p1, p2]);
+  getIntersectPlane: function(p1, p2) {
+    const box = new THREE.Box3().setFromPoints([p1, p2]);
+    let intersectPlane = null;
 
-    for (var i=0; i<this.planes.length; i+=1) {
-      if (pointBox.intersectsBox(this.planes[i].box)) {
-        if (this.planes[i].distanceToPlane(p2) <= Config.plane.collisionThreshold) {
-          let contact = this.planes[i].getNormalIntersectXZ(p2);
-          let dist = distanceBetween(contact, p2);
+    for (let i=0; i<this.planes.length; i+=1) {
+      if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
+        const intersect = this.planes[i].getIntersect(p1, p2);
 
-          if (distance == null || dist < distance) {
-            distance = dist;
-            intersect = contact;
+        if (intersect != null) {
+          const distance = distanceBetween(p1, intersect);
+
+          if (intersectPlane === null || distance < intersectPlane.distance) {
+            intersectPlane = {
+              intersect: intersect,
+              plane: this.planes[i],
+              distance: distance
+            }
           }
         }
       }
     }
 
-    return intersect;
+    return intersectPlane;
+  },
+
+  getIntersectPlane2D: function(p1, p2) {
+    // find 2D intersect *nearest* to p2
+
+    const box = new THREE.Box3().setFromPoints([p1, p2]);
+    let intersectPlane = null;
+
+    for (let i=0; i<this.planes.length; i+=1) {
+      if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
+        const intersect2D = this.planes[i].getNormalIntersect2D(p2);
+        const distance = distanceBetween(p2, intersect2D);
+
+        if (intersectPlane === null || distance < intersectPlane.distance) {
+          intersectPlane = {
+            plane: this.planes[i],
+            intersect: intersect2D,
+            distance: distance
+          };
+        }
+      }
+    }
+
+    return intersectPlane;
   }
 };
 
