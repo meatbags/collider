@@ -313,6 +313,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var Mesh = function Mesh(geometry) {
   this.isColliderMesh = true;
+  console.log(geometry);
 
   if (geometry.isBufferGeometry) {
     this.geometry = geometry;
@@ -440,7 +441,7 @@ Mesh.prototype = {
 
         if (planeCeiling >= point.y && (y == null || planeCeiling < y)) {
           y = planeCeiling;
-          plane = plane;
+          plane = this.planes[i];
         }
       }
     }
@@ -771,10 +772,10 @@ System.prototype = {
     // check for collision at point
 
     var collision = false;
-    var quadrant = this.quadrants.getQuadrant(point);
+    var meshes = this.quadrants.getQuadrantMeshes(point);
 
-    for (var i = 0; i < quadrant.length; i += 1) {
-      if (quadrant[i].getCollision(point)) {
+    for (var i = 0; i < meshes.length; i += 1) {
+      if (meshes[i].getCollision(point)) {
         collision = true;
         break;
       }
@@ -787,11 +788,11 @@ System.prototype = {
     // get all meshes which collide with point
 
     var collisions = [];
-    var quadrant = this.quadrants.getQuadrant(point);
+    var meshes = this.quadrants.getQuadrantMeshes(point);
 
-    for (var i = 0; i < quadrant.length; i += 1) {
-      if (quadrant[i].getCollision(point)) {
-        collisions.push(quadrant[i]);
+    for (var i = 0; i < meshes.length; i += 1) {
+      if (meshes[i].getCollision(point)) {
+        collisions.push(meshes[i]);
       }
     }
 
@@ -802,10 +803,10 @@ System.prototype = {
     // get absolute ceiling for x, z
 
     var y = null;
-    var quadrant = this.quadrants.getQuadrant(point);
+    var meshes = this.quadrants.getQuadrantMeshes(point);
 
-    for (var i = 0; i < quadrant.length; i += 1) {
-      if (quadrant[i].getCollision2D(point)) {
+    for (var i = 0; i < meshes.length; i += 1) {
+      if (meshes[i].getCollision2D(point)) {
         var meshCeiling = mesh.getCeiling2D(point);
 
         if (y === null || meshCeiling > y) {
@@ -822,11 +823,11 @@ System.prototype = {
 
     var y = null;
     var plane = null;
-    var quadrant = this.quadrants.getQuadrant(point);
+    var meshes = this.quadrants.getQuadrantMeshes(point);
 
-    for (var i = 0; i < quadrant.length; i += 1) {
-      if (quadrant[i].getCollision(point)) {
-        var result = mesh.getCeilingPlane(point);
+    for (var i = 0; i < meshes.length; i += 1) {
+      if (meshes[i].getCollision(point)) {
+        var result = meshes[i].getCeilingPlane(point);
 
         if (y === null || result.y != null && result.y > y) {
           y = result.y;
@@ -911,7 +912,7 @@ Quadrants.prototype = {
   },
 
 
-  getQuadrant: function getQuadrant(point) {
+  getQuadrantMeshes: function getQuadrantMeshes(point) {
     // get quadrant for point
 
     var pq = this.positionToQuadrant(point);
@@ -1064,9 +1065,9 @@ Player.prototype = {
       var positionChanged = false;
 
       for (var i = 0; i < meshes.length; i += 1) {
-        var cp = meshes[i].getCeilingPlane(next);
+        var ceiling = meshes[i].getCeilingPlane(next);
 
-        if (cp.y != null && cp.plane.normal.y >= this.config.climb.minPlaneYAngle && cp.y - this.target.position.y <= this.config.climb.up) {
+        if (ceiling.y != null && ceiling.plane.normal.y >= this.config.climb.minPlaneYAngle && ceiling.y - this.target.position.y <= this.config.climb.up) {
           // climb up
           this.movement.y = 0;
 
@@ -1107,10 +1108,10 @@ Player.prototype = {
 
           // check extruded point for collisions
           var hits = 0;
-          collisions = objects.getCollisionMeshes(next);
+          meshes = objects.getCollisionMeshes(next);
 
-          for (var _i2 = 0; _i2 < collisions.length; _i2 += 1) {
-            var _ceiling2 = collisions[_i2].ceilingPlane(next);
+          for (var _i2 = 0; _i2 < meshes.length; _i2 += 1) {
+            var _ceiling2 = meshes[_i2].getCeilingPlane(next);
 
             if (_ceiling2.y != null && (_ceiling2.plane.normal.y < this.config.climb.minPlaneYAngle || _ceiling2.y - this.target.position.y > this.config.climb.up)) {
               hits += 1;
@@ -1126,11 +1127,11 @@ Player.prototype = {
       }
     } else if (this.movement.y < 0) {
       // check if on downward slope
-      var testUnder = Maths.copyVector(next);
-      testUnder.y -= this.config.climb.down;
+      var under = Maths.copyVector(next);
+      under.y -= this.config.climb.down;
 
-      if (!this.falling && objects.collision(testUnder)) {
-        var _ceiling3 = objects.ceilingPlane(testUnder);
+      if (!this.falling && objects.getCollision(under)) {
+        var _ceiling3 = objects.getCeilingPlane(under);
 
         // snap to slope if not too steep
         if (_ceiling3.plane.normal.y >= this.config.climb.minPlaneYAngle) {

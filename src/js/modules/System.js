@@ -29,10 +29,10 @@ System.prototype = {
     // check for collision at point
 
     let collision = false;
-    const quadrant = this.quadrants.getQuadrant(point);
+    const meshes = this.quadrants.getQuadrantMeshes(point);
 
-    for (let i=0; i<quadrant.length; i+=1) {
-      if (quadrant[i].getCollision(point)) {
+    for (let i=0; i<meshes.length; i+=1) {
+      if (meshes[i].getCollision(point)) {
         collision = true;
         break;
       }
@@ -45,11 +45,11 @@ System.prototype = {
     // get all meshes which collide with point
 
     let collisions = [];
-    const quadrant = this.quadrants.getQuadrant(point);
+    const meshes = this.quadrants.getQuadrantMeshes(point);
 
-    for (let i=0; i<quadrant.length; i+=1) {
-      if (quadrant[i].getCollision(point)) {
-        collisions.push(quadrant[i]);
+    for (let i=0; i<meshes.length; i+=1) {
+      if (meshes[i].getCollision(point)) {
+        collisions.push(meshes[i]);
       }
     }
 
@@ -60,10 +60,10 @@ System.prototype = {
     // get absolute ceiling for x, z
 
     let y = null;
-    const quadrant = this.quadrants.getQuadrant(point);
+    const meshes = this.quadrants.getQuadrantMeshes(point);
 
-    for (let i=0; i<quadrant.length; i+=1) {
-      if (quadrant[i].getCollision2D(point)) {
+    for (let i=0; i<meshes.length; i+=1) {
+      if (meshes[i].getCollision2D(point)) {
         let meshCeiling = mesh.getCeiling2D(point);
 
         if (y === null || meshCeiling > y) {
@@ -80,11 +80,11 @@ System.prototype = {
 
     let y = null;
     let plane = null;
-    const quadrant = this.quadrants.getQuadrant(point);
+    const meshes = this.quadrants.getQuadrantMeshes(point);
 
-    for (let i=0; i<quadrant.length; i+=1) {
-      if (quadrant[i].getCollision(point)) {
-        let result = mesh.getCeilingPlane(point);
+    for (let i=0; i<meshes.length; i+=1) {
+      if (meshes[i].getCollision(point)) {
+        let result = meshes[i].getCeilingPlane(point);
 
         if (y === null || (result.y != null && result.y > y)) {
           y = result.y;

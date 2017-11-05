@@ -116,9 +116,9 @@ Player.prototype = {
       let positionChanged = false;
 
       for (let i=0; i<meshes.length; i+=1) {
-        const cp = meshes[i].getCeilingPlane(next);
+        const ceiling = meshes[i].getCeilingPlane(next);
 
-        if (cp.y != null && cp.plane.normal.y >= this.config.climb.minPlaneYAngle && (cp.y - this.target.position.y) <= this.config.climb.up) {
+        if (ceiling.y != null && ceiling.plane.normal.y >= this.config.climb.minPlaneYAngle && (ceiling.y - this.target.position.y) <= this.config.climb.up) {
           // climb up
           this.movement.y = 0;
 
@@ -156,18 +156,15 @@ Player.prototype = {
         if (intersectPlane != null) {
           next.x = intersectPlane.intersect.x;
           next.z = intersectPlane.intersect.z;
-          
+
           // check extruded point for collisions
           let hits = 0;
-          collisions = objects.getCollisionMeshes(next);
+          meshes = objects.getCollisionMeshes(next);
 
-          for (let i=0; i<collisions.length; i+=1) {
-            const ceiling = collisions[i].ceilingPlane(next);
+          for (let i=0; i<meshes.length; i+=1) {
+            const ceiling = meshes[i].getCeilingPlane(next);
 
-            if (
-              ceiling.y != null &&
-              (ceiling.plane.normal.y < this.config.climb.minPlaneYAngle ||
-              (ceiling.y - this.target.position.y) > this.config.climb.up)
+            if (ceiling.y != null && (ceiling.plane.normal.y < this.config.climb.minPlaneYAngle || (ceiling.y - this.target.position.y) > this.config.climb.up)
             ) {
               hits += 1;
             }
@@ -182,11 +179,11 @@ Player.prototype = {
       }
     } else if (this.movement.y < 0) {
       // check if on downward slope
-      const testUnder = Maths.copyVector(next);
-      testUnder.y -= this.config.climb.down;
+      const under = Maths.copyVector(next);
+      under.y -= this.config.climb.down;
 
-      if (!this.falling && objects.collision(testUnder)) {
-        const ceiling = objects.ceilingPlane(testUnder);
+      if (!this.falling && objects.getCollision(under)) {
+        const ceiling = objects.getCeilingPlane(under);
 
         // snap to slope if not too steep
         if (ceiling.plane.normal.y >= this.config.climb.minPlaneYAngle) {

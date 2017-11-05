@@ -54,7 +54,7 @@ Quadrants.prototype = {
     this.q[x][y][z].push(mesh);
   },
 
-  getQuadrant: function(point) {
+  getQuadrantMeshes: function(point) {
     // get quadrant for point
 
     const pq = this.positionToQuadrant(point);

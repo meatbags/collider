@@ -4,6 +4,7 @@ import { subtractVector, dotProduct, normalise, distanceBetween } from './Maths'
 
 const Mesh = function(geometry) {
   this.isColliderMesh = true;
+  console.log(geometry);
 
   if (geometry.isBufferGeometry) {
     this.geometry = geometry;
@@ -149,7 +150,7 @@ Mesh.prototype = {
 
         if (planeCeiling >= point.y && (y == null || planeCeiling < y)) {
           y = planeCeiling;
-          plane = plane;
+          plane = this.planes[i];
         }
       }
     }
