@@ -89,7 +89,7 @@ var Config = {
   },
   sandbox: {
     physics: {
-      gravity: 12,
+      gravity: 20,
       maxVelocity: 50
     },
     player: {
@@ -110,7 +110,7 @@ var Config = {
         normal: 9,
         slowed: 5,
         rotation: Math.PI * 0.75,
-        jump: 13,
+        jump: 12,
         fallTimerThreshold: 0.1
       },
       climb: {
@@ -273,7 +273,7 @@ var _Player = __webpack_require__(7);
 
 var _Player2 = _interopRequireDefault(_Player);
 
-var _Logger = __webpack_require__(8);
+var _Logger = __webpack_require__(9);
 
 var _Logger2 = _interopRequireDefault(_Logger);
 
@@ -311,19 +311,19 @@ var _Maths = __webpack_require__(1);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var Mesh = function Mesh(geometry) {
+var Mesh = function Mesh(object) {
   this.isColliderMesh = true;
-  console.log(geometry);
+  console.log(object);
 
-  if (geometry.isBufferGeometry) {
-    this.geometry = geometry;
-    this.box = new THREE.Box3().setFromBufferAttribute(geometry.attributes.position);
+  if (object.geometry.isBufferGeometry) {
+    this.geometry = object.geometry;
+    this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
     this.min = this.box.min;
     this.max = this.box.max;
     this.planes = [];
-    // TODO: activate & change bbox stuff
-    this.translate = new THREE.Vector3(0, 0, 0);
-    this.rotate = new THREE.Vector3(0, 0, 0);
+    this.position = object.position;
+    this.rotation = object.rotation;
+    this.scale = object.scale;
     this.generatePlanes();
   } else {
     throw 'Error: Input is not THREE.BufferGeometry';
@@ -942,6 +942,10 @@ var _Maths = __webpack_require__(1);
 
 var Maths = _interopRequireWildcard(_Maths);
 
+var _Interaction = __webpack_require__(8);
+
+var _Interaction2 = _interopRequireDefault(_Interaction);
+
 var _Config = __webpack_require__(0);
 
 var _Config2 = _interopRequireDefault(_Config);
@@ -961,7 +965,7 @@ var Player = function Player(domElement) {
     yaw: this.config.rotation.yaw,
     roll: this.config.rotation.roll
   };
-  this.movement = new THREE.Vector3(0, 0, 0);
+  this.motion = new THREE.Vector3(0, 0, 0);
   this.offset = {
     rotation: {
       pitch: 0,
@@ -976,7 +980,7 @@ var Player = function Player(domElement) {
       yaw: this.config.rotation.yaw,
       roll: this.config.rotation.roll
     },
-    movement: new THREE.Vector3(0, 0, 0),
+    motion: new THREE.Vector3(0, 0, 0),
     offset: {
       rotation: {
         pitch: 0,
@@ -990,6 +994,7 @@ var Player = function Player(domElement) {
   this.camera = new THREE.PerspectiveCamera(_Config2.default.sandbox.camera.fov, _Config2.default.sandbox.camera.aspect, _Config2.default.sandbox.camera.near, _Config2.default.sandbox.camera.far);
   this.camera.up = new THREE.Vector3(0, 1, 0);
   this.object = new THREE.Group();
+  this.interaction = new _Interaction2.default(this.target.position, this.motion);
   this.init();
 };
 
@@ -1002,7 +1007,11 @@ Player.prototype = {
   update: function update(delta, objects) {
     // handle mkb input and move player
     this.handleInput(delta);
-    this.checkCollisions(delta, objects);
+
+    // apply physics
+    this.interaction.computeNextPosition(delta, objects);
+
+    // move player & camera
     this.move();
   },
 
@@ -1019,11 +1028,11 @@ Player.prototype = {
       var yaw = this.rotation.yaw + this.offset.rotation.yaw;
       var dx = Math.sin(yaw) * this.config.speed.normal * _dir;
       var dz = Math.cos(yaw) * this.config.speed.normal * _dir;
-      this.target.movement.x = dx;
-      this.target.movement.z = dz;
+      this.target.motion.x = dx;
+      this.target.motion.z = dz;
     } else {
-      this.target.movement.x = 0;
-      this.target.movement.z = 0;
+      this.target.motion.x = 0;
+      this.target.motion.z = 0;
     }
 
     // jumping
@@ -1031,120 +1040,23 @@ Player.prototype = {
       this.keys.jump = false;
 
       // jump if not falling
-      if (this.movement.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
-        this.movement.y = this.config.speed.jump;
+      if (this.motion.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
+        this.motion.y = this.config.speed.jump;
       }
     }
 
     // falling
-    this.falling = this.movement.y != 0;
+    this.falling = this.motion.y != 0;
     this.fallTimer = this.falling ? this.fallTimer + delta : 0;
 
-    // reduce movement if falling
+    // reduce motion if falling
     if (!this.falling) {
-      this.movement.x = this.target.movement.x;
-      this.movement.z = this.target.movement.z;
+      this.motion.x = this.target.motion.x;
+      this.motion.z = this.target.motion.z;
     } else {
-      this.movement.x += (this.target.movement.x - this.movement.x) * this.config.adjust.slow;
-      this.movement.z += (this.target.movement.z - this.movement.z) * this.config.adjust.slow;
+      this.motion.x += (this.target.motion.x - this.motion.x) * this.config.adjust.slow;
+      this.motion.z += (this.target.motion.z - this.motion.z) * this.config.adjust.slow;
     }
-  },
-
-  checkCollisions: function checkCollisions(delta, objects) {
-    // check next position for collision
-    var next = Maths.addVector(Maths.scaleVector(this.movement, delta), this.target.position);
-
-    // get collisions
-    var meshes = objects.getCollisionMeshes(next);
-
-    // apply gravity
-    this.movement.y = Math.max(this.movement.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
-
-    if (meshes.length > 0) {
-      // check for floor and change position
-      var positionChanged = false;
-
-      for (var i = 0; i < meshes.length; i += 1) {
-        var ceiling = meshes[i].getCeilingPlane(next);
-
-        if (ceiling.y != null && ceiling.plane.normal.y >= this.config.climb.minPlaneYAngle && ceiling.y - this.target.position.y <= this.config.climb.up) {
-          // climb up
-          this.movement.y = 0;
-
-          if (ceiling.y >= next.y) {
-            positionChanged = true;
-            next.y = ceiling.y;
-          }
-        }
-      }
-
-      // check *new* position for collisions
-      if (positionChanged) {
-        meshes = objects.getCollisionMeshes(next);
-      }
-
-      // check which collisions are walls
-      var walls = [];
-
-      for (var _i = 0; _i < meshes.length; _i += 1) {
-        var _ceiling = meshes[_i].getCeilingPlane(next);
-
-        if (_ceiling.y != null && (_ceiling.plane.normal.y < this.config.climb.minPlaneYAngle || _ceiling.y - this.target.position.y > this.config.climb.up)) {
-          // record wall
-          walls.push(meshes[_i]);
-        }
-      }
-
-      // if inside a wall, extrude out
-      if (walls.length > 0) {
-        var extrude = Maths.copyVector(next);
-
-        // test first wall
-        var intersectPlane = walls[0].getIntersectPlane2D(this.target.position, next);
-
-        if (intersectPlane != null) {
-          next.x = intersectPlane.intersect.x;
-          next.z = intersectPlane.intersect.z;
-
-          // check extruded point for collisions
-          var hits = 0;
-          meshes = objects.getCollisionMeshes(next);
-
-          for (var _i2 = 0; _i2 < meshes.length; _i2 += 1) {
-            var _ceiling2 = meshes[_i2].getCeilingPlane(next);
-
-            if (_ceiling2.y != null && (_ceiling2.plane.normal.y < this.config.climb.minPlaneYAngle || _ceiling2.y - this.target.position.y > this.config.climb.up)) {
-              hits += 1;
-            }
-          }
-
-          // if contact with > 1 walls, stop motion
-          if (hits > 1) {
-            next.x = this.target.position.x;
-            next.z = this.target.position.z;
-          }
-        }
-      }
-    } else if (this.movement.y < 0) {
-      // check if on downward slope
-      var under = Maths.copyVector(next);
-      under.y -= this.config.climb.down;
-
-      if (!this.falling && objects.getCollision(under)) {
-        var _ceiling3 = objects.getCeilingPlane(under);
-
-        // snap to slope if not too steep
-        if (_ceiling3.plane.normal.y >= this.config.climb.minPlaneYAngle) {
-          next.y = _ceiling3.y;
-          this.movement.y = 0;
-        }
-      }
-    }
-
-    // set new target position
-    this.target.position.x = next.x;
-    this.target.position.y = next.y;
-    this.target.position.z = next.z;
   },
 
   move: function move() {
@@ -1240,7 +1152,7 @@ Player.prototype = {
     }
   },
   handleMouseMove: function handleMouseMove(e) {
-    if (this.mouse.active && !((this.keys.left || this.keys.right) && !this.ship.active)) {
+    if (this.mouse.active && !(this.keys.left || this.keys.right)) {
       var bound = this.domElement.getBoundingClientRect();
 
       this.mouse.x = e.clientX / this.domElement.width * 2 - 1;
@@ -1337,6 +1249,140 @@ exports.default = Player;
 
 /***/ }),
 /* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _Config = __webpack_require__(0);
+
+var _Config2 = _interopRequireDefault(_Config);
+
+var _Maths = __webpack_require__(1);
+
+var Maths = _interopRequireWildcard(_Maths);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// interaction object for building physical systems
+
+var Interaction = function Interaction(position, motion) {
+  this.position = position;
+  this.motion = motion;
+  this.config = {};
+  this.config.physics = _Config2.default.sandbox.physics;
+  this.config.climb = _Config2.default.sandbox.player.climb;
+};
+
+Interaction.prototype = {
+  computeNextPosition: function computeNextPosition(delta, objects) {
+    // add motion vector
+    var next = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
+
+    // get collisions
+    var meshes = objects.getCollisionMeshes(next);
+
+    // apply gravity *before* collision handling - important
+    this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
+
+    if (meshes.length > 0) {
+      // check for slopes and steps
+      var positionChanged = false;
+
+      for (var i = 0; i < meshes.length; i += 1) {
+        var ceiling = meshes[i].getCeilingPlane(next);
+
+        // climb
+        if (ceiling.y != null && ceiling.plane.normal.y >= this.config.climb.minPlaneYAngle && ceiling.y - this.position.y <= this.config.climb.up) {
+          this.motion.y = 0;
+
+          if (ceiling.y >= next.y) {
+            positionChanged = true;
+            next.y = ceiling.y;
+          }
+        }
+      }
+
+      // check *new* position for collisions
+      if (positionChanged) {
+        meshes = objects.getCollisionMeshes(next);
+      }
+
+      // check for obstructions
+      var obstruction = false;
+
+      for (var _i = 0; _i < meshes.length; _i += 1) {
+        var _ceiling = meshes[_i].getCeilingPlane(next);
+
+        if (_ceiling.y != null && (_ceiling.plane.normal.y < this.config.climb.minPlaneYAngle || _ceiling.y - this.position.y > this.config.climb.up)) {
+          obstruction = meshes[_i];
+          break; // only one obstruction is needed
+        }
+      }
+
+      // handle obstruction
+      if (obstruction) {
+        var extrude = Maths.copyVector(next);
+        var intersectPlane = obstruction.getIntersectPlane2D(this.position, next);
+
+        // extrude position from object
+        if (intersectPlane != null) {
+          next.x = intersectPlane.intersect.x;
+          next.z = intersectPlane.intersect.z;
+
+          // get collisions at *new* point
+          var hits = 0;
+          meshes = objects.getCollisionMeshes(next);
+
+          for (var _i2 = 0; _i2 < meshes.length; _i2 += 1) {
+            var _ceiling2 = meshes[_i2].getCeilingPlane(next);
+
+            // if position is climbable, ignore
+            if (_ceiling2.y != null && (_ceiling2.plane.normal.y < this.config.climb.minPlaneYAngle || _ceiling2.y - this.position.y > this.config.climb.up)) {
+              hits += 1;
+            }
+          }
+
+          // stop motion if cornered (collisions > 1)
+          if (hits > 1) {
+            next.x = this.position.x;
+            next.z = this.position.z;
+          }
+        }
+      }
+    } else if (this.motion.y < 0) {
+      // check for downward slopes or steps
+      var under = Maths.copyVector(next);
+      under.y -= this.config.climb.down;
+
+      if (!this.falling && objects.getCollision(under)) {
+        var _ceiling3 = objects.getCeilingPlane(under);
+
+        // snap to slope
+        if (_ceiling3.plane.normal.y >= this.config.climb.minPlaneYAngle) {
+          next.y = _ceiling3.y;
+          this.motion.y = 0;
+        }
+      }
+    }
+
+    // move
+    this.position.x = next.x;
+    this.position.y = next.y;
+    this.position.z = next.z;
+  }
+};
+
+exports.default = Interaction;
+
+/***/ }),
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";

@@ -13,7 +13,7 @@ const Config = {
   },
   sandbox: {
     physics: {
-      gravity: 12,
+      gravity: 20,
       maxVelocity: 50,
     },
     player: {
@@ -34,7 +34,7 @@ const Config = {
         normal: 9,
         slowed: 5,
         rotation: Math.PI * 0.75,
-        jump: 13,
+        jump: 12,
         fallTimerThreshold: 0.1,
       },
       climb: {

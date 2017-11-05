@@ -33,7 +33,7 @@ const App = {
   dev: function() {
     App.logger.print(
       'P ' + App.reduce(App.player.position.x) + ', ' + App.reduce(App.player.position.y) + ', ' + App.reduce(App.player.position.z),
-      'M ' + App.reduce(App.player.movement.x) + ', ' + App.reduce(App.player.movement.y) + ', ' + App.reduce(App.player.movement.z),
+      'M ' + App.reduce(App.player.motion.x) + ', ' + App.reduce(App.player.motion.y) + ', ' + App.reduce(App.player.motion.z),
       'D ' + App.reduce(App.player.rotation.pitch) + ', ' + App.reduce(App.player.rotation.yaw)
     );
   },
@@ -53,7 +53,7 @@ const App = {
           //child.material.transparent = true;
           //child.material.side = THREE.DoubleSide;
           //child.material.opacity = 0.75;
-          App.colliderSystem.add(new Collider.Mesh(child.geometry));
+          App.colliderSystem.add(new Collider.Mesh(child));
         }
         App.scene.add(object);
         App.ready = true;

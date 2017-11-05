@@ -2,19 +2,19 @@ import Config from './Config';
 import Plane from './Plane';
 import { subtractVector, dotProduct, normalise, distanceBetween } from './Maths';
 
-const Mesh = function(geometry) {
+const Mesh = function(object) {
   this.isColliderMesh = true;
-  console.log(geometry);
+  console.log(object);
 
-  if (geometry.isBufferGeometry) {
-    this.geometry = geometry;
-    this.box = new THREE.Box3().setFromBufferAttribute(geometry.attributes.position);
+  if (object.geometry.isBufferGeometry) {
+    this.geometry = object.geometry;
+    this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
     this.min = this.box.min;
     this.max = this.box.max;
     this.planes = [];
-    // TODO: activate & change bbox stuff
-    this.translate = new THREE.Vector3(0, 0, 0);
-    this.rotate = new THREE.Vector3(0, 0, 0);
+    this.position = object.position;
+    this.rotation = object.rotation;
+    this.scale = object.scale;
     this.generatePlanes();
   } else {
     throw('Error: Input is not THREE.BufferGeometry');
