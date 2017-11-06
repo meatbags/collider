@@ -186,11 +186,16 @@ Plane.prototype = {
 
     const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
     const denom = this.normal.x * this.normal.x + this.normal.z * this.normal.z;
-    const x = point.x - ((this.normal.x * numPart) / denom);
-    const z = point.z - ((this.normal.z * numPart) / denom);
-    const intersect = new THREE.Vector3(x, point.y, z);
 
-    return intersect;
+    if (denom == 0) {
+      return null;
+    } else {
+      return new THREE.Vector3(
+        point.x - ((this.normal.x * numPart) / denom),
+        point.y,
+        point.z - ((this.normal.z * numPart) / denom)
+      );
+    }
   },
 
   getY: function(x, z) {

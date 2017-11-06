@@ -78,9 +78,9 @@ var Config = {
   system: {},
   quadrants: {
     size: {
-      x: 50,
-      y: 50,
-      z: 50
+      x: 100,
+      y: 100,
+      z: 100
     }
   },
   plane: {
@@ -90,10 +90,14 @@ var Config = {
   sandbox: {
     physics: {
       gravity: 20,
-      maxVelocity: 50
+      maxVelocity: 50,
+      floor: 0,
+      snapUp: 1,
+      snapDown: 0.5,
+      minSlope: Math.PI / 6
     },
     player: {
-      height: 2,
+      height: 2.2,
       position: {
         x: 0,
         y: 0,
@@ -101,7 +105,7 @@ var Config = {
       },
       rotation: {
         pitch: 0,
-        yaw: Math.PI * 0.29,
+        yaw: Math.PI,
         roll: 0,
         maxPitch: Math.PI * 0.25,
         minPitch: Math.PI * -0.25
@@ -112,15 +116,10 @@ var Config = {
         rotation: Math.PI * 0.75,
         jump: 12,
         fallTimerThreshold: 0.1
-      },
-      climb: {
-        up: 1,
-        down: 0.5,
-        minPlaneYAngle: 0.55
       }
     },
     camera: {
-      fov: 58,
+      fov: 60,
       aspect: 1,
       near: 0.1,
       far: 10000
@@ -313,7 +312,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var Mesh = function Mesh(object) {
   this.isColliderMesh = true;
-  console.log(object);
 
   if (object.geometry.isBufferGeometry) {
     this.geometry = object.geometry;
@@ -357,6 +355,18 @@ Mesh.prototype = {
         this.planes.push(new _Plane2.default(new THREE.Vector3(verts[_i + 0], verts[_i + 1], verts[_i + 2]), new THREE.Vector3(verts[_i + 3], verts[_i + 4], verts[_i + 5]), new THREE.Vector3(verts[_i + 6], verts[_i + 7], verts[_i + 8]), new THREE.Vector3(norms[_i + 0], norms[_i + 1], norms[_i + 2]), new THREE.Vector3(norms[_i + 3], norms[_i + 4], norms[_i + 5]), new THREE.Vector3(norms[_i + 6], norms[_i + 7], norms[_i + 8])));
       }
     }
+  },
+
+  transformPoint: function transformPoint(point) {
+    point.x -= this.position.x;
+    point.y -= this.position.y;
+    point.z -= this.position.z;
+  },
+
+  untransformPoint: function untransformPoint(point) {
+    point.x += this.position.x;
+    point.y += this.position.y;
+    point.z += this.position.z;
   },
 
   getCollision: function getCollision(point) {
@@ -483,14 +493,17 @@ Mesh.prototype = {
     for (var i = 0; i < this.planes.length; i += 1) {
       if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
         var intersect2D = this.planes[i].getNormalIntersect2D(p2);
-        var distance = (0, _Maths.distanceBetween)(p2, intersect2D);
 
-        if (intersectPlane === null || distance < intersectPlane.distance) {
-          intersectPlane = {
-            plane: this.planes[i],
-            intersect: intersect2D,
-            distance: distance
-          };
+        if (intersect2D != null) {
+          var distance = (0, _Maths.distanceBetween)(p2, intersect2D);
+
+          if (intersectPlane === null || distance < intersectPlane.distance) {
+            intersectPlane = {
+              plane: this.planes[i],
+              intersect: intersect2D,
+              distance: distance
+            };
+          }
         }
       }
     }
@@ -697,11 +710,12 @@ Plane.prototype = {
 
     var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
     var denom = this.normal.x * this.normal.x + this.normal.z * this.normal.z;
-    var x = point.x - this.normal.x * numPart / denom;
-    var z = point.z - this.normal.z * numPart / denom;
-    var intersect = new THREE.Vector3(x, point.y, z);
 
-    return intersect;
+    if (denom == 0) {
+      return null;
+    } else {
+      return new THREE.Vector3(point.x - this.normal.x * numPart / denom, point.y, point.z - this.normal.z * numPart / denom);
+    }
   },
 
 
@@ -1277,105 +1291,139 @@ var Interaction = function Interaction(position, motion) {
   this.motion = motion;
   this.config = {};
   this.config.physics = _Config2.default.sandbox.physics;
-  this.config.climb = _Config2.default.sandbox.player.climb;
 };
 
 Interaction.prototype = {
-  computeNextPosition: function computeNextPosition(delta, objects) {
-    // add motion vector
-    var next = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
-
-    // get collisions
-    var meshes = objects.getCollisionMeshes(next);
-
-    // apply gravity *before* collision handling - important
+  applyPhysics: function applyPhysics(delta) {
     this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
+  },
+
+  setPhysics: function setPhysics(params) {
+    this.config.physics.gravity = params.gravity ? params.gravity : this.config.physics.gravity;
+    this.config.physics.floor = params.floor ? params.floor : this.config.physics.floor;
+    this.config.physics.snapUp = params.snapUp ? params.snapUp : this.config.physics.snapUp;
+    this.config.physics.snapDown = params.snapDown ? params.snapDown : this.config.physics.snapDown;
+  },
+
+  computeNextPosition: function computeNextPosition(delta, system) {
+    var position = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
+    var meshes = system.getCollisionMeshes(position);
+
+    // apply gravity
+    this.applyPhysics(delta);
 
     if (meshes.length > 0) {
-      // check for slopes and steps
-      var positionChanged = false;
-
-      for (var i = 0; i < meshes.length; i += 1) {
-        var ceiling = meshes[i].getCeilingPlane(next);
-
-        // climb
-        if (ceiling.y != null && ceiling.plane.normal.y >= this.config.climb.minPlaneYAngle && ceiling.y - this.position.y <= this.config.climb.up) {
-          this.motion.y = 0;
-
-          if (ceiling.y >= next.y) {
-            positionChanged = true;
-            next.y = ceiling.y;
-          }
-        }
+      // check for slopes
+      if (this.stepUpSlope(position, meshes)) {
+        meshes = system.getCollisionMeshes(position);
       }
 
-      // check *new* position for collisions
-      if (positionChanged) {
-        meshes = objects.getCollisionMeshes(next);
-      }
-
-      // check for obstructions
-      var obstruction = false;
-
-      for (var _i = 0; _i < meshes.length; _i += 1) {
-        var _ceiling = meshes[_i].getCeilingPlane(next);
-
-        if (_ceiling.y != null && (_ceiling.plane.normal.y < this.config.climb.minPlaneYAngle || _ceiling.y - this.position.y > this.config.climb.up)) {
-          obstruction = meshes[_i];
-          break; // only one obstruction is needed
-        }
-      }
-
-      // handle obstruction
-      if (obstruction) {
-        var extrude = Maths.copyVector(next);
-        var intersectPlane = obstruction.getIntersectPlane2D(this.position, next);
-
-        // extrude position from object
-        if (intersectPlane != null) {
-          next.x = intersectPlane.intersect.x;
-          next.z = intersectPlane.intersect.z;
-
-          // get collisions at *new* point
-          var hits = 0;
-          meshes = objects.getCollisionMeshes(next);
-
-          for (var _i2 = 0; _i2 < meshes.length; _i2 += 1) {
-            var _ceiling2 = meshes[_i2].getCeilingPlane(next);
-
-            // if position is climbable, ignore
-            if (_ceiling2.y != null && (_ceiling2.plane.normal.y < this.config.climb.minPlaneYAngle || _ceiling2.y - this.position.y > this.config.climb.up)) {
-              hits += 1;
-            }
-          }
-
-          // stop motion if cornered (collisions > 1)
-          if (hits > 1) {
-            next.x = this.position.x;
-            next.z = this.position.z;
-          }
-        }
-      }
+      // check for walls
+      this.testObstruction(position, meshes, system);
     } else if (this.motion.y < 0) {
-      // check for downward slopes or steps
-      var under = Maths.copyVector(next);
-      under.y -= this.config.climb.down;
+      // if falling, step down
+      this.stepDownSlope(position, system);
+    }
 
-      if (!this.falling && objects.getCollision(under)) {
-        var _ceiling3 = objects.getCeilingPlane(under);
+    // move
+    this.position.x = position.x;
+    this.position.y = position.y;
+    this.position.z = position.z;
 
-        // snap to slope
-        if (_ceiling3.plane.normal.y >= this.config.climb.minPlaneYAngle) {
-          next.y = _ceiling3.y;
-          this.motion.y = 0;
+    // limit
+    if (this.position.y < this.config.physics.floor) {
+      this.motion.y = 0;
+      this.position.y = this.config.physics.floor;
+    }
+  },
+
+  testObstruction: function testObstruction(position, meshes, system) {
+    // check for obstructions
+    var obstruction = false;
+
+    for (var i = 0; i < meshes.length; i += 1) {
+      var ceiling = meshes[i].getCeilingPlane(position);
+
+      if (ceiling.y != null && (ceiling.plane.normal.y < this.config.physics.minSlope || ceiling.y - this.position.y > this.config.physics.snapUp)) {
+        obstruction = meshes[i];
+        break; // only one obstruction needed
+      }
+    }
+
+    // handle obstruction
+    if (obstruction) {
+      var extrude = Maths.copyVector(position);
+      var intersectPlane = obstruction.getIntersectPlane2D(this.position, position);
+
+      // extrude position from object
+      if (intersectPlane != null) {
+        position.x = intersectPlane.intersect.x;
+        position.z = intersectPlane.intersect.z;
+
+        // get collisions at *new* point
+        var hits = 0;
+        meshes = system.getCollisionMeshes(position);
+
+        for (var _i = 0; _i < meshes.length; _i += 1) {
+          var _ceiling = meshes[_i].getCeilingPlane(position);
+
+          // if position is climbable, ignore
+          if (_ceiling.y != null && (_ceiling.plane.normal.y < this.config.physics.minSlope || _ceiling.y - this.position.y > this.config.physics.snapUp)) {
+            hits += 1;
+          }
+        }
+
+        // stop motion if cornered (collisions > 1)
+        if (hits > 1) {
+          position.x = this.position.x;
+          position.z = this.position.z;
+        }
+      } else {
+        position.x = this.position.x;
+        position.z = this.position.z;
+      }
+    }
+  },
+
+  stepUpSlope: function stepUpSlope(position, meshes) {
+    // check for upward slopes
+    var success = false;
+
+    for (var i = 0; i < meshes.length; i += 1) {
+      var ceiling = meshes[i].getCeilingPlane(position);
+
+      // climb
+      if (ceiling.y != null && ceiling.plane.normal.y >= this.config.physics.minSlope && ceiling.y - this.position.y <= this.config.physics.snapUp) {
+        this.motion.y = 0;
+
+        if (ceiling.y >= position.y) {
+          success = true;
+          position.y = ceiling.y;
         }
       }
     }
 
-    // move
-    this.position.x = next.x;
-    this.position.y = next.y;
-    this.position.z = next.z;
+    return success;
+  },
+
+  stepDownSlope: function stepDownSlope(position, system) {
+    // check for downward slopes
+    var success = false;
+    var under = Maths.copyVector(position);
+    under.y -= this.config.physics.snapDown;
+
+    if (!this.falling && system.getCollision(under)) {
+      var ceiling = system.getCeilingPlane(under);
+
+      // snap to slope
+      if (ceiling.plane.normal.y >= this.config.physics.minSlope) {
+        position.y = ceiling.y;
+        this.motion.y = 0;
+        success = true;
+      }
+    }
+
+    return success;
   }
 };
 

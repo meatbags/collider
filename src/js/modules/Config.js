@@ -2,9 +2,9 @@ const Config = {
   system: {},
   quadrants: {
     size: {
-      x: 50,
-      y: 50,
-      z: 50,
+      x: 100,
+      y: 100,
+      z: 100
     }
   },
   plane: {
@@ -15,9 +15,13 @@ const Config = {
     physics: {
       gravity: 20,
       maxVelocity: 50,
+      floor: 0,
+      snapUp: 1,
+      snapDown: 0.5,
+      minSlope: Math.PI / 6,
     },
     player: {
-      height: 2,
+      height: 2.2,
       position: {
         x: 0,
         y: 0,
@@ -25,7 +29,7 @@ const Config = {
       },
       rotation: {
         pitch: 0,
-        yaw: Math.PI * 0.29,
+        yaw: Math.PI,
         roll: 0,
         maxPitch: Math.PI * 0.25,
         minPitch: Math.PI * -0.25
@@ -37,14 +41,9 @@ const Config = {
         jump: 12,
         fallTimerThreshold: 0.1,
       },
-      climb: {
-        up: 1,
-        down: 0.5,
-        minPlaneYAngle: 0.55,
-      }
     },
     camera: {
-      fov: 58,
+      fov: 60,
       aspect: 1,
       near: 0.1,
       far: 10000,

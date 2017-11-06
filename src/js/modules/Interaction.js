@@ -8,105 +8,139 @@ const Interaction = function(position, motion) {
   this.motion = motion;
   this.config = {};
   this.config.physics = Config.sandbox.physics;
-  this.config.climb = Config.sandbox.player.climb;
 };
 
 Interaction.prototype = {
-  computeNextPosition: function(delta, objects) {
-    // add motion vector
-    let next = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
-
-    // get collisions
-    let meshes = objects.getCollisionMeshes(next);
-
-    // apply gravity *before* collision handling - important
+  applyPhysics: function(delta) {
     this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
+  },
+
+  setPhysics: function(params) {
+    this.config.physics.gravity = (params.gravity) ? params.gravity : this.config.physics.gravity;
+    this.config.physics.floor = (params.floor) ? params.floor : this.config.physics.floor;
+    this.config.physics.snapUp = (params.snapUp) ? params.snapUp : this.config.physics.snapUp;
+    this.config.physics.snapDown = (params.snapDown) ? params.snapDown : this.config.physics.snapDown;
+  },
+
+  computeNextPosition: function(delta, system) {
+    let position = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
+    let meshes = system.getCollisionMeshes(position);
+
+    // apply gravity
+    this.applyPhysics(delta);
 
     if (meshes.length > 0) {
-      // check for slopes and steps
-      let positionChanged = false;
-
-      for (let i=0; i<meshes.length; i+=1) {
-        const ceiling = meshes[i].getCeilingPlane(next);
-
-        // climb
-        if (ceiling.y != null && ceiling.plane.normal.y >= this.config.climb.minPlaneYAngle && (ceiling.y - this.position.y) <= this.config.climb.up) {
-          this.motion.y = 0;
-
-          if (ceiling.y >= next.y) {
-            positionChanged = true;
-            next.y = ceiling.y;
-          }
-        }
+      // check for slopes
+      if (this.stepUpSlope(position, meshes)) {
+        meshes = system.getCollisionMeshes(position);
       }
 
-      // check *new* position for collisions
-      if (positionChanged) {
-        meshes = objects.getCollisionMeshes(next);
-      }
-
-      // check for obstructions
-      let obstruction = false;
-
-      for (let i=0; i<meshes.length; i+=1) {
-        const ceiling = meshes[i].getCeilingPlane(next);
-
-        if (ceiling.y != null && (ceiling.plane.normal.y < this.config.climb.minPlaneYAngle || (ceiling.y - this.position.y) > this.config.climb.up)){
-          obstruction = meshes[i];
-          break; // only one obstruction is needed
-        }
-      }
-
-      // handle obstruction
-      if (obstruction) {
-        let extrude = Maths.copyVector(next);
-        const intersectPlane = obstruction.getIntersectPlane2D(this.position, next);
-
-        // extrude position from object
-        if (intersectPlane != null) {
-          next.x = intersectPlane.intersect.x;
-          next.z = intersectPlane.intersect.z;
-
-          // get collisions at *new* point
-          let hits = 0;
-          meshes = objects.getCollisionMeshes(next);
-
-          for (let i=0; i<meshes.length; i+=1) {
-            const ceiling = meshes[i].getCeilingPlane(next);
-
-            // if position is climbable, ignore
-            if (ceiling.y != null && (ceiling.plane.normal.y < this.config.climb.minPlaneYAngle || (ceiling.y - this.position.y) > this.config.climb.up)) {
-              hits += 1;
-            }
-          }
-
-          // stop motion if cornered (collisions > 1)
-          if (hits > 1) {
-            next.x = this.position.x;
-            next.z = this.position.z;
-          }
-        }
-      }
+      // check for walls
+      this.testObstruction(position, meshes, system);
     } else if (this.motion.y < 0) {
-      // check for downward slopes or steps
-      const under = Maths.copyVector(next);
-      under.y -= this.config.climb.down;
+      // if falling, step down
+      this.stepDownSlope(position, system);
+    }
 
-      if (!this.falling && objects.getCollision(under)) {
-        const ceiling = objects.getCeilingPlane(under);
+    // move
+    this.position.x = position.x;
+    this.position.y = position.y;
+    this.position.z = position.z;
 
-        // snap to slope
-        if (ceiling.plane.normal.y >= this.config.climb.minPlaneYAngle) {
-          next.y = ceiling.y;
-          this.motion.y = 0;
+    // limit
+    if (this.position.y < this.config.physics.floor) {
+      this.motion.y = 0;
+      this.position.y = this.config.physics.floor;
+    }
+  },
+
+  testObstruction: function(position, meshes, system) {
+    // check for obstructions
+    let obstruction = false;
+
+    for (let i=0; i<meshes.length; i+=1) {
+      const ceiling = meshes[i].getCeilingPlane(position);
+
+      if (ceiling.y != null && (ceiling.plane.normal.y < this.config.physics.minSlope || (ceiling.y - this.position.y) > this.config.physics.snapUp)){
+        obstruction = meshes[i];
+        break; // only one obstruction needed
+      }
+    }
+
+    // handle obstruction
+    if (obstruction) {
+      let extrude = Maths.copyVector(position);
+      const intersectPlane = obstruction.getIntersectPlane2D(this.position, position);
+
+      // extrude position from object
+      if (intersectPlane != null) {
+        position.x = intersectPlane.intersect.x;
+        position.z = intersectPlane.intersect.z;
+
+        // get collisions at *new* point
+        let hits = 0;
+        meshes = system.getCollisionMeshes(position);
+
+        for (let i=0; i<meshes.length; i+=1) {
+          const ceiling = meshes[i].getCeilingPlane(position);
+
+          // if position is climbable, ignore
+          if (ceiling.y != null && (ceiling.plane.normal.y < this.config.physics.minSlope || (ceiling.y - this.position.y) > this.config.physics.snapUp)) {
+            hits += 1;
+          }
+        }
+
+        // stop motion if cornered (collisions > 1)
+        if (hits > 1) {
+          position.x = this.position.x;
+          position.z = this.position.z;
+        }
+      } else {
+        position.x = this.position.x;
+        position.z = this.position.z;
+      }
+    }
+  },
+
+  stepUpSlope: function(position, meshes) {
+    // check for upward slopes
+    let  success = false;
+
+    for (let i=0; i<meshes.length; i+=1) {
+      const ceiling = meshes[i].getCeilingPlane(position);
+
+      // climb
+      if (ceiling.y != null && ceiling.plane.normal.y >= this.config.physics.minSlope && (ceiling.y - this.position.y) <= this.config.physics.snapUp) {
+        this.motion.y = 0;
+
+        if (ceiling.y >= position.y) {
+          success = true;
+          position.y = ceiling.y;
         }
       }
     }
 
-    // move
-    this.position.x = next.x;
-    this.position.y = next.y;
-    this.position.z = next.z;
+    return success;
+  },
+
+  stepDownSlope: function(position, system) {
+    // check for downward slopes
+    let success = false;
+    const under = Maths.copyVector(position);
+    under.y -= this.config.physics.snapDown;
+
+    if (!this.falling && system.getCollision(under)) {
+      const ceiling = system.getCeilingPlane(under);
+
+      // snap to slope
+      if (ceiling.plane.normal.y >= this.config.physics.minSlope) {
+        position.y = ceiling.y;
+        this.motion.y = 0;
+        success = true;
+      }
+    }
+
+    return success;
   }
 };
 

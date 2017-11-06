@@ -4,7 +4,6 @@ import { subtractVector, dotProduct, normalise, distanceBetween } from './Maths'
 
 const Mesh = function(object) {
   this.isColliderMesh = true;
-  console.log(object);
 
   if (object.geometry.isBufferGeometry) {
     this.geometry = object.geometry;
@@ -63,6 +62,18 @@ Mesh.prototype = {
         );
       }
     }
+  },
+
+  transformPoint: function(point) {
+    point.x -= this.position.x;
+    point.y -= this.position.y;
+    point.z -= this.position.z;
+  },
+
+  untransformPoint: function(point) {
+    point.x += this.position.x;
+    point.y += this.position.y;
+    point.z += this.position.z;
   },
 
   getCollision: function(point) {
@@ -192,14 +203,17 @@ Mesh.prototype = {
     for (let i=0; i<this.planes.length; i+=1) {
       if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
         const intersect2D = this.planes[i].getNormalIntersect2D(p2);
-        const distance = distanceBetween(p2, intersect2D);
 
-        if (intersectPlane === null || distance < intersectPlane.distance) {
-          intersectPlane = {
-            plane: this.planes[i],
-            intersect: intersect2D,
-            distance: distance
-          };
+        if (intersect2D != null) {
+          const distance = distanceBetween(p2, intersect2D);
+
+          if (intersectPlane === null || distance < intersectPlane.distance) {
+            intersectPlane = {
+              plane: this.planes[i],
+              intersect: intersect2D,
+              distance: distance
+            };
+          }
         }
       }
     }
