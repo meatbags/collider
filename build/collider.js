@@ -91,13 +91,13 @@ var Config = {
     physics: {
       gravity: 20,
       maxVelocity: 50,
-      floor: 0,
+      floor: -1,
       snapUp: 1,
       snapDown: 0.5,
-      minSlope: Math.PI / 6
+      minSlope: Math.PI / 4
     },
     player: {
-      height: 2.2,
+      height: 2,
       position: {
         x: 0,
         y: 0,
@@ -111,11 +111,11 @@ var Config = {
         minPitch: Math.PI * -0.25
       },
       speed: {
-        normal: 9,
-        slowed: 5,
+        normal: 8,
+        slowed: 4,
         rotation: Math.PI * 0.75,
         jump: 12,
-        fallTimerThreshold: 0.1
+        fallTimerThreshold: 0.2
       }
     },
     camera: {
@@ -449,7 +449,7 @@ Mesh.prototype = {
       if (this.planes[i].containsPoint2D(point) && this.planes[i].isPointBelowOrEqual(point)) {
         var planeCeiling = this.planes[i].getY(point.x, point.z);
 
-        if (planeCeiling >= point.y && (y == null || planeCeiling < y)) {
+        if (planeCeiling != null && planeCeiling >= point.y && (y == null || planeCeiling > y)) {
           y = planeCeiling;
           plane = this.planes[i];
         }
@@ -721,10 +721,11 @@ Plane.prototype = {
 
   getY: function getY(x, z) {
     // solve plane for x, z
-
-    var y = (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
-
-    return y;
+    if (this.normal.y != 0) {
+      return (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
+    } else {
+      return null;
+    }
   },
 
   getPerpendicularNormals: function getPerpendicularNormals() {
@@ -1280,18 +1281,21 @@ var _Maths = __webpack_require__(1);
 
 var Maths = _interopRequireWildcard(_Maths);
 
+var _Logger = __webpack_require__(9);
+
+var _Logger2 = _interopRequireDefault(_Logger);
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-// interaction object for building physical systems
 
 var Interaction = function Interaction(position, motion) {
   this.position = position;
   this.motion = motion;
   this.config = {};
   this.config.physics = _Config2.default.sandbox.physics;
-};
+  this.logger = new _Logger2.default();
+}; // interaction object for building physical systems
 
 Interaction.prototype = {
   applyPhysics: function applyPhysics(delta) {
@@ -1314,16 +1318,27 @@ Interaction.prototype = {
 
     if (meshes.length > 0) {
       // check for slopes
-      if (this.stepUpSlope(position, meshes)) {
+      if (this.stepUpSlopes(position, meshes)) {
         meshes = system.getCollisionMeshes(position);
       }
 
       // check for walls
-      this.testObstruction(position, meshes, system);
+      if (this.testObstructions(position, meshes, system)) {
+        // check for slopes
+        meshes = system.getCollisionMeshes(position);
+        this.stepUpSlopes(position, meshes);
+      }
     } else if (this.motion.y < 0) {
-      // if falling, step down
-      this.stepDownSlope(position, system);
+      // check under position
+      var under = Maths.copyVector(position);
+      under.y -= this.config.physics.snapDown;
+      var mesh = system.getCeilingPlane(under);
+
+      // check for slopes
+      this.stepDownSlope(position, mesh);
     }
+
+    this.logger.print(this.motion.y, meshes.length);
 
     // move
     this.position.x = position.x;
@@ -1337,9 +1352,10 @@ Interaction.prototype = {
     }
   },
 
-  testObstruction: function testObstruction(position, meshes, system) {
+  testObstructions: function testObstructions(position, meshes, system) {
     // check for obstructions
     var obstruction = false;
+    var extruded = false;
 
     for (var i = 0; i < meshes.length; i += 1) {
       var ceiling = meshes[i].getCeilingPlane(position);
@@ -1377,15 +1393,19 @@ Interaction.prototype = {
         if (hits > 1) {
           position.x = this.position.x;
           position.z = this.position.z;
+        } else {
+          extruded = true;
         }
       } else {
         position.x = this.position.x;
         position.z = this.position.z;
       }
     }
+
+    return extruded;
   },
 
-  stepUpSlope: function stepUpSlope(position, meshes) {
+  stepUpSlopes: function stepUpSlopes(position, meshes) {
     // check for upward slopes
     var success = false;
 
@@ -1394,11 +1414,10 @@ Interaction.prototype = {
 
       // climb
       if (ceiling.y != null && ceiling.plane.normal.y >= this.config.physics.minSlope && ceiling.y - this.position.y <= this.config.physics.snapUp) {
-        this.motion.y = 0;
-
         if (ceiling.y >= position.y) {
           success = true;
           position.y = ceiling.y;
+          this.motion.y = 0;
         }
       }
     }
@@ -1406,21 +1425,13 @@ Interaction.prototype = {
     return success;
   },
 
-  stepDownSlope: function stepDownSlope(position, system) {
-    // check for downward slopes
+  stepDownSlope: function stepDownSlope(position, ceilingPlane) {
     var success = false;
-    var under = Maths.copyVector(position);
-    under.y -= this.config.physics.snapDown;
 
-    if (!this.falling && system.getCollision(under)) {
-      var ceiling = system.getCeilingPlane(under);
-
-      // snap to slope
-      if (ceiling.plane.normal.y >= this.config.physics.minSlope) {
-        position.y = ceiling.y;
-        this.motion.y = 0;
-        success = true;
-      }
+    if (ceilingPlane.y != null && ceilingPlane.plane.normal.y >= this.config.physics.minSlope) {
+      position.y = ceilingPlane.y;
+      this.motion.y = 0;
+      success = true;
     }
 
     return success;

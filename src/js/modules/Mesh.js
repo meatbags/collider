@@ -159,7 +159,7 @@ Mesh.prototype = {
       if (this.planes[i].containsPoint2D(point) && this.planes[i].isPointBelowOrEqual(point)) {
         let planeCeiling = this.planes[i].getY(point.x, point.z);
 
-        if (planeCeiling >= point.y && (y == null || planeCeiling < y)) {
+        if (planeCeiling != null && planeCeiling >= point.y && (y == null || planeCeiling > y)) {
           y = planeCeiling;
           plane = this.planes[i];
         }

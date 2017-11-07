@@ -31,14 +31,48 @@ const App = {
   },
 
   dev: function() {
+    /*
     App.logger.print(
       'P ' + App.reduce(App.player.position.x) + ', ' + App.reduce(App.player.position.y) + ', ' + App.reduce(App.player.position.z),
       'M ' + App.reduce(App.player.motion.x) + ', ' + App.reduce(App.player.motion.y) + ', ' + App.reduce(App.player.motion.z),
       'D ' + App.reduce(App.player.rotation.pitch) + ', ' + App.reduce(App.player.rotation.yaw)
     );
+    */
   },
 
   loadModels: function() {
+    const standardMaterial = new THREE.MeshStandardMaterial( {
+			map: null,
+			bumpScale: - 0.05,
+			color: 0xff4444,
+			metalness: 0.5,
+			roughness: 1.0
+		});
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load('./assets/texture.jpg', function(map) {
+			map.wrapS = THREE.RepeatWrapping;
+			map.wrapT = THREE.RepeatWrapping;
+			map.anisotropy = 4;
+			map.repeat.set(10, 10);
+			standardMaterial.map = map;
+			standardMaterial.roughnessMap = map;
+			standardMaterial.bumpMap = map;
+			standardMaterial.needsUpdate = true;
+		});
+
+    const fileBase = "./assets/envmap/";
+	  const urls = [
+      fileBase + "posx.jpg", fileBase + "negx.jpg",
+		  fileBase + "posy.jpg", fileBase + "negy.jpg",
+			fileBase + "posz.jpg", fileBase + "negz.jpg"
+    ];
+    const textureCube = new THREE.CubeTextureLoader().load( urls );
+		textureCube.format = THREE.RGBFormat;
+		textureCube.mapping = THREE.CubeReflectionMapping;
+
+    standardMaterial.envMap = textureCube;
+    standardMaterial.envMapIntensity = 0.5;
+
     App.ready = false;
     App.mtlLoader = new THREE.MTLLoader();
     App.mtlLoader.setPath('./assets/');
@@ -50,9 +84,7 @@ const App = {
       objLoader.load('sample.obj', function(object){
         for (let i=0; i<object.children.length; i+=1) {
           const child = object.children[i];
-          //child.material.transparent = true;
-          //child.material.side = THREE.DoubleSide;
-          //child.material.opacity = 0.75;
+          child.material = standardMaterial;
           App.colliderSystem.add(new Collider.Mesh(child));
         }
         App.scene.add(object);

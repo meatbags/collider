@@ -2,12 +2,14 @@
 
 import Config from './Config';
 import * as Maths from './Maths';
+import Logger from './Logger';
 
 const Interaction = function(position, motion) {
   this.position = position;
   this.motion = motion;
   this.config = {};
   this.config.physics = Config.sandbox.physics;
+  this.logger = new Logger();
 };
 
 Interaction.prototype = {
@@ -31,16 +33,27 @@ Interaction.prototype = {
 
     if (meshes.length > 0) {
       // check for slopes
-      if (this.stepUpSlope(position, meshes)) {
+      if (this.stepUpSlopes(position, meshes)) {
         meshes = system.getCollisionMeshes(position);
       }
 
       // check for walls
-      this.testObstruction(position, meshes, system);
+      if (this.testObstructions(position, meshes, system)) {
+        // check for slopes
+        meshes = system.getCollisionMeshes(position);
+        this.stepUpSlopes(position, meshes);
+      }
     } else if (this.motion.y < 0) {
-      // if falling, step down
-      this.stepDownSlope(position, system);
+      // check under position
+      const under = Maths.copyVector(position);
+      under.y -= this.config.physics.snapDown;
+      let mesh = system.getCeilingPlane(under);
+
+      // check for slopes
+      this.stepDownSlope(position, mesh);
     }
+
+    this.logger.print(this.motion.y, meshes.length);
 
     // move
     this.position.x = position.x;
@@ -54,9 +67,10 @@ Interaction.prototype = {
     }
   },
 
-  testObstruction: function(position, meshes, system) {
+  testObstructions: function(position, meshes, system) {
     // check for obstructions
     let obstruction = false;
+    let extruded = false;
 
     for (let i=0; i<meshes.length; i+=1) {
       const ceiling = meshes[i].getCeilingPlane(position);
@@ -94,28 +108,33 @@ Interaction.prototype = {
         if (hits > 1) {
           position.x = this.position.x;
           position.z = this.position.z;
+        } else {
+          extruded = true;
         }
       } else {
         position.x = this.position.x;
         position.z = this.position.z;
       }
     }
+
+    return extruded;
   },
 
-  stepUpSlope: function(position, meshes) {
+  stepUpSlopes: function(position, meshes) {
     // check for upward slopes
-    let  success = false;
+    let success = false;
 
     for (let i=0; i<meshes.length; i+=1) {
       const ceiling = meshes[i].getCeilingPlane(position);
 
       // climb
-      if (ceiling.y != null && ceiling.plane.normal.y >= this.config.physics.minSlope && (ceiling.y - this.position.y) <= this.config.physics.snapUp) {
-        this.motion.y = 0;
-
+      if (ceiling.y != null &&
+        ceiling.plane.normal.y >= this.config.physics.minSlope &&
+        (ceiling.y - this.position.y) <= this.config.physics.snapUp) {
         if (ceiling.y >= position.y) {
           success = true;
           position.y = ceiling.y;
+          this.motion.y = 0;
         }
       }
     }
@@ -123,21 +142,13 @@ Interaction.prototype = {
     return success;
   },
 
-  stepDownSlope: function(position, system) {
-    // check for downward slopes
+  stepDownSlope: function(position, ceilingPlane) {
     let success = false;
-    const under = Maths.copyVector(position);
-    under.y -= this.config.physics.snapDown;
 
-    if (!this.falling && system.getCollision(under)) {
-      const ceiling = system.getCeilingPlane(under);
-
-      // snap to slope
-      if (ceiling.plane.normal.y >= this.config.physics.minSlope) {
-        position.y = ceiling.y;
-        this.motion.y = 0;
-        success = true;
-      }
+    if (ceilingPlane.y != null && ceilingPlane.plane.normal.y >= this.config.physics.minSlope) {
+      position.y = ceilingPlane.y;
+      this.motion.y = 0;
+      success = true;
     }
 
     return success;

@@ -15,13 +15,13 @@ const Config = {
     physics: {
       gravity: 20,
       maxVelocity: 50,
-      floor: 0,
+      floor: -1,
       snapUp: 1,
       snapDown: 0.5,
-      minSlope: Math.PI / 6,
+      minSlope: Math.PI / 4,
     },
     player: {
-      height: 2.2,
+      height: 2,
       position: {
         x: 0,
         y: 0,
@@ -35,11 +35,11 @@ const Config = {
         minPitch: Math.PI * -0.25
       },
       speed: {
-        normal: 9,
-        slowed: 5,
+        normal: 8,
+        slowed: 4,
         rotation: Math.PI * 0.75,
         jump: 12,
-        fallTimerThreshold: 0.1,
+        fallTimerThreshold: 0.2,
       },
     },
     camera: {

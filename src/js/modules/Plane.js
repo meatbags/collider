@@ -200,10 +200,11 @@ Plane.prototype = {
 
   getY: function(x, z) {
     // solve plane for x, z
-
-    const y = (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
-
-    return y;
+    if (this.normal.y != 0) {
+      return (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
+    } else {
+      return null;
+    }
   },
 
   getPerpendicularNormals: function() {
