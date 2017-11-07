@@ -75,7 +75,7 @@ Interaction.prototype = {
     for (let i=0; i<meshes.length; i+=1) {
       const ceiling = meshes[i].getCeilingPlane(position);
 
-      if (ceiling.y != null && (ceiling.plane.normal.y < this.config.physics.minSlope || (ceiling.y - this.position.y) > this.config.physics.snapUp)){
+      if (ceiling != null && (ceiling.plane.normal.y < this.config.physics.minSlope || (ceiling.y - this.position.y) > this.config.physics.snapUp)){
         obstruction = meshes[i];
         break; // only one obstruction needed
       }
@@ -99,7 +99,7 @@ Interaction.prototype = {
           const ceiling = meshes[i].getCeilingPlane(position);
 
           // if position is climbable, ignore
-          if (ceiling.y != null && (ceiling.plane.normal.y < this.config.physics.minSlope || (ceiling.y - this.position.y) > this.config.physics.snapUp)) {
+          if (ceiling != null && (ceiling.plane.normal.y < this.config.physics.minSlope || (ceiling.y - this.position.y) > this.config.physics.snapUp)) {
             hits += 1;
           }
         }
@@ -128,7 +128,7 @@ Interaction.prototype = {
       const ceiling = meshes[i].getCeilingPlane(position);
 
       // climb
-      if (ceiling.y != null &&
+      if (ceiling != null &&
         ceiling.plane.normal.y >= this.config.physics.minSlope &&
         (ceiling.y - this.position.y) <= this.config.physics.snapUp) {
         if (ceiling.y >= position.y) {
@@ -145,7 +145,7 @@ Interaction.prototype = {
   stepDownSlope: function(position, ceilingPlane) {
     let success = false;
 
-    if (ceilingPlane.y != null && ceilingPlane.plane.normal.y >= this.config.physics.minSlope) {
+    if (ceilingPlane != null && ceilingPlane.plane.normal.y >= this.config.physics.minSlope) {
       position.y = ceilingPlane.y;
       this.motion.y = 0;
       success = true;

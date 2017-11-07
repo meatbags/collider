@@ -93,7 +93,7 @@ System.prototype = {
       }
     }
 
-    return {y: y, plane: plane};
+    return ((y == null) ? null : {y: y, plane: plane});
   }
 };
 

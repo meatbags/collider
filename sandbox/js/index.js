@@ -23,6 +23,7 @@ const App = {
 
     // run
     App.time = (new Date()).getTime();
+    App.age = 0;
     App.loop();
   },
 
@@ -91,6 +92,15 @@ const App = {
         App.ready = true;
       });
     });
+
+    App.cube = new THREE.Mesh(
+      new THREE.BoxBufferGeometry(5, 2, 5),
+      standardMaterial
+    );
+
+    App.scene.add(App.cube);
+    App.colliderSystem.add(new Collider.Mesh(App.cube));
+    App.cube.position.set(6, 0, 6);
   },
 
   loadLighting: function() {
@@ -110,7 +120,9 @@ const App = {
   },
 
   update: function(delta) {
+    App.age += delta;
     App.player.update(delta, App.colliderSystem);
+    App.cube.position.y = Math.sin(App.age) * 2 + 2;
   },
 
   render: function() {

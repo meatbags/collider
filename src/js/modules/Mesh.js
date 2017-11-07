@@ -1,5 +1,6 @@
 import Config from './Config';
 import Plane from './Plane';
+import Transformer from './Transformer';
 import { subtractVector, dotProduct, normalise, distanceBetween } from './Maths';
 
 const Mesh = function(object) {
@@ -11,9 +12,7 @@ const Mesh = function(object) {
     this.min = this.box.min;
     this.max = this.box.max;
     this.planes = [];
-    this.position = object.position;
-    this.rotation = object.rotation;
-    this.scale = object.scale;
+    this.transform = new Transformer(object);
     this.generatePlanes();
   } else {
     throw('Error: Input is not THREE.BufferGeometry');
@@ -64,20 +63,10 @@ Mesh.prototype = {
     }
   },
 
-  transformPoint: function(point) {
-    point.x -= this.position.x;
-    point.y -= this.position.y;
-    point.z -= this.position.z;
-  },
-
-  untransformPoint: function(point) {
-    point.x += this.position.x;
-    point.y += this.position.y;
-    point.z += this.position.z;
-  },
-
   getCollision: function(point) {
-    if (this.box.containsPoint(point)) {
+    this.transform.set(point);
+
+    if (this.box.containsPoint(this.transform.point)) {
       // reset
       for (let i=0; i<this.planes.length; i+=1) {
         this.planes[i].culled = false;
@@ -85,7 +74,7 @@ Mesh.prototype = {
 
       // first pass - cull faces
       for (let i=0; i<this.planes.length; i+=1) {
-        if (!this.planes[i].culled && this.planes[i].isPointBelowOrEqual(point)) {
+        if (!this.planes[i].culled && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
           // cull planes above plane
           for (let j=0; j<this.planes.length; j+=1) {
             if (!this.planes[j].culled && j != i && this.planes[i].isPlaneAbove(this.planes[j])) {
@@ -97,7 +86,7 @@ Mesh.prototype = {
 
       // second pass - get result
       for (let i=0; i<this.planes.length; i+=1) {
-        if (!this.planes[i].culled && !this.planes[i].isPointBelowOrEqual(point)) {
+        if (!this.planes[i].culled && !this.planes[i].isPointBelowOrEqual(this.transform.point)) {
           return false;
         }
       }
@@ -109,18 +98,21 @@ Mesh.prototype = {
   },
 
   getCollision2D: function(point) {
+    this.transform.set(point)
+
     return (
-      point.x >= this.min.x && point.x <= this.max.x &&
-      point.z >= this.min.z && point.z <= this.max.z
+      this.transform.point.x >= this.min.x && this.transform.point.x <= this.max.x &&
+      this.transform.point.z >= this.min.z && this.transform.point.z <= this.max.z
     );
   },
 
   getCeiling2D: function(point) {
+    this.transform.set(point)
     let y = null;
 
     for (let i=0; i<this.planes.length; i+=1) {
-      if (this.planes[i].containsPoint2D(point)) {
-        let planeCeiling = plane.getY(point.x, point.z);
+      if (this.planes[i].containsPoint2D(this.transform.point)) {
+        let planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
 
         if (y === null || planeCeiling > y) {
           y = planeCeiling;
@@ -128,57 +120,62 @@ Mesh.prototype = {
       }
     }
 
-    return y;
+    return ((y == null) ? null : this.transform.reverseY(y));
   },
 
   getCeiling: function(point) {
     // get ceiling *above* point
-
+    this.transform.set(point)
     let y = null;
 
     for (let i=0; i<this.planes.length; i+=1) {
-      if (this.planes[i].containsPoint2D(point) && this.planes[i].isPointBelowOrEqual(point)) {
-        let planeCeiling = plane.getY(point.x, point.z);
+      if (this.planes[i].containsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
+        let planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
 
-        if (planeCeiling >= point.y && (y === null || planeCeiling < y)) {
+        if (planeCeiling >= this.transform.point.y && (y === null || planeCeiling < y)) {
           y = planeCeiling;
         }
       }
     }
 
-    return y;
+    return ((y == null) ? null : this.transform.reverseY(y));
   },
 
   getCeilingPlane: function(point) {
     // get ceiling and plane *above* point
-
+    this.transform.set(point)
     let plane = null;
     let y = null;
 
     for (let i=0; i<this.planes.length; i+=1) {
-      if (this.planes[i].containsPoint2D(point) && this.planes[i].isPointBelowOrEqual(point)) {
-        let planeCeiling = this.planes[i].getY(point.x, point.z);
+      if (this.planes[i].containsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
+        let planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
 
-        if (planeCeiling != null && planeCeiling >= point.y && (y == null || planeCeiling > y)) {
+        if (planeCeiling != null && planeCeiling >= this.transform.point.y && (y == null || planeCeiling > y)) {
           y = planeCeiling;
           plane = this.planes[i];
         }
       }
     }
 
-    return {y: y, plane: plane};
+    return ((y == null) ? null : {
+      y: this.transform.reverseY(y),
+      plane: plane
+    });
   },
 
   getIntersectPlane: function(p1, p2) {
-    const box = new THREE.Box3().setFromPoints([p1, p2]);
+    const tp1 = this.transform.getTransformedPoint(p1);
+    const tp2 = this.transform.getTransformedPoint(p2);
+    const box = new THREE.Box3().setFromPoints([tp1, tp2]);
     let intersectPlane = null;
 
     for (let i=0; i<this.planes.length; i+=1) {
       if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
-        const intersect = this.planes[i].getIntersect(p1, p2);
+        const intersect = this.planes[i].getIntersect(tp1, tp2);
 
         if (intersect != null) {
-          const distance = distanceBetween(p1, intersect);
+          const distance = distanceBetween(tp1, intersect);
 
           if (intersectPlane === null || distance < intersectPlane.distance) {
             intersectPlane = {
@@ -191,21 +188,26 @@ Mesh.prototype = {
       }
     }
 
-    return intersectPlane;
+    return ((intersectPlane == null) ? null : {
+      intersect: this.transform.reverse(intersectPlane.intersect),
+      plane: intersectPlane.plane,
+      distance: intersectPlane.distance
+    });
   },
 
   getIntersectPlane2D: function(p1, p2) {
     // find 2D intersect *nearest* to p2
-
-    const box = new THREE.Box3().setFromPoints([p1, p2]);
+    const tp1 = this.transform.getTransformedPoint(p1);
+    const tp2 = this.transform.getTransformedPoint(p2);
+    const box = new THREE.Box3().setFromPoints([tp1, tp2]);
     let intersectPlane = null;
 
     for (let i=0; i<this.planes.length; i+=1) {
       if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
-        const intersect2D = this.planes[i].getNormalIntersect2D(p2);
+        const intersect2D = this.planes[i].getNormalIntersect2D(tp2);
 
         if (intersect2D != null) {
-          const distance = distanceBetween(p2, intersect2D);
+          const distance = distanceBetween(tp2, intersect2D);
 
           if (intersectPlane === null || distance < intersectPlane.distance) {
             intersectPlane = {
@@ -218,7 +220,11 @@ Mesh.prototype = {
       }
     }
 
-    return intersectPlane;
+    return ((intersectPlane == null) ? null : {
+      intersect: this.transform.reverse(intersectPlane.intersect),
+      plane: intersectPlane.plane,
+      distance: intersectPlane.distance
+    });
   }
 };
 

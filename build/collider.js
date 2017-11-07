@@ -61,7 +61,7 @@ var Collider =
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 3);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -258,21 +258,68 @@ exports.normalise = normalise;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+var Logger = function Logger() {
+  this.cvs = document.createElement('canvas');
+  this.ctx = this.cvs.getContext('2d');
+  this.init();
+};
+
+Logger.prototype = {
+  init: function init() {
+    document.body.append(this.cvs);
+    this.setStyle();
+  },
+
+  setStyle: function setStyle() {
+    this.cvs.style.position = 'fixed';
+    this.cvs.width = window.innerWidth;
+    this.cvs.style.pointerEvents = 'none';
+    this.cvs.height = 400;
+    this.cvs.style.zIndex = 10;
+    this.cvs.style.top = 0;
+    this.cvs.style.left = 0;
+  },
+
+  clear: function clear() {
+    this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
+  },
+
+  print: function print() {
+    this.clear();
+
+    for (var i = 0; i < arguments.length; i += 1) {
+      this.ctx.fillText(arguments[i], 20, 20 + i * 20);
+    }
+  }
+};
+
+exports.default = Logger;
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
 exports.Logger = exports.Player = exports.System = exports.Mesh = undefined;
 
-var _Mesh = __webpack_require__(3);
+var _Mesh = __webpack_require__(4);
 
 var _Mesh2 = _interopRequireDefault(_Mesh);
 
-var _System = __webpack_require__(5);
+var _System = __webpack_require__(7);
 
 var _System2 = _interopRequireDefault(_System);
 
-var _Player = __webpack_require__(7);
+var _Player = __webpack_require__(9);
 
 var _Player2 = _interopRequireDefault(_Player);
 
-var _Logger = __webpack_require__(9);
+var _Logger = __webpack_require__(2);
 
 var _Logger2 = _interopRequireDefault(_Logger);
 
@@ -288,7 +335,7 @@ exports.Player = _Player2.default;
 exports.Logger = _Logger2.default;
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -302,9 +349,13 @@ var _Config = __webpack_require__(0);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Plane = __webpack_require__(4);
+var _Plane = __webpack_require__(5);
 
 var _Plane2 = _interopRequireDefault(_Plane);
+
+var _Transformer = __webpack_require__(6);
+
+var _Transformer2 = _interopRequireDefault(_Transformer);
 
 var _Maths = __webpack_require__(1);
 
@@ -319,9 +370,7 @@ var Mesh = function Mesh(object) {
     this.min = this.box.min;
     this.max = this.box.max;
     this.planes = [];
-    this.position = object.position;
-    this.rotation = object.rotation;
-    this.scale = object.scale;
+    this.transform = new _Transformer2.default(object);
     this.generatePlanes();
   } else {
     throw 'Error: Input is not THREE.BufferGeometry';
@@ -357,20 +406,10 @@ Mesh.prototype = {
     }
   },
 
-  transformPoint: function transformPoint(point) {
-    point.x -= this.position.x;
-    point.y -= this.position.y;
-    point.z -= this.position.z;
-  },
-
-  untransformPoint: function untransformPoint(point) {
-    point.x += this.position.x;
-    point.y += this.position.y;
-    point.z += this.position.z;
-  },
-
   getCollision: function getCollision(point) {
-    if (this.box.containsPoint(point)) {
+    this.transform.set(point);
+
+    if (this.box.containsPoint(this.transform.point)) {
       // reset
       for (var i = 0; i < this.planes.length; i += 1) {
         this.planes[i].culled = false;
@@ -378,7 +417,7 @@ Mesh.prototype = {
 
       // first pass - cull faces
       for (var _i2 = 0; _i2 < this.planes.length; _i2 += 1) {
-        if (!this.planes[_i2].culled && this.planes[_i2].isPointBelowOrEqual(point)) {
+        if (!this.planes[_i2].culled && this.planes[_i2].isPointBelowOrEqual(this.transform.point)) {
           // cull planes above plane
           for (var j = 0; j < this.planes.length; j += 1) {
             if (!this.planes[j].culled && j != _i2 && this.planes[_i2].isPlaneAbove(this.planes[j])) {
@@ -390,7 +429,7 @@ Mesh.prototype = {
 
       // second pass - get result
       for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
-        if (!this.planes[_i3].culled && !this.planes[_i3].isPointBelowOrEqual(point)) {
+        if (!this.planes[_i3].culled && !this.planes[_i3].isPointBelowOrEqual(this.transform.point)) {
           return false;
         }
       }
@@ -402,15 +441,18 @@ Mesh.prototype = {
   },
 
   getCollision2D: function getCollision2D(point) {
-    return point.x >= this.min.x && point.x <= this.max.x && point.z >= this.min.z && point.z <= this.max.z;
+    this.transform.set(point);
+
+    return this.transform.point.x >= this.min.x && this.transform.point.x <= this.max.x && this.transform.point.z >= this.min.z && this.transform.point.z <= this.max.z;
   },
 
   getCeiling2D: function getCeiling2D(point) {
+    this.transform.set(point);
     var y = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
-      if (this.planes[i].containsPoint2D(point)) {
-        var planeCeiling = plane.getY(point.x, point.z);
+      if (this.planes[i].containsPoint2D(this.transform.point)) {
+        var planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
 
         if (y === null || planeCeiling > y) {
           y = planeCeiling;
@@ -418,57 +460,62 @@ Mesh.prototype = {
       }
     }
 
-    return y;
+    return y == null ? null : this.transform.reverseY(y);
   },
 
   getCeiling: function getCeiling(point) {
     // get ceiling *above* point
-
+    this.transform.set(point);
     var y = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
-      if (this.planes[i].containsPoint2D(point) && this.planes[i].isPointBelowOrEqual(point)) {
-        var planeCeiling = plane.getY(point.x, point.z);
+      if (this.planes[i].containsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
+        var planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
 
-        if (planeCeiling >= point.y && (y === null || planeCeiling < y)) {
+        if (planeCeiling >= this.transform.point.y && (y === null || planeCeiling < y)) {
           y = planeCeiling;
         }
       }
     }
 
-    return y;
+    return y == null ? null : this.transform.reverseY(y);
   },
 
   getCeilingPlane: function getCeilingPlane(point) {
     // get ceiling and plane *above* point
-
+    this.transform.set(point);
     var plane = null;
     var y = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
-      if (this.planes[i].containsPoint2D(point) && this.planes[i].isPointBelowOrEqual(point)) {
-        var planeCeiling = this.planes[i].getY(point.x, point.z);
+      if (this.planes[i].containsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
+        var planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
 
-        if (planeCeiling != null && planeCeiling >= point.y && (y == null || planeCeiling > y)) {
+        if (planeCeiling != null && planeCeiling >= this.transform.point.y && (y == null || planeCeiling > y)) {
           y = planeCeiling;
           plane = this.planes[i];
         }
       }
     }
 
-    return { y: y, plane: plane };
+    return y == null ? null : {
+      y: this.transform.reverseY(y),
+      plane: plane
+    };
   },
 
   getIntersectPlane: function getIntersectPlane(p1, p2) {
-    var box = new THREE.Box3().setFromPoints([p1, p2]);
+    var tp1 = this.transform.getTransformedPoint(p1);
+    var tp2 = this.transform.getTransformedPoint(p2);
+    var box = new THREE.Box3().setFromPoints([tp1, tp2]);
     var intersectPlane = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
       if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
-        var intersect = this.planes[i].getIntersect(p1, p2);
+        var intersect = this.planes[i].getIntersect(tp1, tp2);
 
         if (intersect != null) {
-          var distance = (0, _Maths.distanceBetween)(p1, intersect);
+          var distance = (0, _Maths.distanceBetween)(tp1, intersect);
 
           if (intersectPlane === null || distance < intersectPlane.distance) {
             intersectPlane = {
@@ -481,21 +528,26 @@ Mesh.prototype = {
       }
     }
 
-    return intersectPlane;
+    return intersectPlane == null ? null : {
+      intersect: this.transform.reverse(intersectPlane.intersect),
+      plane: intersectPlane.plane,
+      distance: intersectPlane.distance
+    };
   },
 
   getIntersectPlane2D: function getIntersectPlane2D(p1, p2) {
     // find 2D intersect *nearest* to p2
-
-    var box = new THREE.Box3().setFromPoints([p1, p2]);
+    var tp1 = this.transform.getTransformedPoint(p1);
+    var tp2 = this.transform.getTransformedPoint(p2);
+    var box = new THREE.Box3().setFromPoints([tp1, tp2]);
     var intersectPlane = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
       if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
-        var intersect2D = this.planes[i].getNormalIntersect2D(p2);
+        var intersect2D = this.planes[i].getNormalIntersect2D(tp2);
 
         if (intersect2D != null) {
-          var distance = (0, _Maths.distanceBetween)(p2, intersect2D);
+          var distance = (0, _Maths.distanceBetween)(tp2, intersect2D);
 
           if (intersectPlane === null || distance < intersectPlane.distance) {
             intersectPlane = {
@@ -508,14 +560,18 @@ Mesh.prototype = {
       }
     }
 
-    return intersectPlane;
+    return intersectPlane == null ? null : {
+      intersect: this.transform.reverse(intersectPlane.intersect),
+      plane: intersectPlane.plane,
+      distance: intersectPlane.distance
+    };
   }
 };
 
 exports.default = Mesh;
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -739,7 +795,61 @@ Plane.prototype = {
 exports.default = Plane;
 
 /***/ }),
-/* 5 */
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var Transformer = function Transformer(object) {
+  this.point = new THREE.Vector3();
+  this.position = object.position;
+  this.rotation = object.rotation;
+  this.scale = object.scale;
+};
+
+Transformer.prototype = {
+  set: function set(point) {
+    // transform point
+    this.point.x = point.x - this.position.x;
+    this.point.y = point.y - this.position.y;
+    this.point.z = point.z - this.position.z;
+  },
+
+  getTransformedPoint: function getTransformedPoint(point) {
+    var transformed = {
+      x: point.x - this.position.x,
+      y: point.y - this.position.y,
+      z: point.z - this.position.z
+    };
+
+    return transformed;
+  },
+
+  reverseY: function reverseY(y) {
+    var newY = y + this.position.y;
+
+    return newY;
+  },
+
+  reverse: function reverse(point) {
+    var transformed = {
+      x: point.x + this.position.x,
+      y: point.y + this.position.y,
+      z: point.z + this.position.z
+    };
+
+    return transformed;
+  }
+};
+
+exports.default = Transformer;
+
+/***/ }),
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -753,7 +863,7 @@ var _Config = __webpack_require__(0);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Quadrants = __webpack_require__(6);
+var _Quadrants = __webpack_require__(8);
 
 var _Quadrants2 = _interopRequireDefault(_Quadrants);
 
@@ -851,14 +961,14 @@ System.prototype = {
       }
     }
 
-    return { y: y, plane: plane };
+    return y == null ? null : { y: y, plane: plane };
   }
 };
 
 exports.default = System;
 
 /***/ }),
-/* 6 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -943,7 +1053,7 @@ Quadrants.prototype = {
 exports.default = Quadrants;
 
 /***/ }),
-/* 7 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -957,7 +1067,7 @@ var _Maths = __webpack_require__(1);
 
 var Maths = _interopRequireWildcard(_Maths);
 
-var _Interaction = __webpack_require__(8);
+var _Interaction = __webpack_require__(10);
 
 var _Interaction2 = _interopRequireDefault(_Interaction);
 
@@ -1263,7 +1373,7 @@ Player.prototype = {
 exports.default = Player;
 
 /***/ }),
-/* 8 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1281,7 +1391,7 @@ var _Maths = __webpack_require__(1);
 
 var Maths = _interopRequireWildcard(_Maths);
 
-var _Logger = __webpack_require__(9);
+var _Logger = __webpack_require__(2);
 
 var _Logger2 = _interopRequireDefault(_Logger);
 
@@ -1360,7 +1470,7 @@ Interaction.prototype = {
     for (var i = 0; i < meshes.length; i += 1) {
       var ceiling = meshes[i].getCeilingPlane(position);
 
-      if (ceiling.y != null && (ceiling.plane.normal.y < this.config.physics.minSlope || ceiling.y - this.position.y > this.config.physics.snapUp)) {
+      if (ceiling != null && (ceiling.plane.normal.y < this.config.physics.minSlope || ceiling.y - this.position.y > this.config.physics.snapUp)) {
         obstruction = meshes[i];
         break; // only one obstruction needed
       }
@@ -1384,7 +1494,7 @@ Interaction.prototype = {
           var _ceiling = meshes[_i].getCeilingPlane(position);
 
           // if position is climbable, ignore
-          if (_ceiling.y != null && (_ceiling.plane.normal.y < this.config.physics.minSlope || _ceiling.y - this.position.y > this.config.physics.snapUp)) {
+          if (_ceiling != null && (_ceiling.plane.normal.y < this.config.physics.minSlope || _ceiling.y - this.position.y > this.config.physics.snapUp)) {
             hits += 1;
           }
         }
@@ -1413,7 +1523,7 @@ Interaction.prototype = {
       var ceiling = meshes[i].getCeilingPlane(position);
 
       // climb
-      if (ceiling.y != null && ceiling.plane.normal.y >= this.config.physics.minSlope && ceiling.y - this.position.y <= this.config.physics.snapUp) {
+      if (ceiling != null && ceiling.plane.normal.y >= this.config.physics.minSlope && ceiling.y - this.position.y <= this.config.physics.snapUp) {
         if (ceiling.y >= position.y) {
           success = true;
           position.y = ceiling.y;
@@ -1428,7 +1538,7 @@ Interaction.prototype = {
   stepDownSlope: function stepDownSlope(position, ceilingPlane) {
     var success = false;
 
-    if (ceilingPlane.y != null && ceilingPlane.plane.normal.y >= this.config.physics.minSlope) {
+    if (ceilingPlane != null && ceilingPlane.plane.normal.y >= this.config.physics.minSlope) {
       position.y = ceilingPlane.y;
       this.motion.y = 0;
       success = true;
@@ -1439,53 +1549,6 @@ Interaction.prototype = {
 };
 
 exports.default = Interaction;
-
-/***/ }),
-/* 9 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-var Logger = function Logger() {
-  this.cvs = document.createElement('canvas');
-  this.ctx = this.cvs.getContext('2d');
-  this.init();
-};
-
-Logger.prototype = {
-  init: function init() {
-    document.body.append(this.cvs);
-    this.setStyle();
-  },
-
-  setStyle: function setStyle() {
-    this.cvs.style.position = 'fixed';
-    this.cvs.width = window.innerWidth;
-    this.cvs.style.pointerEvents = 'none';
-    this.cvs.height = 400;
-    this.cvs.style.zIndex = 10;
-    this.cvs.style.top = 0;
-    this.cvs.style.left = 0;
-  },
-
-  clear: function clear() {
-    this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
-  },
-
-  print: function print() {
-    this.clear();
-
-    for (var i = 0; i < arguments.length; i += 1) {
-      this.ctx.fillText(arguments[i], 20, 20 + i * 20);
-    }
-  }
-};
-
-exports.default = Logger;
 
 /***/ })
 /******/ ]);
