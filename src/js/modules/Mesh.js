@@ -143,24 +143,30 @@ Mesh.prototype = {
 
   getCeilingPlane: function(point) {
     // get ceiling and plane *above* point
-    this.transform.set(point)
-    let plane = null;
-    let y = null;
+    this.transform.set(point);
+    let ceiling = null;
 
     for (let i=0; i<this.planes.length; i+=1) {
-      if (this.planes[i].containsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
-        let planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
+      // check general box, then precise, then for ceiling
+      if (this.planes[i].containsPoint2D(this.transform.point)) {
 
-        if (planeCeiling != null && planeCeiling >= this.transform.point.y && (y == null || planeCeiling > y)) {
-          y = planeCeiling;
-          plane = this.planes[i];
+        if (this.planes[i].containsPointPrecise2D(this.transform.point) &&
+          this.planes[i].isPointBelowOrEqual(this.transform.point)){
+          let planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
+
+          if (planeCeiling != null && planeCeiling >= this.transform.point.y && (ceiling == null || planeCeiling > ceiling.y)) {
+            ceiling = {
+              y: planeCeiling,
+              plane: this.planes[i]
+            }
+          }
         }
       }
     }
 
-    return ((y == null) ? null : {
-      y: this.transform.reverseY(y),
-      plane: plane
+    return ((ceiling == null) ? null : {
+      y: this.transform.reverseY(ceiling.y),
+      plane: ceiling.plane
     });
   },
 

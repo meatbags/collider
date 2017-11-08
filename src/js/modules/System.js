@@ -56,44 +56,28 @@ System.prototype = {
     return collisions;
   },
 
-  getCeiling2D: function(point) {
-    // get absolute ceiling for x, z
-
-    let y = null;
-    const meshes = this.quadrants.getQuadrantMeshes(point);
-
-    for (let i=0; i<meshes.length; i+=1) {
-      if (meshes[i].getCollision2D(point)) {
-        let meshCeiling = mesh.getCeiling2D(point);
-
-        if (y === null || meshCeiling > y) {
-          y = meshCeiling;
-        }
-      }
-    }
-
-    return y;
-  },
-
   getCeilingPlane: function(point) {
     // get ceiling and corresponding plane *above* point
 
-    let y = null;
-    let plane = null;
+    let ceiling = null;
     const meshes = this.quadrants.getQuadrantMeshes(point);
 
     for (let i=0; i<meshes.length; i+=1) {
       if (meshes[i].getCollision(point)) {
         let result = meshes[i].getCeilingPlane(point);
-
-        if (y === null || (result.y != null && result.y > y)) {
-          y = result.y;
-          plane = result.plane;
+        
+        if (result != null) {
+          if (ceiling === null || result.y > ceiling.y) {
+            ceiling = {
+              y: result.y,
+              plane: result.plane
+            }
+          }
         }
       }
     }
 
-    return ((y == null) ? null : {y: y, plane: plane});
+    return ((ceiling === null) ? null : ceiling);
   }
 };
 

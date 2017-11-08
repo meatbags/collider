@@ -14,16 +14,35 @@ const Plane = function(p1, p2, p3, n1, n2, n3) {
 
 Plane.prototype = {
   generatePlane: function() {
-    // edge vectors
-    const e12 = Maths.subtractVector(this.p2, this.p1);
-    const e13 = Maths.subtractVector(this.p3, this.p1);
+    // edge data
+    this.e1 = {};
+    this.e2 = {};
+    this.e3 = {};
+    this.e1.centre = Maths.scaleVector(Maths.addVector(this.p1, this.p2), 0.5);
+    this.e2.centre = Maths.scaleVector(Maths.addVector(this.p2, this.p3), 0.5);
+    this.e3.centre = Maths.scaleVector(Maths.addVector(this.p3, this.p1), 0.5);
+    this.e1.vec = Maths.subtractVector(this.p2, this.p1);
+    this.e2.vec = Maths.subtractVector(this.p3, this.p2);
+    this.e3.vec = Maths.subtractVector(this.p1, this.p3);
+
+    // get 2D component & normal
+    this.e1.vec2 = new THREE.Vector2(this.e1.vec.x, this.e1.vec.z);
+    this.e2.vec2 = new THREE.Vector2(this.e2.vec.x, this.e2.vec.z);
+    this.e3.vec2 = new THREE.Vector2(this.e3.vec.x, this.e3.vec.z);
+    this.e1.norm2 = new THREE.Vector2(-this.e1.vec.z, this.e1.vec.x);
+    this.e2.norm2 = new THREE.Vector2(-this.e2.vec.z, this.e2.vec.x);
+    this.e3.norm2 = new THREE.Vector2(-this.e3.vec.z, this.e3.vec.x);
 
     // get normal
-    this.normal = Maths.normalise(Maths.crossProduct(e12, e13));
+    this.normal = Maths.normalise(Maths.crossProduct(this.e3.vec, this.e1.vec));
     this.normalXZ = new THREE.Vector3(this.normal.x, 0, this.normal.z);
 
     // reverse naughty normals
-    if (Maths.dotProduct(this.normal, this.n1) < 0) {
+    if (
+      Maths.dotProduct(this.normal, this.n1) < 0 &&
+      Maths.dotProduct(this.normal, this.n2) < 0 &&
+      Maths.dotProduct(this.normal, this.n3) < 0
+    ) {
       this.normal = Maths.reverseVector(this.normal);
     }
 
@@ -113,9 +132,25 @@ Plane.prototype = {
   },
 
   containsPoint2D: function(point) {
-    // is x, y inside bounding box
+    // is x, z inside bounding box
+    return (
+      this.box.min.x <= point.x &&
+      this.box.max.x >= point.x &&
+      this.box.min.z <= point.z &&
+      this.box.max.z >= point.z
+    );
+  },
 
-    return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
+  containsPointPrecise2D: function(point) {
+    if (
+      Maths.dotProduct2({x: point.x - this.e1.centre.x, y: point.z - this.e1.centre.z}, this.e1.norm2) < Config.plane.dotBuffer &&
+      Maths.dotProduct2({x: point.x - this.e2.centre.x, y: point.z - this.e2.centre.z}, this.e2.norm2) < Config.plane.dotBuffer &&
+      Maths.dotProduct2({x: point.x - this.e3.centre.x, y: point.z - this.e3.centre.z}, this.e3.norm2) < Config.plane.dotBuffer
+    ) {
+      return true;
+    }
+
+    return false;
   },
 
   containsPointThreshold: function(point) {

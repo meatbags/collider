@@ -45,9 +45,9 @@ const App = {
     const standardMaterial = new THREE.MeshStandardMaterial( {
 			map: null,
 			bumpScale: - 0.05,
-			color: 0xff4444,
+			color: 0xff8888,
 			metalness: 0.5,
-			roughness: 1.0
+			roughness: 0.0
 		});
     const textureLoader = new THREE.TextureLoader();
     textureLoader.load('./assets/texture.jpg', function(map) {
@@ -72,24 +72,48 @@ const App = {
 		textureCube.mapping = THREE.CubeReflectionMapping;
 
     standardMaterial.envMap = textureCube;
-    standardMaterial.envMapIntensity = 0.5;
+    standardMaterial.envMapIntensity = 1;
 
+    // loader
     App.ready = false;
     App.mtlLoader = new THREE.MTLLoader();
     App.mtlLoader.setPath('./assets/');
+
+    // map
     App.mtlLoader.load('sample.mtl', function(materials) {
       materials.preload();
       var objLoader = new THREE.OBJLoader();
       objLoader.setPath('./assets/');
       objLoader.setMaterials(materials);
+
       objLoader.load('sample.obj', function(object){
         for (let i=0; i<object.children.length; i+=1) {
           const child = object.children[i];
           child.material = standardMaterial;
           App.colliderSystem.add(new Collider.Mesh(child));
         }
+
         App.scene.add(object);
+
         App.ready = true;
+
+        for (let x=-50; x<50; x+=0.6) {
+          for (let z=-50; z<50; z+=0.6) {
+            const test = new THREE.Mesh(
+              new THREE.SphereBufferGeometry(0.1, 2, 2),
+              new THREE.MeshLambertMaterial({color: 0xffffff})
+            );
+
+            const ceiling = App.colliderSystem.getCeilingPlane(new THREE.Vector3(x, 0, z));
+
+            if (ceiling != null && ceiling.y != 0) {
+              test.position.x = x;
+              test.position.y = ceiling.y;
+              test.position.z = z;
+              App.scene.add(test);
+            }
+          }
+        }
       });
     });
 

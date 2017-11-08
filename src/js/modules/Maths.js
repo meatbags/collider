@@ -34,17 +34,28 @@ const normalise = function(a){
   const mag = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 
   if (mag == 0) {
-    return a;
+    return new THREE.Vector3(0, 0, 0);
+  } else {
+    return new THREE.Vector3(
+      a.x / mag,
+      a.y / mag,
+      a.z / mag
+    );
   }
-
-  const normal = new THREE.Vector3(
-    a.x / mag,
-    a.y / mag,
-    a.z / mag
-  );
-
-  return normal;
 };
+
+const normalise2 = function(a) {
+  const mag = Math.sqrt(a.x * a.x + a.y * a.y);
+
+  if (mag == 0) {
+    return new THREE.Vector2(0, 0);
+  } else {
+    return new THREE.Vector2(
+      a.x / mag,
+      a.y / mag
+    );
+  }
+}
 
 const reverseVector = function(a) {
   a.x *= -1;
@@ -108,4 +119,8 @@ const dotProduct = function(a, b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 };
 
-export { copyVector, isVectorEqual, pitchBetween, twoPi, distanceBetween, distanceBetween2D, minAngleDifference, dotProduct, addVector, subtractVector, scaleVector, crossProduct, reverseVector, normalise };
+const dotProduct2 = function(a, b) {
+  return a.x * b.x + a.y * b.y;
+};
+
+export { copyVector, isVectorEqual, pitchBetween, twoPi, distanceBetween, distanceBetween2D, minAngleDifference, dotProduct, dotProduct2, addVector, subtractVector, scaleVector, crossProduct, reverseVector, normalise, normalise2 };

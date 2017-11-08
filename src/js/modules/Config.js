@@ -18,13 +18,13 @@ const Config = {
       floor: -1,
       snapUp: 1,
       snapDown: 0.5,
-      minSlope: Math.PI / 4,
+      minSlope: Math.PI / 5
     },
     player: {
       height: 2,
       position: {
         x: 0,
-        y: 0,
+        y: 2,
         z: 0
       },
       rotation: {

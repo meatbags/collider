@@ -94,13 +94,13 @@ var Config = {
       floor: -1,
       snapUp: 1,
       snapDown: 0.5,
-      minSlope: Math.PI / 4
+      minSlope: Math.PI / 5
     },
     player: {
       height: 2,
       position: {
         x: 0,
-        y: 0,
+        y: 2,
         z: 0
       },
       rotation: {
@@ -171,12 +171,20 @@ var normalise = function normalise(a) {
   var mag = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 
   if (mag == 0) {
-    return a;
+    return new THREE.Vector3(0, 0, 0);
+  } else {
+    return new THREE.Vector3(a.x / mag, a.y / mag, a.z / mag);
   }
+};
 
-  var normal = new THREE.Vector3(a.x / mag, a.y / mag, a.z / mag);
+var normalise2 = function normalise2(a) {
+  var mag = Math.sqrt(a.x * a.x + a.y * a.y);
 
-  return normal;
+  if (mag == 0) {
+    return new THREE.Vector2(0, 0);
+  } else {
+    return new THREE.Vector2(a.x / mag, a.y / mag);
+  }
 };
 
 var reverseVector = function reverseVector(a) {
@@ -233,6 +241,10 @@ var dotProduct = function dotProduct(a, b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 };
 
+var dotProduct2 = function dotProduct2(a, b) {
+  return a.x * b.x + a.y * b.y;
+};
+
 exports.copyVector = copyVector;
 exports.isVectorEqual = isVectorEqual;
 exports.pitchBetween = pitchBetween;
@@ -241,12 +253,14 @@ exports.distanceBetween = distanceBetween;
 exports.distanceBetween2D = distanceBetween2D;
 exports.minAngleDifference = minAngleDifference;
 exports.dotProduct = dotProduct;
+exports.dotProduct2 = dotProduct2;
 exports.addVector = addVector;
 exports.subtractVector = subtractVector;
 exports.scaleVector = scaleVector;
 exports.crossProduct = crossProduct;
 exports.reverseVector = reverseVector;
 exports.normalise = normalise;
+exports.normalise2 = normalise2;
 
 /***/ }),
 /* 2 */
@@ -484,23 +498,28 @@ Mesh.prototype = {
   getCeilingPlane: function getCeilingPlane(point) {
     // get ceiling and plane *above* point
     this.transform.set(point);
-    var plane = null;
-    var y = null;
+    var ceiling = null;
 
     for (var i = 0; i < this.planes.length; i += 1) {
-      if (this.planes[i].containsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
-        var planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
+      // check general box, then precise, then for ceiling
+      if (this.planes[i].containsPoint2D(this.transform.point)) {
 
-        if (planeCeiling != null && planeCeiling >= this.transform.point.y && (y == null || planeCeiling > y)) {
-          y = planeCeiling;
-          plane = this.planes[i];
+        if (this.planes[i].containsPointPrecise2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
+          var planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
+
+          if (planeCeiling != null && planeCeiling >= this.transform.point.y && (ceiling == null || planeCeiling > ceiling.y)) {
+            ceiling = {
+              y: planeCeiling,
+              plane: this.planes[i]
+            };
+          }
         }
       }
     }
 
-    return y == null ? null : {
-      y: this.transform.reverseY(y),
-      plane: plane
+    return ceiling == null ? null : {
+      y: this.transform.reverseY(ceiling.y),
+      plane: ceiling.plane
     };
   },
 
@@ -606,16 +625,31 @@ var Plane = function Plane(p1, p2, p3, n1, n2, n3) {
 
 Plane.prototype = {
   generatePlane: function generatePlane() {
-    // edge vectors
-    var e12 = Maths.subtractVector(this.p2, this.p1);
-    var e13 = Maths.subtractVector(this.p3, this.p1);
+    // edge data
+    this.e1 = {};
+    this.e2 = {};
+    this.e3 = {};
+    this.e1.centre = Maths.scaleVector(Maths.addVector(this.p1, this.p2), 0.5);
+    this.e2.centre = Maths.scaleVector(Maths.addVector(this.p2, this.p3), 0.5);
+    this.e3.centre = Maths.scaleVector(Maths.addVector(this.p3, this.p1), 0.5);
+    this.e1.vec = Maths.subtractVector(this.p2, this.p1);
+    this.e2.vec = Maths.subtractVector(this.p3, this.p2);
+    this.e3.vec = Maths.subtractVector(this.p1, this.p3);
+
+    // get 2D component & normal
+    this.e1.vec2 = new THREE.Vector2(this.e1.vec.x, this.e1.vec.z);
+    this.e2.vec2 = new THREE.Vector2(this.e2.vec.x, this.e2.vec.z);
+    this.e3.vec2 = new THREE.Vector2(this.e3.vec.x, this.e3.vec.z);
+    this.e1.norm2 = new THREE.Vector2(-this.e1.vec.z, this.e1.vec.x);
+    this.e2.norm2 = new THREE.Vector2(-this.e2.vec.z, this.e2.vec.x);
+    this.e3.norm2 = new THREE.Vector2(-this.e3.vec.z, this.e3.vec.x);
 
     // get normal
-    this.normal = Maths.normalise(Maths.crossProduct(e12, e13));
+    this.normal = Maths.normalise(Maths.crossProduct(this.e3.vec, this.e1.vec));
     this.normalXZ = new THREE.Vector3(this.normal.x, 0, this.normal.z);
 
     // reverse naughty normals
-    if (Maths.dotProduct(this.normal, this.n1) < 0) {
+    if (Maths.dotProduct(this.normal, this.n1) < 0 && Maths.dotProduct(this.normal, this.n2) < 0 && Maths.dotProduct(this.normal, this.n3) < 0) {
       this.normal = Maths.reverseVector(this.normal);
     }
 
@@ -697,9 +731,16 @@ Plane.prototype = {
   },
 
   containsPoint2D: function containsPoint2D(point) {
-    // is x, y inside bounding box
+    // is x, z inside bounding box
+    return this.box.min.x <= point.x && this.box.max.x >= point.x && this.box.min.z <= point.z && this.box.max.z >= point.z;
+  },
 
-    return this.box.containsPoint(new THREE.Vector3(point.x, this.position.y, point.z));
+  containsPointPrecise2D: function containsPointPrecise2D(point) {
+    if (Maths.dotProduct2({ x: point.x - this.e1.centre.x, y: point.z - this.e1.centre.z }, this.e1.norm2) < _Config2.default.plane.dotBuffer && Maths.dotProduct2({ x: point.x - this.e2.centre.x, y: point.z - this.e2.centre.z }, this.e2.norm2) < _Config2.default.plane.dotBuffer && Maths.dotProduct2({ x: point.x - this.e3.centre.x, y: point.z - this.e3.centre.z }, this.e3.norm2) < _Config2.default.plane.dotBuffer) {
+      return true;
+    }
+
+    return false;
   },
 
   containsPointThreshold: function containsPointThreshold(point) {
@@ -883,10 +924,10 @@ System.prototype = {
     // add mesh to quadrants
 
     for (var i = 0; i < arguments.length; i += 1) {
-      var _mesh = arguments[i];
+      var mesh = arguments[i];
 
-      if (_mesh.isColliderMesh) {
-        this.quadrants.add(_mesh);
+      if (mesh.isColliderMesh) {
+        this.quadrants.add(mesh);
       } else {
         throw 'Error: Input must be Collider.Mesh';
       }
@@ -924,44 +965,28 @@ System.prototype = {
     return collisions;
   },
 
-  getCeiling2D: function getCeiling2D(point) {
-    // get absolute ceiling for x, z
-
-    var y = null;
-    var meshes = this.quadrants.getQuadrantMeshes(point);
-
-    for (var i = 0; i < meshes.length; i += 1) {
-      if (meshes[i].getCollision2D(point)) {
-        var meshCeiling = mesh.getCeiling2D(point);
-
-        if (y === null || meshCeiling > y) {
-          y = meshCeiling;
-        }
-      }
-    }
-
-    return y;
-  },
-
   getCeilingPlane: function getCeilingPlane(point) {
     // get ceiling and corresponding plane *above* point
 
-    var y = null;
-    var plane = null;
+    var ceiling = null;
     var meshes = this.quadrants.getQuadrantMeshes(point);
 
     for (var i = 0; i < meshes.length; i += 1) {
       if (meshes[i].getCollision(point)) {
         var result = meshes[i].getCeilingPlane(point);
 
-        if (y === null || result.y != null && result.y > y) {
-          y = result.y;
-          plane = result.plane;
+        if (result != null) {
+          if (ceiling === null || result.y > ceiling.y) {
+            ceiling = {
+              y: result.y,
+              plane: result.plane
+            };
+          }
         }
       }
     }
 
-    return y == null ? null : { y: y, plane: plane };
+    return ceiling === null ? null : ceiling;
   }
 };
 
