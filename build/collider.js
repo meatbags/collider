@@ -108,8 +108,8 @@ var Config = {
         pitch: 0,
         yaw: Math.PI,
         roll: 0,
-        maxPitch: Math.PI * 0.25,
-        minPitch: Math.PI * -0.25
+        maxPitch: Math.PI * 0.4,
+        minPitch: Math.PI * -0.4
       },
       speed: {
         normal: 8,
@@ -266,10 +266,58 @@ exports.normalise2 = normalise2;
 
 /***/ }),
 /* 2 */
-/***/ (function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-throw new Error("Module build failed: SyntaxError: E:/Programs/XAMPP/htdocs/github_repos/collider/collider/src/js/modules/Logger.js: Unexpected token, expected , (35:2)\n\n\u001b[0m \u001b[90m 33 | \u001b[39m  }\n \u001b[90m 34 | \u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 35 | \u001b[39m  print\u001b[33m:\u001b[39m \u001b[36mfunction\u001b[39m() {\n \u001b[90m    | \u001b[39m  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 36 | \u001b[39m    \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mclear()\u001b[33m;\u001b[39m\n \u001b[90m 37 | \u001b[39m\n \u001b[90m 38 | \u001b[39m    \u001b[36mfor\u001b[39m (let i\u001b[33m=\u001b[39m\u001b[35m0\u001b[39m\u001b[33m;\u001b[39m i\u001b[33m<\u001b[39m\u001b[33marguments\u001b[39m\u001b[33m.\u001b[39mlength\u001b[33m;\u001b[39m i\u001b[33m+=\u001b[39m\u001b[35m1\u001b[39m) {\u001b[0m\n");
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var Logger = function Logger() {
+  this.cvs = document.createElement('canvas');
+  this.ctx = this.cvs.getContext('2d');
+  this.init();
+};
+
+Logger.prototype = {
+  init: function init() {
+    document.body.append(this.cvs);
+    this.setStyle();
+  },
+
+  setStyle: function setStyle() {
+    this.cvs.style.position = 'fixed';
+    this.cvs.width = window.innerWidth;
+    this.cvs.style.pointerEvents = 'none';
+    this.cvs.height = 400;
+    this.cvs.style.zIndex = 10;
+    this.cvs.style.top = 0;
+    this.cvs.style.left = 0;
+  },
+
+  clear: function clear() {
+    this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
+  },
+
+  format: function format(value) {
+    return Math.floor(value * 10) / 10;
+  },
+
+  formatVector: function formatVector(vec) {
+    return this.format(vec.x) + ', ' + this.format(vec.y) + ', ' + this.format(vec.z);
+  },
+
+  print: function print() {
+    this.clear();
+
+    for (var i = 0; i < arguments.length; i += 1) {
+      this.ctx.fillText(arguments[i], 20, 20 + i * 20);
+    }
+  }
+};
+
+exports.default = Logger;
 
 /***/ }),
 /* 3 */

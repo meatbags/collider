@@ -30,7 +30,7 @@ Logger.prototype = {
 
   formatVector: function(vec) {
     return this.format(vec.x) + ', ' + this.format(vec.y) + ', ' + this.format(vec.z);
-  }
+  },
 
   print: function() {
     this.clear();
