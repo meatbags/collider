@@ -24,6 +24,14 @@ Logger.prototype = {
     this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
   },
 
+  format: function(value) {
+    return Math.floor(value * 10) / 10;
+  },
+
+  formatVector: function(vec) {
+    return this.format(vec.x) + ', ' + this.format(vec.y) + ', ' + this.format(vec.z);
+  }
+
   print: function() {
     this.clear();
 

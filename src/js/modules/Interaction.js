@@ -7,6 +7,7 @@ import Logger from './Logger';
 const Interaction = function(position, motion) {
   this.position = position;
   this.motion = motion;
+  this.falling = false;
   this.config = {};
   this.config.physics = Config.sandbox.physics;
   this.logger = new Logger();
@@ -14,6 +15,7 @@ const Interaction = function(position, motion) {
 
 Interaction.prototype = {
   applyPhysics: function(delta) {
+    this.falling = (this.motion.y < 0);
     this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
   },
 
@@ -25,35 +27,38 @@ Interaction.prototype = {
   },
 
   computeNextPosition: function(delta, system) {
+    // move
     let position = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
-    let meshes = system.getCollisionMeshes(position);
 
-    // apply gravity
-    this.applyPhysics(delta);
+    // collision system
+    if (!this.config.physics.noclip) {
+      let meshes = system.getCollisionMeshes(position);
 
-    if (meshes.length > 0) {
-      // check for slopes
-      if (this.stepUpSlopes(position, meshes)) {
-        meshes = system.getCollisionMeshes(position);
-      }
+      // apply gravity
+      this.applyPhysics(delta);
 
-      // check for walls
-      if (this.testObstructions(position, meshes, system)) {
+      if (meshes.length > 0) {
         // check for slopes
-        meshes = system.getCollisionMeshes(position);
-        this.stepUpSlopes(position, meshes);
+        if (this.stepUpSlopes(position, meshes)) {
+          meshes = system.getCollisionMeshes(position);
+        }
+
+        // check for walls
+        if (this.testObstructions(position, meshes, system)) {
+          // check for slopes
+          meshes = system.getCollisionMeshes(position);
+          this.stepUpSlopes(position, meshes);
+        }
+      } else if (this.motion.y < 0 && !this.falling) {
+        // check under position
+        const under = Maths.copyVector(position);
+        under.y -= this.config.physics.snapDown;
+        let mesh = system.getCeilingPlane(under);
+
+        // check for slopes
+        this.stepDownSlope(position, mesh);
       }
-    } else if (this.motion.y < 0) {
-      // check under position
-      const under = Maths.copyVector(position);
-      under.y -= this.config.physics.snapDown;
-      let mesh = system.getCeilingPlane(under);
-
-      // check for slopes
-      this.stepDownSlope(position, mesh);
     }
-
-    this.logger.print(this.motion.y, meshes.length);
 
     // move
     this.position.x = position.x;
@@ -65,6 +70,12 @@ Interaction.prototype = {
       this.motion.y = 0;
       this.position.y = this.config.physics.floor;
     }
+
+    // dev
+    this.logger.print(
+      'M ' + this.logger.formatVector(this.motion),
+      'P ' + this.logger.formatVector(this.position)
+    );
   },
 
   testObstructions: function(position, meshes, system) {

@@ -18,13 +18,14 @@ const Config = {
       floor: -1,
       snapUp: 1,
       snapDown: 0.5,
-      minSlope: Math.PI / 5
+      minSlope: Math.PI / 5,
+      noclip: true,
     },
     player: {
       height: 2,
       position: {
         x: 0,
-        y: 2,
+        y: 0,
         z: 0
       },
       rotation: {
@@ -37,8 +38,9 @@ const Config = {
       speed: {
         normal: 8,
         slowed: 4,
+        noclip: 20,
         rotation: Math.PI * 0.75,
-        jump: 12,
+        jump: 10,
         fallTimerThreshold: 0.2,
       },
     },

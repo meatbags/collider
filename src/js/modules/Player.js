@@ -72,10 +72,11 @@ Player.prototype = {
 
     // up/ down keys
     if (this.keys.up || this.keys.down) {
+      const speed = (this.config.physics.noclip) ? this.config.speed.noclip : this.config.speed.normal;
       const dir = ((this.keys.up) ? 1 : 0) + ((this.keys.down) ? -1 : 0);
       const yaw = this.rotation.yaw + this.offset.rotation.yaw;
-      const dx = Math.sin(yaw) * this.config.speed.normal * dir;
-      const dz = Math.cos(yaw) * this.config.speed.normal * dir;
+      const dx = Math.sin(yaw) * speed * dir;
+      const dz = Math.cos(yaw) * speed * dir;
       this.target.motion.x = dx;
       this.target.motion.z = dz;
     } else {
@@ -96,6 +97,26 @@ Player.prototype = {
     // falling
     this.falling = (this.motion.y != 0);
     this.fallTimer = (this.falling) ? this.fallTimer + delta : 0;
+
+    // noclip
+    if (this.keys.x) {
+      this.keys.x = false;
+      this.config.physics.noclip = (this.config.physics.noclip == false);
+    }
+
+    if (this.config.physics.noclip) {
+      this.falling = false;
+
+      if (this.keys.up || this.keys.down) {
+        const dir = ((this.keys.up) ? 1 : 0) + ((this.keys.down) ? -1 : 0);
+        const pitch = this.target.rotation.pitch;
+        this.target.motion.y = Math.sin(pitch) * this.config.speed.noclip * dir;
+      } else {
+        this.target.motion.y = 0;
+      }
+
+      this.motion.y = this.target.motion.y;
+    }
 
     // reduce motion if falling
     if (!this.falling) {
@@ -165,6 +186,8 @@ Player.prototype = {
       case 32:
         this.keys.jump = true;
         break;
+      case 88:
+        this.keys.x = true;
       default:
         break;
     }
@@ -258,7 +281,8 @@ Player.prototype = {
 			down: false,
 			left: false,
 			right: false,
-      jump: false
+      jump: false,
+      x: false
 		};
     self.mouse = {
       x: 0,

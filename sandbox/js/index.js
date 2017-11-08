@@ -18,9 +18,6 @@ const App = {
     App.loadModels();
     App.loadLighting();
 
-    // dev
-    App.logger = new Collider.Logger();
-
     // run
     App.time = (new Date()).getTime();
     App.age = 0;
@@ -32,13 +29,6 @@ const App = {
   },
 
   dev: function() {
-    /*
-    App.logger.print(
-      'P ' + App.reduce(App.player.position.x) + ', ' + App.reduce(App.player.position.y) + ', ' + App.reduce(App.player.position.z),
-      'M ' + App.reduce(App.player.motion.x) + ', ' + App.reduce(App.player.motion.y) + ', ' + App.reduce(App.player.motion.z),
-      'D ' + App.reduce(App.player.rotation.pitch) + ', ' + App.reduce(App.player.rotation.yaw)
-    );
-    */
   },
 
   loadModels: function() {
@@ -94,26 +84,7 @@ const App = {
         }
 
         App.scene.add(object);
-
         App.ready = true;
-
-        for (let x=-50; x<50; x+=0.6) {
-          for (let z=-50; z<50; z+=0.6) {
-            const test = new THREE.Mesh(
-              new THREE.SphereBufferGeometry(0.1, 2, 2),
-              new THREE.MeshLambertMaterial({color: 0xffffff})
-            );
-
-            const ceiling = App.colliderSystem.getCeilingPlane(new THREE.Vector3(x, 0, z));
-
-            if (ceiling != null && ceiling.y != 0) {
-              test.position.x = x;
-              test.position.y = ceiling.y;
-              test.position.z = z;
-              App.scene.add(test);
-            }
-          }
-        }
       });
     });
 

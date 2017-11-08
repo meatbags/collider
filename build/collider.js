@@ -94,13 +94,14 @@ var Config = {
       floor: -1,
       snapUp: 1,
       snapDown: 0.5,
-      minSlope: Math.PI / 5
+      minSlope: Math.PI / 5,
+      noclip: true
     },
     player: {
       height: 2,
       position: {
         x: 0,
-        y: 2,
+        y: 0,
         z: 0
       },
       rotation: {
@@ -113,8 +114,9 @@ var Config = {
       speed: {
         normal: 8,
         slowed: 4,
+        noclip: 20,
         rotation: Math.PI * 0.75,
-        jump: 12,
+        jump: 10,
         fallTimerThreshold: 0.2
       }
     },
@@ -264,50 +266,10 @@ exports.normalise2 = normalise2;
 
 /***/ }),
 /* 2 */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
 "use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-var Logger = function Logger() {
-  this.cvs = document.createElement('canvas');
-  this.ctx = this.cvs.getContext('2d');
-  this.init();
-};
-
-Logger.prototype = {
-  init: function init() {
-    document.body.append(this.cvs);
-    this.setStyle();
-  },
-
-  setStyle: function setStyle() {
-    this.cvs.style.position = 'fixed';
-    this.cvs.width = window.innerWidth;
-    this.cvs.style.pointerEvents = 'none';
-    this.cvs.height = 400;
-    this.cvs.style.zIndex = 10;
-    this.cvs.style.top = 0;
-    this.cvs.style.left = 0;
-  },
-
-  clear: function clear() {
-    this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
-  },
-
-  print: function print() {
-    this.clear();
-
-    for (var i = 0; i < arguments.length; i += 1) {
-      this.ctx.fillText(arguments[i], 20, 20 + i * 20);
-    }
-  }
-};
-
-exports.default = Logger;
+throw new Error("Module build failed: SyntaxError: E:/Programs/XAMPP/htdocs/github_repos/collider/collider/src/js/modules/Logger.js: Unexpected token, expected , (35:2)\n\n\u001b[0m \u001b[90m 33 | \u001b[39m  }\n \u001b[90m 34 | \u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 35 | \u001b[39m  print\u001b[33m:\u001b[39m \u001b[36mfunction\u001b[39m() {\n \u001b[90m    | \u001b[39m  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 36 | \u001b[39m    \u001b[36mthis\u001b[39m\u001b[33m.\u001b[39mclear()\u001b[33m;\u001b[39m\n \u001b[90m 37 | \u001b[39m\n \u001b[90m 38 | \u001b[39m    \u001b[36mfor\u001b[39m (let i\u001b[33m=\u001b[39m\u001b[35m0\u001b[39m\u001b[33m;\u001b[39m i\u001b[33m<\u001b[39m\u001b[33marguments\u001b[39m\u001b[33m.\u001b[39mlength\u001b[33m;\u001b[39m i\u001b[33m+=\u001b[39m\u001b[35m1\u001b[39m) {\u001b[0m\n");
 
 /***/ }),
 /* 3 */
@@ -1174,10 +1136,11 @@ Player.prototype = {
 
     // up/ down keys
     if (this.keys.up || this.keys.down) {
+      var speed = this.config.physics.noclip ? this.config.speed.noclip : this.config.speed.normal;
       var _dir = (this.keys.up ? 1 : 0) + (this.keys.down ? -1 : 0);
       var yaw = this.rotation.yaw + this.offset.rotation.yaw;
-      var dx = Math.sin(yaw) * this.config.speed.normal * _dir;
-      var dz = Math.cos(yaw) * this.config.speed.normal * _dir;
+      var dx = Math.sin(yaw) * speed * _dir;
+      var dz = Math.cos(yaw) * speed * _dir;
       this.target.motion.x = dx;
       this.target.motion.z = dz;
     } else {
@@ -1198,6 +1161,26 @@ Player.prototype = {
     // falling
     this.falling = this.motion.y != 0;
     this.fallTimer = this.falling ? this.fallTimer + delta : 0;
+
+    // noclip
+    if (this.keys.x) {
+      this.keys.x = false;
+      this.config.physics.noclip = this.config.physics.noclip == false;
+    }
+
+    if (this.config.physics.noclip) {
+      this.falling = false;
+
+      if (this.keys.up || this.keys.down) {
+        var _dir2 = (this.keys.up ? 1 : 0) + (this.keys.down ? -1 : 0);
+        var pitch = this.target.rotation.pitch;
+        this.target.motion.y = Math.sin(pitch) * this.config.speed.noclip * _dir2;
+      } else {
+        this.target.motion.y = 0;
+      }
+
+      this.motion.y = this.target.motion.y;
+    }
 
     // reduce motion if falling
     if (!this.falling) {
@@ -1263,6 +1246,8 @@ Player.prototype = {
       case 32:
         this.keys.jump = true;
         break;
+      case 88:
+        this.keys.x = true;
       default:
         break;
     }
@@ -1347,7 +1332,8 @@ Player.prototype = {
       down: false,
       left: false,
       right: false,
-      jump: false
+      jump: false,
+      x: false
     };
     self.mouse = {
       x: 0,
@@ -1427,6 +1413,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var Interaction = function Interaction(position, motion) {
   this.position = position;
   this.motion = motion;
+  this.falling = false;
   this.config = {};
   this.config.physics = _Config2.default.sandbox.physics;
   this.logger = new _Logger2.default();
@@ -1434,6 +1421,7 @@ var Interaction = function Interaction(position, motion) {
 
 Interaction.prototype = {
   applyPhysics: function applyPhysics(delta) {
+    this.falling = this.motion.y < 0;
     this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
   },
 
@@ -1445,35 +1433,38 @@ Interaction.prototype = {
   },
 
   computeNextPosition: function computeNextPosition(delta, system) {
+    // move
     var position = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
-    var meshes = system.getCollisionMeshes(position);
 
-    // apply gravity
-    this.applyPhysics(delta);
+    // collision system
+    if (!this.config.physics.noclip) {
+      var meshes = system.getCollisionMeshes(position);
 
-    if (meshes.length > 0) {
-      // check for slopes
-      if (this.stepUpSlopes(position, meshes)) {
-        meshes = system.getCollisionMeshes(position);
-      }
+      // apply gravity
+      this.applyPhysics(delta);
 
-      // check for walls
-      if (this.testObstructions(position, meshes, system)) {
+      if (meshes.length > 0) {
         // check for slopes
-        meshes = system.getCollisionMeshes(position);
-        this.stepUpSlopes(position, meshes);
+        if (this.stepUpSlopes(position, meshes)) {
+          meshes = system.getCollisionMeshes(position);
+        }
+
+        // check for walls
+        if (this.testObstructions(position, meshes, system)) {
+          // check for slopes
+          meshes = system.getCollisionMeshes(position);
+          this.stepUpSlopes(position, meshes);
+        }
+      } else if (this.motion.y < 0 && !this.falling) {
+        // check under position
+        var under = Maths.copyVector(position);
+        under.y -= this.config.physics.snapDown;
+        var mesh = system.getCeilingPlane(under);
+
+        // check for slopes
+        this.stepDownSlope(position, mesh);
       }
-    } else if (this.motion.y < 0) {
-      // check under position
-      var under = Maths.copyVector(position);
-      under.y -= this.config.physics.snapDown;
-      var mesh = system.getCeilingPlane(under);
-
-      // check for slopes
-      this.stepDownSlope(position, mesh);
     }
-
-    this.logger.print(this.motion.y, meshes.length);
 
     // move
     this.position.x = position.x;
@@ -1485,6 +1476,9 @@ Interaction.prototype = {
       this.motion.y = 0;
       this.position.y = this.config.physics.floor;
     }
+
+    // dev
+    this.logger.print('M ' + this.logger.formatVector(this.motion), 'P ' + this.logger.formatVector(this.position));
   },
 
   testObstructions: function testObstructions(position, meshes, system) {
