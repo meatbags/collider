@@ -4,9 +4,12 @@
 
 const App = {
   init: function() {
+    const width = 1080;
+    const height = 540;
+
     // set up
     App.renderer = new THREE.WebGLRenderer();
-    App.renderer.setSize(1080, 540);
+    App.renderer.setSize(width, height);
     App.renderer.setClearColor(0xf9e5e2, 1);
     document.getElementById('wrapper').appendChild(App.renderer.domElement);
 
@@ -18,17 +21,25 @@ const App = {
     App.loadModels();
     App.loadLighting();
 
+    // postprocessing
+    App.renderScene = new THREE.RenderPass(App.scene, App.player.camera);
+    App.bloomPass = new THREE.UnrealBloomPass(
+      new THREE.Vector2(width, height), 0.75, 0.1, .9 // resolution, strength, radius, threshold
+    );
+		App.bloomPass.renderToScreen = true;
+    App.effectsComposer = new THREE.EffectComposer(App.renderer);
+    App.effectsComposer.setSize(width, height);
+		App.effectsComposer.addPass(App.renderScene)
+		App.effectsComposer.addPass(App.bloomPass);
+
+    // gamma ?
+    App.renderer.gammaInput = true;
+		App.renderer.gammaOutput = true;
+
     // run
     App.time = (new Date()).getTime();
     App.age = 0;
     App.loop();
-  },
-
-  reduce: function(x) {
-    return Math.floor(x * 10) / 10;
-  },
-
-  dev: function() {
   },
 
   loadModels: function() {
@@ -121,7 +132,8 @@ const App = {
   },
 
   render: function() {
-    App.renderer.render(App.scene, App.player.camera);
+    App.effectsComposer.render();
+    //App.renderer.render(App.scene, App.player.camera);
   },
 
   loop: function() {
@@ -133,7 +145,6 @@ const App = {
     App.time = now;
 
     if (App.ready) {
-      App.dev();
       App.update(delta);
       App.render();
     }

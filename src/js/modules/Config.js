@@ -19,7 +19,7 @@ const Config = {
       snapUp: 1,
       snapDown: 0.5,
       minSlope: Math.PI / 5,
-      noclip: true,
+      noclip: false,
     },
     player: {
       height: 2,
