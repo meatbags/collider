@@ -18,7 +18,11 @@ System.prototype = {
       const mesh = arguments[i];
 
       if (mesh.isColliderMesh) {
-        this.quadrants.add(mesh);
+        if (mesh.planes.length <= Config.system.maxPlanesPerMesh) {
+          this.quadrants.add(mesh);
+        } else {
+          console.warn('Warning: Mesh not included - plane count exceeds maximum (%s).', Config.system.maxPlanesPerMesh);
+        }
       } else {
         throw('Error: Input must be Collider.Mesh');
       }

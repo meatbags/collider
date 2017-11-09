@@ -19,14 +19,12 @@ Loader.prototype = {
       this.basePath + 'envmap/posz.jpg',
       this.basePath + 'envmap/negz.jpg',
     ]);
-		this.envTextureCube.format = THREE.RGBFormat;
-		this.envTextureCube.mapping = THREE.CubeReflectionMapping;
+		//this.envTextureCube.format = THREE.RGBFormat;
+		//this.envTextureCube.mapping = THREE.CubeReflectionMapping;
   },
 
   loadFBX: function(filename) {
     const self = this;
-
-    console.log(filename);
 
     return new Promise(
       function(resolve, reject) {
@@ -47,13 +45,14 @@ Loader.prototype = {
               }
             }
 
-            // set env map
+            // set defualts (env map, normal scale etc)
             for (let i=0; i<meshes.length; i+=1) {
               const mat = meshes[i].material;
 
               mat.envMap = self.envTextureCube;
-              mat.envMapIntensity = mat.metalness;
+              mat.envMapIntensity = 0.25;//mat.metalness;
               mat.bumpScale = 0.01;
+              mat.normalScale = new THREE.Vector2(0.1, 0.1);
             }
 
             resolve(meshes);

@@ -947,7 +947,11 @@ System.prototype = {
       var mesh = arguments[i];
 
       if (mesh.isColliderMesh) {
-        this.quadrants.add(mesh);
+        if (mesh.planes.length <= _Config2.default.system.maxPlanesPerMesh) {
+          this.quadrants.add(mesh);
+        } else {
+          console.warn('Warning: Mesh not included - plane count exceeds maximum (%s).', _Config2.default.system.maxPlanesPerMesh);
+        }
       } else {
         throw 'Error: Input must be Collider.Mesh';
       }
@@ -1657,14 +1661,12 @@ Loader.prototype = {
 
     // default envmap
     this.envTextureCube = new THREE.CubeTextureLoader().load([this.basePath + 'envmap/posx.jpg', this.basePath + 'envmap/negx.jpg', this.basePath + 'envmap/posy.jpg', this.basePath + 'envmap/negy.jpg', this.basePath + 'envmap/posz.jpg', this.basePath + 'envmap/negz.jpg']);
-    this.envTextureCube.format = THREE.RGBFormat;
-    this.envTextureCube.mapping = THREE.CubeReflectionMapping;
+    //this.envTextureCube.format = THREE.RGBFormat;
+    //this.envTextureCube.mapping = THREE.CubeReflectionMapping;
   },
 
   loadFBX: function loadFBX(filename) {
     var self = this;
-
-    console.log(filename);
 
     return new Promise(function (resolve, reject) {
       try {
@@ -1684,13 +1686,14 @@ Loader.prototype = {
             }
           }
 
-          // set env map
+          // set defualts (env map, normal scale etc)
           for (var _i = 0; _i < meshes.length; _i += 1) {
             var mat = meshes[_i].material;
 
             mat.envMap = self.envTextureCube;
-            mat.envMapIntensity = mat.metalness;
+            mat.envMapIntensity = 0.25; //mat.metalness;
             mat.bumpScale = 0.01;
+            mat.normalScale = new THREE.Vector2(0.1, 0.1);
           }
 
           resolve(meshes);
