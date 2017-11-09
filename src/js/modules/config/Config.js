@@ -1,5 +1,7 @@
 const Config = {
-  system: {},
+  system: {
+    maxPlanesPerMesh: 100,
+  },
   quadrants: {
     size: {
       x: 100,

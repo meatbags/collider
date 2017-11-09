@@ -75,7 +75,9 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 var Config = {
-  system: {},
+  system: {
+    maxPlanesPerMesh: 100
+  },
   quadrants: {
     size: {
       x: 100,

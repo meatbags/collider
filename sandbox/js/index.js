@@ -49,7 +49,6 @@ const App = {
 
     App.loader = new Collider.Loader('./assets/');
     App.loader.loadFBX('model.fbx').then(function(meshes){
-
       for (let i=0; i<meshes.length; i+=1) {
         App.scene.add(meshes[i]);
         App.colliderSystem.add(new Collider.Mesh(meshes[i]));

@@ -3,11 +3,11 @@
 
 # Collider
 
-Collider provides precise collisions for three.js bufferGeometry, using normal data and face culling to find collision solutions for complex geometries. Collider is useful for quick integration of 3D collision maps (for example a set of blocks and prisms created in Blender).
+Collider is a physics system built on top of three.js. The project currently has no objective, but each time I apply it to a new task, it grows in utility and complexity. Some day it may evolve into a full-featured browser game engine.
 
-Processing of high-poly models is possible, but computationally expensive. For the best real-time results, minimise poly count and break up geometry into separate objects. Collider.System provides search optimisation for large mesh sets.
+Collider provides precise collisions for three.js bufferGeometry, using normal data and face culling to find collision solutions for complex geometries. Collider is useful for quick integration of 3D collision maps (for example a set of blocks and prisms created in Blender). Processing of high-poly models is possible, but computationally expensive. For the best real-time results, minimise poly count and break up geometry into separate objects. Collider.System provides search optimisation for large mesh sets.
 
-Now supports dynamic translation! Full transform (rotation, scaling) coming soon.
+Collider now supports dynamic translation. Rotation and scaling are coming soon.
 
 # Example
 
