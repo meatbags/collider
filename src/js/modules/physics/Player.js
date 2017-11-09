@@ -42,7 +42,7 @@ const Player = function(domElement) {
   this.camera = new THREE.PerspectiveCamera(Config.sandbox.camera.fov, Config.sandbox.camera.aspect, Config.sandbox.camera.near, Config.sandbox.camera.far);
   this.camera.up = new THREE.Vector3(0, 1, 0);
   this.object = new THREE.Group();
-  this.interaction = new Interaction(this.target.position, this.motion);
+  this.interaction = new Interaction(this.target.position, this.target.rotation, this.motion);
 	this.init();
 };
 

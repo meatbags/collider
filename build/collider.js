@@ -1162,7 +1162,7 @@ var Player = function Player(domElement) {
   this.camera = new THREE.PerspectiveCamera(_Config2.default.sandbox.camera.fov, _Config2.default.sandbox.camera.aspect, _Config2.default.sandbox.camera.near, _Config2.default.sandbox.camera.far);
   this.camera.up = new THREE.Vector3(0, 1, 0);
   this.object = new THREE.Group();
-  this.interaction = new _Interaction2.default(this.target.position, this.motion);
+  this.interaction = new _Interaction2.default(this.target.position, this.target.rotation, this.motion);
   this.init();
 };
 
@@ -1466,8 +1466,9 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var Interaction = function Interaction(position, motion) {
+var Interaction = function Interaction(position, rotation, motion) {
   this.position = position;
+  this.rotation = rotation;
   this.motion = motion;
   this.falling = false;
   this.config = {};
@@ -1534,7 +1535,7 @@ Interaction.prototype = {
     }
 
     // dev
-    this.logger.print('M ' + this.logger.formatVector(this.motion), 'P ' + this.logger.formatVector(this.position));
+    this.logger.print('M ' + this.logger.formatVector(this.motion), 'P ' + this.logger.formatVector(this.position), 'V ' + this.logger.formatVector({ x: this.rotation.pitch, y: this.rotation.yaw, z: this.rotation.roll }));
   },
 
   testObstructions: function testObstructions(position, meshes, system) {
@@ -1667,8 +1668,6 @@ Loader.prototype = {
       try {
         self.FBXLoader.load(self.basePath + filename, function (object) {
           var meshes = [];
-
-          console.log(object);
 
           // get meshes (ignore lights, etc)
           for (var i = 0; i < object.children.length; i += 1) {

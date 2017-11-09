@@ -4,8 +4,9 @@ import Config from '../config/Config';
 import * as Maths from './Maths';
 import Logger from './Logger';
 
-const Interaction = function(position, motion) {
+const Interaction = function(position, rotation, motion) {
   this.position = position;
+  this.rotation = rotation;
   this.motion = motion;
   this.falling = false;
   this.config = {};
@@ -74,7 +75,8 @@ Interaction.prototype = {
     // dev
     this.logger.print(
       'M ' + this.logger.formatVector(this.motion),
-      'P ' + this.logger.formatVector(this.position)
+      'P ' + this.logger.formatVector(this.position),
+      'V ' + this.logger.formatVector({x: this.rotation.pitch, y: this.rotation.yaw, z: this.rotation.roll})
     );
   },
 

@@ -34,8 +34,6 @@ Loader.prototype = {
           self.FBXLoader.load(self.basePath + filename, function(object) {
             const meshes = [];
 
-            console.log(object);
-
             // get meshes (ignore lights, etc)
             for (let i=0; i<object.children.length; i+=1) {
               if (object.children[i].type == 'Mesh') {
