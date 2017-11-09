@@ -1,4 +1,4 @@
-import Config from './Config';
+import Config from '../config/Config';
 import Plane from './Plane';
 import Transformer from './Transformer';
 import { subtractVector, dotProduct, normalise, distanceBetween } from './Maths';
@@ -71,7 +71,7 @@ Mesh.prototype = {
       for (let i=0; i<this.planes.length; i+=1) {
         this.planes[i].culled = false;
       }
-      
+
       // first pass - cull faces
       for (let i=0; i<this.planes.length; i+=1) {
         if (!this.planes[i].culled && this.planes[i].isPointBelowOrEqual(this.transform.point)) {

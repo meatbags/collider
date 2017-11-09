@@ -1,5 +1,5 @@
 import * as Maths from './Maths';
-import Config from './Config';
+import Config from '../config/Config';
 
 const Plane = function(p1, p2, p3, n1, n2, n3) {
   this.p1 = p1;

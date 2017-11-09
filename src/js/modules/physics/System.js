@@ -2,7 +2,7 @@
 // meshes are divided into quadrants for efficiency
 // recent collisions are cached
 
-import Config from './Config';
+import Config from '../config/Config';
 import Quadrants from './Quadrants';
 
 const System = function () {
@@ -65,7 +65,7 @@ System.prototype = {
     for (let i=0; i<meshes.length; i+=1) {
       if (meshes[i].getCollision(point)) {
         let result = meshes[i].getCeilingPlane(point);
-        
+
         if (result != null) {
           if (ceiling === null || result.y > ceiling.y) {
             ceiling = {

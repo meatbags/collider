@@ -1,6 +1,6 @@
 import * as Maths from './Maths';
 import Interaction from './Interaction';
-import Config from './Config';
+import Config from '../config/Config';
 
 const Player = function(domElement) {
   this.domElement = domElement;

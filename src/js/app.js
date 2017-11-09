@@ -2,9 +2,13 @@
  * @author meatbags / https://github.com/meatbags
 */
 
-import Mesh from './modules/Mesh';
-import System from './modules/System';
-import Player from './modules/Player';
-import Logger from './modules/Logger';
+// physics
+import Mesh from './modules/physics/Mesh';
+import System from './modules/physics/System';
+import Player from './modules/physics/Player';
+import Logger from './modules/physics/Logger';
 
-export { Mesh, System, Player, Logger };
+// graphics
+import Loader from './modules/graphics/Loader';
+
+export { Mesh, System, Player, Logger, Loader };

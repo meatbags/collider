@@ -1,6 +1,6 @@
 // interaction object for building physical systems
 
-import Config from './Config';
+import Config from '../config/Config';
 import * as Maths from './Maths';
 import Logger from './Logger';
 

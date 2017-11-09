@@ -1,6 +1,6 @@
 // quadrant system for indexing large polygon groups
 
-import Config from './Config';
+import Config from '../config/Config';
 
 const Quadrants = function() {
   this.q = [];
