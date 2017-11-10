@@ -95,6 +95,16 @@ const scaleVector = function(v, scale) {
   return vec;
 };
 
+const scaleByVector = function(v, scale) {
+  const vec = new THREE.Vector3(
+    v.x * scale.x,
+    v.y * scale.y,
+    v.z * scale.z
+  );
+
+  return vec;
+}
+
 const isVectorEqual = function(a, b) {
   return (a.x === b.x && a.y === b.y & a.z === b.z);
 }
@@ -123,4 +133,4 @@ const dotProduct2 = function(a, b) {
   return a.x * b.x + a.y * b.y;
 };
 
-export { copyVector, isVectorEqual, pitchBetween, twoPi, distanceBetween, distanceBetween2D, minAngleDifference, dotProduct, dotProduct2, addVector, subtractVector, scaleVector, crossProduct, reverseVector, normalise, normalise2 };
+export { copyVector, isVectorEqual, pitchBetween, scaleByVector, twoPi, distanceBetween, distanceBetween2D, minAngleDifference, dotProduct, dotProduct2, addVector, subtractVector, scaleVector, crossProduct, reverseVector, normalise, normalise2 };

@@ -14,6 +14,7 @@ const Mesh = function(object) {
     this.planes = [];
     this.transform = new Transformer(object);
     this.generatePlanes();
+    this.conformPlanes();
   } else {
     throw('Error: Input is not THREE.BufferGeometry');
   }
@@ -61,6 +62,50 @@ Mesh.prototype = {
         );
       }
     }
+  },
+
+  conformPlanes: function() {
+    let conformed = false;
+
+    // conform scale
+    if (!this.transform.default.scale) {
+      for (let i=0; i<this.planes.length; i+=1) {
+        this.transform.bakeScale(this.planes[i]);
+      }
+      conformed = true;
+    }
+
+    // conform rotation
+    if (!this.transform.default.rotation) {
+      for (let i=0; i<this.planes.length; i+=1) {
+        this.transform.bakeRotation(this.planes[i]);
+      }
+      conformed = true;
+    }
+
+    if (conformed) {
+      // get new plane data
+      for (let i=0; i<this.planes.length; i+=1) {
+        this.planes[i].generatePlane();
+      }
+
+      // set new collision box
+      this.setBoxFromPlanes();
+    }
+  },
+
+  setBoxFromPlanes: function() {
+    const array = [];
+
+    for (let i=0; i<this.planes.length; i+=1) {
+      const p = this.planes[i];
+
+      array.push(p.p1);
+      array.push(p.p2);
+      array.push(p.p3);
+    }
+
+    this.box.setFromPoints(array);
   },
 
   getCollision: function(point) {

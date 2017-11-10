@@ -58,7 +58,6 @@ Plane.prototype = {
 
     // create bounding box
     this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
-    this.boxExpanded = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]).expandByScalar(Config.plane.surfaceCollisionThreshold);
   },
 
   isPointAbove: function(point) {
@@ -151,10 +150,6 @@ Plane.prototype = {
     }
 
     return false;
-  },
-
-  containsPointThreshold: function(point) {
-    return this.boxExpanded.containsPoint(point);
   },
 
   distanceToPlane: function(point) {

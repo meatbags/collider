@@ -225,6 +225,12 @@ var scaleVector = function scaleVector(v, scale) {
   return vec;
 };
 
+var scaleByVector = function scaleByVector(v, scale) {
+  var vec = new THREE.Vector3(v.x * scale.x, v.y * scale.y, v.z * scale.z);
+
+  return vec;
+};
+
 var isVectorEqual = function isVectorEqual(a, b) {
   return a.x === b.x && a.y === b.y & a.z === b.z;
 };
@@ -252,6 +258,7 @@ var dotProduct2 = function dotProduct2(a, b) {
 exports.copyVector = copyVector;
 exports.isVectorEqual = isVectorEqual;
 exports.pitchBetween = pitchBetween;
+exports.scaleByVector = scaleByVector;
 exports.twoPi = twoPi;
 exports.distanceBetween = distanceBetween;
 exports.distanceBetween2D = distanceBetween2D;
@@ -406,6 +413,7 @@ var Mesh = function Mesh(object) {
     this.planes = [];
     this.transform = new _Transformer2.default(object);
     this.generatePlanes();
+    this.conformPlanes();
   } else {
     throw 'Error: Input is not THREE.BufferGeometry';
   }
@@ -440,6 +448,50 @@ Mesh.prototype = {
     }
   },
 
+  conformPlanes: function conformPlanes() {
+    var conformed = false;
+
+    // conform scale
+    if (!this.transform.default.scale) {
+      for (var i = 0; i < this.planes.length; i += 1) {
+        this.transform.bakeScale(this.planes[i]);
+      }
+      conformed = true;
+    }
+
+    // conform rotation
+    if (!this.transform.default.rotation) {
+      for (var _i2 = 0; _i2 < this.planes.length; _i2 += 1) {
+        this.transform.bakeRotation(this.planes[_i2]);
+      }
+      conformed = true;
+    }
+
+    if (conformed) {
+      // get new plane data
+      for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
+        this.planes[_i3].generatePlane();
+      }
+
+      // set new collision box
+      this.setBoxFromPlanes();
+    }
+  },
+
+  setBoxFromPlanes: function setBoxFromPlanes() {
+    var array = [];
+
+    for (var i = 0; i < this.planes.length; i += 1) {
+      var p = this.planes[i];
+
+      array.push(p.p1);
+      array.push(p.p2);
+      array.push(p.p3);
+    }
+
+    this.box.setFromPoints(array);
+  },
+
   getCollision: function getCollision(point) {
     this.transform.set(point);
 
@@ -450,11 +502,11 @@ Mesh.prototype = {
       }
 
       // first pass - cull faces
-      for (var _i2 = 0; _i2 < this.planes.length; _i2 += 1) {
-        if (!this.planes[_i2].culled && this.planes[_i2].isPointBelowOrEqual(this.transform.point)) {
+      for (var _i4 = 0; _i4 < this.planes.length; _i4 += 1) {
+        if (!this.planes[_i4].culled && this.planes[_i4].isPointBelowOrEqual(this.transform.point)) {
           // cull planes above plane
           for (var j = 0; j < this.planes.length; j += 1) {
-            if (!this.planes[j].culled && j != _i2 && this.planes[_i2].isPlaneAbove(this.planes[j])) {
+            if (!this.planes[j].culled && j != _i4 && this.planes[_i4].isPlaneAbove(this.planes[j])) {
               this.planes[j].culled = true;
             }
           }
@@ -462,8 +514,8 @@ Mesh.prototype = {
       }
 
       // second pass - get result
-      for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
-        if (!this.planes[_i3].culled && !this.planes[_i3].isPointBelowOrEqual(this.transform.point)) {
+      for (var _i5 = 0; _i5 < this.planes.length; _i5 += 1) {
+        if (!this.planes[_i5].culled && !this.planes[_i5].isPointBelowOrEqual(this.transform.point)) {
           return false;
         }
       }
@@ -681,7 +733,6 @@ Plane.prototype = {
 
     // create bounding box
     this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
-    this.boxExpanded = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]).expandByScalar(_Config2.default.plane.surfaceCollisionThreshold);
   },
 
   isPointAbove: function isPointAbove(point) {
@@ -761,10 +812,6 @@ Plane.prototype = {
     }
 
     return false;
-  },
-
-  containsPointThreshold: function containsPointThreshold(point) {
-    return this.boxExpanded.containsPoint(point);
   },
 
   distanceToPlane: function distanceToPlane(point) {
@@ -865,11 +912,26 @@ exports.default = Plane;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
+var _Maths = __webpack_require__(1);
+
+var Maths = _interopRequireWildcard(_Maths);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
 var Transformer = function Transformer(object) {
   this.point = new THREE.Vector3();
   this.position = object.position;
   this.rotation = object.rotation;
   this.scale = object.scale;
+  this.rotationOrder = object.rotation.order.split('');
+  console.log(this.rotationOrder);
+  this.axis = {
+    x: new THREE.Vector3(1, 0, 0),
+    y: new THREE.Vector3(0, 1, 0),
+    z: new THREE.Vector3(0, 0, 1)
+  };
+  this.checkDefault();
 };
 
 Transformer.prototype = {
@@ -904,6 +966,48 @@ Transformer.prototype = {
     };
 
     return transformed;
+  },
+
+  bakeRotation: function bakeRotation(plane) {
+    for (var i = this.rotationOrder.length - 1; i > -1; i -= 1) {
+      if (this.rotationOrder[i] == 'X') {
+        plane.p1.applyAxisAngle(this.axis.x, this.rotation.x);
+        plane.p2.applyAxisAngle(this.axis.x, this.rotation.x);
+        plane.p3.applyAxisAngle(this.axis.x, this.rotation.x);
+        plane.n1.applyAxisAngle(this.axis.x, this.rotation.x);
+        plane.n2.applyAxisAngle(this.axis.x, this.rotation.x);
+        plane.n3.applyAxisAngle(this.axis.x, this.rotation.x);
+      } else if (this.rotationOrder[i] == 'Y') {
+        plane.p1.applyAxisAngle(this.axis.y, this.rotation.y);
+        plane.p2.applyAxisAngle(this.axis.y, this.rotation.y);
+        plane.p3.applyAxisAngle(this.axis.y, this.rotation.y);
+        plane.n1.applyAxisAngle(this.axis.y, this.rotation.y);
+        plane.n2.applyAxisAngle(this.axis.y, this.rotation.y);
+        plane.n3.applyAxisAngle(this.axis.y, this.rotation.y);
+      } else if (this.rotationOrder[i] == 'Z') {
+        plane.p1.applyAxisAngle(this.axis.z, this.rotation.z);
+        plane.p2.applyAxisAngle(this.axis.z, this.rotation.z);
+        plane.p3.applyAxisAngle(this.axis.z, this.rotation.z);
+        plane.n1.applyAxisAngle(this.axis.z, this.rotation.z);
+        plane.n2.applyAxisAngle(this.axis.z, this.rotation.z);
+        plane.n3.applyAxisAngle(this.axis.z, this.rotation.z);
+      }
+    }
+  },
+
+  bakeScale: function bakeScale(plane) {
+    plane.p1 = Maths.scaleByVector(plane.p1, this.scale);
+    plane.p2 = Maths.scaleByVector(plane.p2, this.scale);
+    plane.p3 = Maths.scaleByVector(plane.p3, this.scale);
+  },
+
+  checkDefault: function checkDefault() {
+    // check if transforms are set to default
+    this.default = {
+      position: this.position.x == 0 && this.position.y == 0 && this.position.z == 0,
+      rotation: this.rotation.x == 0 && this.rotation.y == 0 && this.rotation.z == 0,
+      scale: this.scale.x == 1 && this.scale.y == 1 && this.scale.z == 1
+    };
   }
 };
 
@@ -1167,14 +1271,22 @@ var Player = function Player(domElement) {
   this.fallTimer = 0;
   this.camera = new THREE.PerspectiveCamera(_Config2.default.sandbox.camera.fov, _Config2.default.sandbox.camera.aspect, _Config2.default.sandbox.camera.near, _Config2.default.sandbox.camera.far);
   this.camera.up = new THREE.Vector3(0, 1, 0);
-  this.object = new THREE.Group();
   this.interaction = new _Interaction2.default(this.target.position, this.target.rotation, this.motion);
   this.init();
 };
 
 Player.prototype = {
   init: function init() {
+    // world
+    this.object = new THREE.Group();
+    this.objectLight = new THREE.PointLight(0xffffff, 0.25, 100, 2);
+    this.objectLight.position.y = this.config.height / 2;
+    this.object.add(this.objectLight);
+
+    // controls
     this.bindControls();
+
+    // camera
     this.resizeCamera();
   },
 
@@ -1278,7 +1390,7 @@ Player.prototype = {
     this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
 
     // set position
-    this.camera.position.set(this.position.x, height, this.position.z);
+    this.camera.position.set(this.position.x - Math.sin(yaw) * 0.25, height - Math.sin(pitch) * 0.25, this.position.z - Math.cos(yaw) * 0.25);
 
     // look
     this.camera.lookAt(new THREE.Vector3(this.position.x + Math.sin(yaw), height + Math.sin(pitch), this.position.z + Math.cos(yaw)));

@@ -20,27 +20,30 @@ const App = {
     App.colliderSystem = new Collider.System();
     App.loadModels();
     App.loadLighting();
+    App.initPostProcessing(width, height);
 
-    // postprocessing
+    // run
+    App.time = (new Date()).getTime();
+    App.age = 0;
+    App.loop();
+  },
+
+  initPostProcessing: function(width, height) {
+    //onlyAO: false, radius: 32, aoClamp: 0.25, lumInfluence: 0.7
     App.renderScene = new THREE.RenderPass(App.scene, App.player.camera);
     App.FXAAPass = new THREE.ShaderPass(THREE.FXAAShader);
 		App.FXAAPass.uniforms['resolution'].value.set(1 / width, 1 / height);
     App.bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(width, height), 0.5, 0.2, .9); // resolution, strength, radius, threshold
     App.bloomPass.renderToScreen = true;
+
     App.effectsComposer = new THREE.EffectComposer(App.renderer);
     App.effectsComposer.setSize(width, height);
 		App.effectsComposer.addPass(App.renderScene);
     App.effectsComposer.addPass(App.FXAAPass);
     App.effectsComposer.addPass(App.bloomPass);
 
-    // gamma
     App.renderer.gammaInput = true;
 		App.renderer.gammaOutput = true;
-
-    // run
-    App.time = (new Date()).getTime();
-    App.age = 0;
-    App.loop();
   },
 
   loadModels: function() {
@@ -58,14 +61,11 @@ const App = {
   loadLighting: function() {
     App.lights = {
       p1: new THREE.PointLight(0xffffff, 1, 100, 2),
-      a1: new THREE.AmbientLight(0xffffff, 0.01)
+      a1: new THREE.AmbientLight(0xffffff, 0.05)
     };
 
     App.lights.p1.position.set(0, 2, 0);
-    App.scene.add(
-      App.lights.p1,
-      App.lights.a1
-    );
+    App.scene.add(App.lights.a1);
   },
 
   update: function(delta) {
@@ -75,7 +75,6 @@ const App = {
 
   render: function() {
     App.effectsComposer.render();
-    //App.renderer.render(App.scene, App.player.camera);
   },
 
   loop: function() {

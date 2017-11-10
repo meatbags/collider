@@ -41,14 +41,22 @@ const Player = function(domElement) {
   this.fallTimer = 0;
   this.camera = new THREE.PerspectiveCamera(Config.sandbox.camera.fov, Config.sandbox.camera.aspect, Config.sandbox.camera.near, Config.sandbox.camera.far);
   this.camera.up = new THREE.Vector3(0, 1, 0);
-  this.object = new THREE.Group();
   this.interaction = new Interaction(this.target.position, this.target.rotation, this.motion);
 	this.init();
 };
 
 Player.prototype = {
 	init: function() {
+    // world
+    this.object = new THREE.Group();
+    this.objectLight = new THREE.PointLight(0xffffff, 0.25, 100, 2);
+    this.objectLight.position.y = this.config.height / 2;
+    this.object.add(this.objectLight);
+
+    // controls
 		this.bindControls();
+
+    // camera
     this.resizeCamera();
 	},
 
@@ -152,7 +160,11 @@ Player.prototype = {
     this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
 
     // set position
-    this.camera.position.set(this.position.x, height, this.position.z);
+    this.camera.position.set(
+      this.position.x - Math.sin(yaw) * 0.25,
+      height - Math.sin(pitch) * 0.25,
+      this.position.z - Math.cos(yaw) * 0.25
+    );
 
     // look
     this.camera.lookAt(new THREE.Vector3(
