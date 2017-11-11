@@ -35,10 +35,12 @@ const App = {
 		App.FXAAPass.uniforms['resolution'].value.set(1 / width, 1 / height);
     App.bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(width, height), 0.5, 0.2, .9); // resolution, strength, radius, threshold
     App.bloomPass.renderToScreen = true;
+    //App.depthPass = new THREE.DepthBufferPass(App.scene, App.player.camera, width, height);
 
     App.effectsComposer = new THREE.EffectComposer(App.renderer);
     App.effectsComposer.setSize(width, height);
 		App.effectsComposer.addPass(App.renderScene);
+    //App.effectsComposer.addPass(App.depthPass);
     App.effectsComposer.addPass(App.FXAAPass);
     App.effectsComposer.addPass(App.bloomPass);
 
@@ -64,8 +66,8 @@ const App = {
       a1: new THREE.AmbientLight(0xffffff, 0.05)
     };
 
-    App.lights.p1.position.set(0, 2, 0);
-    App.scene.add(App.lights.a1);
+    App.lights.p1.position.set(0, 3, 0);
+    App.scene.add(App.lights.a1, App.lights.p1);
   },
 
   update: function(delta) {

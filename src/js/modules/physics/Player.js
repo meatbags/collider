@@ -99,6 +99,9 @@ Player.prototype = {
       // jump if not falling
       if (this.motion.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
         this.motion.y = this.config.speed.jump;
+
+        // prevent double jump
+        this.fallTimer = this.config.speed.fallTimerThreshold;
       }
     }
 

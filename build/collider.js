@@ -925,7 +925,6 @@ var Transformer = function Transformer(object) {
   this.rotation = object.rotation;
   this.scale = object.scale;
   this.rotationOrder = object.rotation.order.split('');
-  console.log(this.rotationOrder);
   this.axis = {
     x: new THREE.Vector3(1, 0, 0),
     y: new THREE.Vector3(0, 1, 0),
@@ -1329,6 +1328,9 @@ Player.prototype = {
       // jump if not falling
       if (this.motion.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
         this.motion.y = this.config.speed.jump;
+
+        // prevent double jump
+        this.fallTimer = this.config.speed.fallTimerThreshold;
       }
     }
 
@@ -1772,7 +1774,13 @@ Loader.prototype = {
     this.FBXLoader = new THREE.FBXLoader();
 
     // default envmap
-    this.envTextureCube = new THREE.CubeTextureLoader().load([this.basePath + 'envmap/posx.jpg', this.basePath + 'envmap/negx.jpg', this.basePath + 'envmap/posy.jpg', this.basePath + 'envmap/negy.jpg', this.basePath + 'envmap/posz.jpg', this.basePath + 'envmap/negz.jpg']);
+    this.envTextureCube = new THREE.CubeTextureLoader().load([this.basePath + 'envmap/horizontal.jpg', // +x
+    this.basePath + 'envmap/horizontal.jpg', // -x
+    this.basePath + 'envmap/posy.jpg', // +y
+    this.basePath + 'envmap/negy.jpg', // -y
+    this.basePath + 'envmap/horizontal.jpg', // +z
+    this.basePath + 'envmap/horizontal.jpg'] // -z
+    );
     //this.envTextureCube.format = THREE.RGBFormat;
     //this.envTextureCube.mapping = THREE.CubeReflectionMapping;
   },

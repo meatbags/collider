@@ -12,12 +12,12 @@ Loader.prototype = {
 
     // default envmap
     this.envTextureCube = new THREE.CubeTextureLoader().load([
-      this.basePath + 'envmap/posx.jpg',
-      this.basePath + 'envmap/negx.jpg',
-      this.basePath + 'envmap/posy.jpg',
-      this.basePath + 'envmap/negy.jpg',
-      this.basePath + 'envmap/posz.jpg',
-      this.basePath + 'envmap/negz.jpg',
+      this.basePath + 'envmap/horizontal.jpg', // +x
+      this.basePath + 'envmap/horizontal.jpg', // -x
+      this.basePath + 'envmap/posy.jpg', // +y
+      this.basePath + 'envmap/negy.jpg', // -y
+      this.basePath + 'envmap/horizontal.jpg', // +z
+      this.basePath + 'envmap/horizontal.jpg', // -z
     ]);
 		//this.envTextureCube.format = THREE.RGBFormat;
 		//this.envTextureCube.mapping = THREE.CubeReflectionMapping;

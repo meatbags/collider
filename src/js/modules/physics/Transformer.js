@@ -6,7 +6,6 @@ const Transformer = function(object) {
   this.rotation = object.rotation;
   this.scale = object.scale;
   this.rotationOrder = object.rotation.order.split('');
-  console.log(this.rotationOrder);
   this.axis = {
     x: new THREE.Vector3(1, 0, 0),
     y: new THREE.Vector3(0, 1, 0),
