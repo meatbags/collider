@@ -34,8 +34,8 @@ const Config = {
         pitch: 0,
         yaw: Math.PI,
         roll: 0,
-        maxPitch: Math.PI * 0.4,
-        minPitch: Math.PI * -0.4
+        maxPitch: Math.PI * 0.3,
+        minPitch: Math.PI * -0.3
       },
       speed: {
         normal: 8,

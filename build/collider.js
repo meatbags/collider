@@ -110,8 +110,8 @@ var Config = {
         pitch: 0,
         yaw: Math.PI,
         roll: 0,
-        maxPitch: Math.PI * 0.4,
-        minPitch: Math.PI * -0.4
+        maxPitch: Math.PI * 0.3,
+        minPitch: Math.PI * -0.3
       },
       speed: {
         normal: 8,
@@ -1309,7 +1309,7 @@ Player.prototype = {
 
     // up/ down keys
     if (this.keys.up || this.keys.down) {
-      var speed = this.config.physics.noclip ? this.config.speed.noclip : this.config.speed.normal;
+      var speed = this.config.physics.noclip ? this.config.speed.noclip * (1 - Math.abs(Math.sin(this.target.rotation.pitch))) : this.config.speed.normal;
       var _dir = (this.keys.up ? 1 : 0) + (this.keys.down ? -1 : 0);
       var yaw = this.rotation.yaw + this.offset.rotation.yaw;
       var dx = Math.sin(yaw) * speed * _dir;
@@ -1371,7 +1371,7 @@ Player.prototype = {
   move: function move() {
     // move
     this.position.x += (this.target.position.x - this.position.x) * this.config.adjust.veryFast;
-    this.position.y += (this.target.position.y - this.position.y) * this.config.adjust.rapid;
+    this.position.y += (this.target.position.y - this.position.y) * this.config.adjust.veryFast;
     this.position.z += (this.target.position.z - this.position.z) * this.config.adjust.veryFast;
 
     // rotate
@@ -1386,16 +1386,18 @@ Player.prototype = {
     var pitch = this.rotation.pitch + this.offset.rotation.pitch;
     var yaw = this.rotation.yaw + this.offset.rotation.yaw;
     var height = this.position.y + this.config.height;
+    var offxz = 1 - Math.abs(Math.sin(pitch));
+    var offy = 1;
 
     // set camera roll
     this.camera.up.z = -Math.sin(this.rotation.yaw) * this.rotation.roll;
     this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
 
     // set position
-    this.camera.position.set(this.position.x - Math.sin(yaw) * 0.25, height - Math.sin(pitch) * 0.25, this.position.z - Math.cos(yaw) * 0.25);
+    this.camera.position.set(this.position.x - Math.sin(yaw) * offxz / 4, height - Math.sin(pitch) * offy / 4, this.position.z - Math.cos(yaw) * offxz / 4);
 
     // look
-    this.camera.lookAt(new THREE.Vector3(this.position.x + Math.sin(yaw), height + Math.sin(pitch), this.position.z + Math.cos(yaw)));
+    this.camera.lookAt(new THREE.Vector3(this.position.x + Math.sin(yaw) * offxz, height + Math.sin(pitch) * offy, this.position.z + Math.cos(yaw) * offxz));
 
     // set world object
     this.object.position.set(this.position.x, this.position.y, this.position.z);
