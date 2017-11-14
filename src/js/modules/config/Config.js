@@ -50,7 +50,7 @@ const Config = {
       fov: 60,
       aspect: 1,
       near: 0.1,
-      far: 10000,
+      far: 1000,
     },
     adjust: {
       verySlow: 0.01,
