@@ -8,9 +8,9 @@ const App = {
     const height = 540;
 
     // set up
-    App.renderer = new THREE.WebGLRenderer();
+    App.renderer = new THREE.WebGLRenderer({alpha: true});
     App.renderer.setSize(width, height);
-    App.renderer.setClearColor(0xf9e5e2, 1);
+    App.renderer.setClearColor(0x0, 1);
     document.getElementById('wrapper').appendChild(App.renderer.domElement);
 
     // scene
@@ -19,6 +19,8 @@ const App = {
     App.player.camera.near = 0.1;
     App.player.camera.far = 1000;
     App.player.camera.updateProjectionMatrix();
+    //App.player.config.physics.noclip = true;
+    App.player.target.position.z = App.player.position.z = 20;
     App.scene.add(App.player.object);
     App.colliderSystem = new Collider.System();
     App.loadModels();
@@ -31,28 +33,29 @@ const App = {
   },
 
   loadModels: function() {
-    App.material = new THREE.ShaderMaterial(THREE.DepthShader);
-    App.materialAlt = new THREE.ShaderMaterial(THREE.DepthShaderAlt);
-
+    // depth mat
     App.ready = true;
-    App.scene.add(new THREE.Mesh(
-      new THREE.BoxBufferGeometry(100, 1, 100),
-      App.material
-    ))
+    THREE.DepthShader.vertexShader = document.querySelector('#vertex-shader').textContent;
+    THREE.DepthShader.fragmentShader = document.querySelector('#fragment-shader').textContent;
+    App.material = new THREE.ShaderMaterial(THREE.DepthShader);
 
-    const min = -100;
-    const max = 100;
+    const floor = new THREE.Mesh(new THREE.BoxBufferGeometry(100, 2, 100), App.material);
+    floor.position.y = -1;
+    App.colliderSystem.add(new Collider.Mesh(floor));
+
+    const min = -50;
+    const max = 50;
     const range = max - min;
 
-    for (let i=0; i<300; i+=1) {
-      const h = Math.random() * 100 + 10;
-      const obj = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(6, h, 6),
-        (Math.random() > 0.5) ? App.material : App.materialAlt
-      );
-      obj.position.set(Math.random() * range - range / 2, h / 2, Math.random() * range - range / 2);
-      App.scene.add(obj);
-    }
+    App.loader = new Collider.Loader('../assets/');
+    App.loader.loadFBX('model_depth.fbx').then(function(meshes){
+      for (let i=0; i<meshes.length; i+=1) {
+        meshes[i].material = App.material;
+        App.scene.add(meshes[i]);
+        App.colliderSystem.add(new Collider.Mesh(meshes[i]));
+      }
+      App.ready = true;
+    }, function(err){ throw(err); });
   },
 
   loadLighting: function() {
@@ -83,8 +86,7 @@ const App = {
     App.age += delta;
 
     if (App.ready) {
-      App.material.uniforms.time.value = App.age;
-      App.materialAlt.uniforms.time.value = App.age;
+      App.material.uniforms.uTime.value = App.age;
       App.update(delta);
       App.render();
     }
