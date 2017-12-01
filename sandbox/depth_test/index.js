@@ -23,6 +23,7 @@ const App = {
     App.player.target.position.y = App.player.position.y = 0;
     App.player.target.position.z = App.player.position.z = 0;
     App.player.target.position.x = App.player.position.x = 0;
+    App.player.interaction.logger.disable();
     App.player.target.rotation.yaw = App.player.rotation.yaw = Math.random() * Math.PI * 2;
     App.scene.add(App.player.object);
     App.colliderSystem = new Collider.System();

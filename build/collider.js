@@ -286,6 +286,7 @@ Object.defineProperty(exports, "__esModule", {
 var Logger = function Logger() {
   this.cvs = document.createElement('canvas');
   this.ctx = this.cvs.getContext('2d');
+  this.disabled = false;
   this.init();
 };
 
@@ -317,11 +318,17 @@ Logger.prototype = {
     return this.format(vec.x) + ', ' + this.format(vec.y) + ', ' + this.format(vec.z);
   },
 
-  print: function print() {
-    this.clear();
+  disable: function disable() {
+    this.disabled = true;
+  },
 
-    for (var i = 0; i < arguments.length; i += 1) {
-      this.ctx.fillText(arguments[i], 20, 20 + i * 20);
+  print: function print() {
+    if (!this.disabled) {
+      this.clear();
+
+      for (var i = 0; i < arguments.length; i += 1) {
+        this.ctx.fillText(arguments[i], 20, 20 + i * 20);
+      }
     }
   }
 };
