@@ -34,8 +34,15 @@ class Ball {
       this.jumpTimer = 2 + Math.random() * 5;
     }
 
+    const prev = this.motion.y;
+
     // physics
     this.interaction.computeNextPosition(delta, system);
+
+    // bounce
+    if (prev != 0 && this.motion.y == 0) {
+      //this.motion.y = Math.abs(prev) * 0.5;
+    }
 
     // limit
     if (this.position.x > this.bound || this.position.x < -this.bound) {

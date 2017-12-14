@@ -1,5 +1,5 @@
-![collider_torus](/screenshots/demo.jpg?raw=true)
-Demo screenshot: balls interacting with a randomised system.
+![collider_torus](/screenshots/demo.jpg?raw=true)  
+Demo screenshot: balls interacting with a randomised system.  
 
 # Collider
 
