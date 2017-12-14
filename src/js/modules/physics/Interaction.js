@@ -73,11 +73,13 @@ Interaction.prototype = {
     }
 
     // dev
+    /*
     this.logger.print(
       'M ' + this.logger.formatVector(this.motion),
       'P ' + this.logger.formatVector(this.position),
       'V ' + this.logger.formatVector({x: this.rotation.pitch, y: this.rotation.yaw, z: this.rotation.roll})
     );
+    */
   },
 
   testObstructions: function(position, meshes, system) {
