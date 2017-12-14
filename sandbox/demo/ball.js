@@ -1,5 +1,5 @@
 class Ball {
-  constructor(bound) {
+  constructor(bound, x, y, z) {
     const c = (Math.round(Math.random() * 0xff) << 16) + (Math.round(Math.random() * 0xff) << 8) + (Math.round(Math.random() * 0xff));
     this.mesh = new THREE.Group();
     this.ball = new THREE.Mesh(
@@ -13,7 +13,7 @@ class Ball {
     this.mesh.add(this.ball);
     this.bound = bound;
     this.position = this.mesh.position;
-    this.position.set(Math.random() * (2 * bound) - bound, 1 + Math.random() * 20, Math.random() * (2 * bound) - bound);
+    this.position.set(Math.random() * (2 * x) - x, 10 + Math.random() * y, Math.random() * (2 * z) - z);
     this.motion = new THREE.Vector3(0, 0, 0);
     this.rotation = {pitch: 0, yaw: 0, roll: 0};
     this.speed = 7;

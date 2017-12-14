@@ -17,6 +17,12 @@ class App {
     this.camera.position.set(10, 20, 10);
     this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
+    // doc
+    this.button = document.createElement('button');
+    this.button.style.display = 'block';
+    this.button.innerHTML = 'Add Ball';
+    document.getElementById('wrapper').appendChild(this.button);
+
     // collider
     this.colliderSystem = new Collider.System();
     this.createScene();
@@ -30,9 +36,26 @@ class App {
     this.loop();
   }
 
+  addBall(size, x, y, z) {
+    const ball = new Ball(size, x, y, z);
+    this.objects.push(ball);
+    this.scene.add(ball.mesh);
+  }
+
   createScene() {
-    // base
+    // limit
     const size = 25;
+
+    // physics balls
+    this.objects = [];
+    for (let i=0; i<15; i++) {
+      this.addBall(size / 2, size / 2, 10, size / 2);
+    }
+
+    // add more
+    this.button.onclick = () => { this.addBall(size / 2, 0, 0, 0); };
+
+    // base
     const block = new THREE.Mesh(
       new THREE.BoxBufferGeometry(size, 1, size),
       new THREE.MeshStandardMaterial({
@@ -94,14 +117,6 @@ class App {
     this.ramp.castShadow = this.ramp.receiveShadow = true;
     this.scene.add(this.ramp);
     this.colliderSystem.add(new Collider.Mesh(this.ramp));
-
-    // physics balls
-    this.objects = [];
-    for (let i=0; i<15; i++) {
-      const ball = new Ball(size / 2);
-      this.objects.push(ball);
-      this.scene.add(ball.mesh);
-    }
   }
 
   createLights() {
