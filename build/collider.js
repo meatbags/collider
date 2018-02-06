@@ -311,18 +311,6 @@ var Interaction = function Interaction(position, rotation, motion) {
 }; // interaction object for building physical systems
 
 Interaction.prototype = {
-  applyPhysics: function applyPhysics(delta) {
-    this.falling = this.motion.y < 0;
-    this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
-  },
-
-  setPhysics: function setPhysics(params) {
-    this.config.physics.gravity = params.gravity ? params.gravity : this.config.physics.gravity;
-    this.config.physics.floor = params.floor ? params.floor : this.config.physics.floor;
-    this.config.physics.snapUp = params.snapUp ? params.snapUp : this.config.physics.snapUp;
-    this.config.physics.snapDown = params.snapDown ? params.snapDown : this.config.physics.snapDown;
-  },
-
   computeNextPosition: function computeNextPosition(delta, system) {
     // move
     var position = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
@@ -451,6 +439,18 @@ Interaction.prototype = {
     return success;
   },
 
+  applyPhysics: function applyPhysics(delta) {
+    this.falling = this.motion.y < 0;
+    this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
+  },
+
+  setPhysics: function setPhysics(params) {
+    this.config.physics.gravity = params.gravity ? params.gravity : this.config.physics.gravity;
+    this.config.physics.floor = params.floor ? params.floor : this.config.physics.floor;
+    this.config.physics.snapUp = params.snapUp ? params.snapUp : this.config.physics.snapUp;
+    this.config.physics.snapDown = params.snapDown ? params.snapDown : this.config.physics.snapDown;
+  },
+
   stepDownSlope: function stepDownSlope(position, ceilingPlane) {
     var success = false;
 
@@ -485,7 +485,7 @@ var Logger = function Logger() {
 
 Logger.prototype = {
   init: function init() {
-    document.body.append(this.cvs);
+    document.body.appendChild(this.cvs);
     this.setStyle();
   },
 
@@ -571,6 +571,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 */
 
 // physics
+
 exports.Mesh = _Mesh2.default;
 exports.System = _System2.default;
 exports.Player = _Player2.default;
@@ -1417,8 +1418,10 @@ exports.default = Quadrants;
 
 
 Object.defineProperty(exports, "__esModule", {
-  value: true
+    value: true
 });
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _Maths = __webpack_require__(1);
 
@@ -1432,337 +1435,296 @@ var _Config = __webpack_require__(0);
 
 var _Config2 = _interopRequireDefault(_Config);
 
+var _Mouse = __webpack_require__(12);
+
+var _Mouse2 = _interopRequireDefault(_Mouse);
+
+var _Keyboard = __webpack_require__(13);
+
+var _Keyboard2 = _interopRequireDefault(_Keyboard);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
-var Player = function Player(domElement) {
-  this.domElement = domElement;
-  this.config = _Config2.default.sandbox.player;
-  this.config.adjust = _Config2.default.sandbox.adjust;
-  this.config.physics = _Config2.default.sandbox.physics;
-  this.position = new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z);
-  this.rotation = {
-    pitch: this.config.rotation.pitch,
-    yaw: this.config.rotation.yaw,
-    roll: this.config.rotation.roll
-  };
-  this.motion = new THREE.Vector3(0, 0, 0);
-  this.offset = {
-    rotation: {
-      pitch: 0,
-      yaw: 0,
-      roll: 0
-    }
-  };
-  this.target = {
-    position: new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z),
-    rotation: {
-      pitch: this.config.rotation.pitch,
-      yaw: this.config.rotation.yaw,
-      roll: this.config.rotation.roll
-    },
-    motion: new THREE.Vector3(0, 0, 0),
-    offset: {
-      rotation: {
-        pitch: 0,
-        yaw: 0,
-        roll: 0
-      }
-    }
-  };
-  this.falling = false;
-  this.fallTimer = 0;
-  this.camera = new THREE.PerspectiveCamera(_Config2.default.sandbox.camera.fov, _Config2.default.sandbox.camera.aspect, _Config2.default.sandbox.camera.near, _Config2.default.sandbox.camera.far);
-  this.camera.up = new THREE.Vector3(0, 1, 0);
-  this.interaction = new _Interaction2.default(this.target.position, this.target.rotation, this.motion);
-  this.init();
-};
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-Player.prototype = {
-  init: function init() {
-    // world
-    this.object = new THREE.Group();
-    this.objectLight = new THREE.PointLight(0xffffff, 0.25, 100, 2);
-    this.objectLight.position.y = this.config.height / 2;
-    this.object.add(this.objectLight);
+var Player = function () {
+    function Player(domElement) {
+        _classCallCheck(this, Player);
 
-    // controls
-    this.bindControls();
+        // player handler
 
-    // camera
-    this.resizeCamera();
-  },
+        this.domElement = domElement;
+        this.config = _Config2.default.sandbox.player;
 
-  update: function update(delta, objects) {
-    // handle mkb input and move player
-    this.handleInput(delta);
+        // physical props
 
-    // apply physics
-    this.interaction.computeNextPosition(delta, objects);
+        this.config.adjust = _Config2.default.sandbox.adjust;
+        this.config.physics = _Config2.default.sandbox.physics;
+        this.minPitch = this.config.rotation.minPitch;
+        this.maxPitch = this.config.rotation.maxPitch;
+        this.position = new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z);
+        this.rotation = {
+            pitch: this.config.rotation.pitch,
+            yaw: this.config.rotation.yaw,
+            roll: this.config.rotation.roll
+        };
+        this.motion = new THREE.Vector3(0, 0, 0);
+        this.offset = {
+            rotation: {
+                pitch: 0,
+                yaw: 0,
+                roll: 0
+            }
+        };
+        this.target = {
+            position: new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z),
+            rotation: {
+                pitch: this.config.rotation.pitch,
+                yaw: this.config.rotation.yaw,
+                roll: this.config.rotation.roll
+            },
+            motion: new THREE.Vector3(0, 0, 0),
+            offset: {
+                rotation: {
+                    pitch: 0,
+                    yaw: 0,
+                    roll: 0
+                }
+            }
+        };
+        this.falling = false;
+        this.fallTimer = 0;
 
-    // move player & camera
-    this.move();
-  },
+        // world
 
-  handleInput: function handleInput(delta) {
-    // left/ right keys
-    if (this.keys.left || this.keys.right) {
-      var dir = (this.keys.left ? 1 : 0) + (this.keys.right ? -1 : 0);
-      this.target.rotation.yaw += this.config.speed.rotation * delta * dir;
+        this.interaction = new _Interaction2.default(this.target.position, this.target.rotation, this.motion);
+        this.object = new THREE.Group();
+        this.camera = new THREE.PerspectiveCamera(_Config2.default.sandbox.camera.fov, _Config2.default.sandbox.camera.aspect, _Config2.default.sandbox.camera.near, _Config2.default.sandbox.camera.far);
+        this.camera.up = new THREE.Vector3(0, 1, 0);
+
+        // set up
+
+        this._events();
+        this.resizeCamera();
     }
 
-    // up/ down keys
-    if (this.keys.up || this.keys.down) {
-      var speed = this.config.physics.noclip ? this.config.speed.noclip * (1 - Math.abs(Math.sin(this.target.rotation.pitch))) : this.config.speed.normal;
-      var _dir = (this.keys.up ? 1 : 0) + (this.keys.down ? -1 : 0);
-      var yaw = this.rotation.yaw + this.offset.rotation.yaw;
-      var dx = Math.sin(yaw) * speed * _dir;
-      var dz = Math.cos(yaw) * speed * _dir;
-      this.target.motion.x = dx;
-      this.target.motion.z = dz;
-    } else {
-      this.target.motion.x = 0;
-      this.target.motion.z = 0;
-    }
+    _createClass(Player, [{
+        key: '_events',
+        value: function _events() {
+            var _this = this;
 
-    // jumping
-    if (this.keys.jump) {
-      this.keys.jump = false;
+            // hook up doc events
 
-      // jump if not falling
-      if (this.motion.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
-        this.motion.y = this.config.speed.jump;
+            this.mouse = new _Mouse2.default(this.domElement);
 
-        // prevent double jump
-        this.fallTimer = this.config.speed.fallTimerThreshold;
-      }
-    }
+            this.onMouseDown = function (e) {
+                // mouse down
 
-    // falling
-    this.falling = this.motion.y != 0;
-    this.fallTimer = this.falling ? this.fallTimer + delta : 0;
+                if (!_this.mouse.isLocked()) {
+                    _this.mouse.start(e, _this.rotation.pitch, _this.rotation.yaw);
+                }
+            };
+            this.onMouseMove = function (e) {
+                // mouse moved
 
-    // noclip
-    if (this.keys.x) {
-      this.keys.x = false;
-      this.config.physics.noclip = this.config.physics.noclip == false;
-    }
+                if (_this.mouse.isActive() && !(_this.keyboard.keys.left || _this.keyboard.keys.right)) {
+                    _this.mouse.move(e);
 
-    if (this.config.physics.noclip) {
-      this.falling = false;
+                    // set targets from delta
 
-      if (this.keys.up || this.keys.down) {
-        var _dir2 = (this.keys.up ? 1 : 0) + (this.keys.down ? -1 : 0);
-        var pitch = this.target.rotation.pitch;
-        this.target.motion.y = Math.sin(pitch) * this.config.speed.noclip * _dir2;
-      } else {
-        this.target.motion.y = 0;
-      }
+                    _this.target.rotation.yaw = _this.mouse.getYaw();
+                    _this.target.rotation.pitch = _this.mouse.getPitch(_this.minPitch, _this.maxPitch);
+                }
+            };
+            this.onMouseUp = function (e) {
+                // mouse up
 
-      this.motion.y = this.target.motion.y;
-    }
+                _this.mouse.stop();
+            };
 
-    // reduce motion if falling
-    if (!this.falling) {
-      this.motion.x = this.target.motion.x;
-      this.motion.z = this.target.motion.z;
-    } else {
-      this.motion.x += (this.target.motion.x - this.motion.x) * this.config.adjust.slow;
-      this.motion.z += (this.target.motion.z - this.motion.z) * this.config.adjust.slow;
-    }
-  },
+            this.domElement.addEventListener('mousedown', this.onMouseDown, false);
+            this.domElement.addEventListener('mousemove', this.onMouseMove, false);
+            this.domElement.addEventListener('mouseup', this.onMouseUp, false);
+            this.domElement.addEventListener('mouseleave', this.onMouseUp, false);
 
-  move: function move() {
-    // move
-    this.position.x += (this.target.position.x - this.position.x) * this.config.adjust.veryFast;
-    this.position.y += (this.target.position.y - this.position.y) * this.config.adjust.veryFast;
-    this.position.z += (this.target.position.z - this.position.z) * this.config.adjust.veryFast;
+            // mobile
 
-    // rotate
-    this.rotation.yaw += Maths.minAngleDifference(this.rotation.yaw, this.target.rotation.yaw) * this.config.adjust.fast;
-    this.offset.rotation.yaw += (this.target.offset.rotation.yaw - this.offset.rotation.yaw) * this.config.adjust.normal;
-    this.rotation.yaw += this.rotation.yaw < 0 ? Maths.twoPi : this.rotation.yaw > Maths.twoPi ? -Maths.twoPi : 0;
-    this.rotation.pitch += (this.target.rotation.pitch - this.rotation.pitch) * this.config.adjust.normal;
-    this.offset.rotation.pitch += (this.target.offset.rotation.pitch - this.offset.rotation.pitch) * this.config.adjust.normal;
-    this.rotation.roll += (this.target.rotation.roll - this.rotation.roll) * this.config.adjust.fast;
+            this.onMobileDown = function (e) {
+                _this.onMouseDown(e.touches[0]);
+            };
+            this.onMobileMove = function (e) {
+                _this.onMouseMove(e.touches[0]);
+            };
+            this.onMobileUp = function (e) {
+                _this.onMouseUp(e.touches[0]);
+            };
 
-    // set camera
-    var pitch = this.rotation.pitch + this.offset.rotation.pitch;
-    var yaw = this.rotation.yaw + this.offset.rotation.yaw;
-    var height = this.position.y + this.config.height;
-    var offxz = 1 - Math.abs(Math.sin(pitch));
-    var offy = 1;
+            this.domElement.addEventListener('touchstart', this.onMobileDown, false);
+            this.domElement.addEventListener('touchmove', this.onMobileMove, false);
+            this.domElement.addEventListener('touchend', this.onMobileUp, false);
 
-    // set camera roll
-    this.camera.up.z = -Math.sin(this.rotation.yaw) * this.rotation.roll;
-    this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
+            // keyboard
 
-    // set position
-    this.camera.position.set(this.position.x - Math.sin(yaw) * offxz / 4, height - Math.sin(pitch) * offy / 4, this.position.z - Math.cos(yaw) * offxz / 4);
+            this.keyboard = new _Keyboard2.default();
 
-    // look
-    this.camera.lookAt(new THREE.Vector3(this.position.x + Math.sin(yaw) * offxz, height + Math.sin(pitch) * offy, this.position.z + Math.cos(yaw) * offxz));
+            document.addEventListener('keydown', this.keyboard.onKeyDown, false);
+            document.addEventListener('keyup', this.keyboard.onKeyUp, false);
+        }
+    }, {
+        key: 'update',
+        value: function update(delta, objects) {
+            // apply input, compute physics, move
 
-    // set world object
-    this.object.position.set(this.position.x, this.position.y, this.position.z);
-  },
+            this.input(delta);
+            this.interaction.computeNextPosition(delta, objects);
+            this.move();
+        }
+    }, {
+        key: 'input',
+        value: function input(delta) {
+            // handle directional input
 
-  handleKeyDown: function handleKeyDown(e) {
-    switch (e.keyCode) {
-      case 38:
-      case 87:
-        this.keys.up = true;
-        break;
-      case 37:
-      case 65:
-        this.keys.left = true;
-        break;
-      case 40:
-      case 83:
-        this.keys.down = true;
-        break;
-      case 39:
-      case 68:
-        this.keys.right = true;
-        break;
-      case 32:
-        this.keys.jump = true;
-        break;
-      case 88:
-        this.keys.x = true;
-      default:
-        break;
-    }
-  },
-  handleKeyUp: function handleKeyUp(e) {
-    switch (e.keyCode) {
-      case 38:
-      case 87:
-        this.keys.up = false;
-        break;
-      case 37:
-      case 65:
-        this.keys.left = false;
-        break;
-      case 40:
-      case 83:
-        this.keys.down = false;
-        break;
-      case 39:
-      case 68:
-        this.keys.right = false;
-        break;
-      default:
-        break;
-    }
-  },
-  handleMouseDown: function handleMouseDown(e) {
-    if (!this.mouse.locked) {
-      var self = this;
-      var bound = this.domElement.getBoundingClientRect();
+            if (this.keyboard.keys.left || this.keyboard.keys.right) {
+                // pan left/ right
 
-      this.mouse.active = true;
-      this.mouse.rotation.pitch = this.rotation.pitch;
-      this.mouse.rotation.yaw = this.rotation.yaw;
-      this.mouse.start.x = e.clientX / this.domElement.width * 2 - 1;
-      this.mouse.start.y = (e.clientY - bound.y) / this.domElement.height * 2 - 1;
-    }
-  },
-  handleMouseMove: function handleMouseMove(e) {
-    if (this.mouse.active && !(this.keys.left || this.keys.right)) {
-      var bound = this.domElement.getBoundingClientRect();
+                var dir = (this.keyboard.keys.left ? 1 : 0) + (this.keyboard.keys.right ? -1 : 0);
+                this.target.rotation.yaw += this.config.speed.rotation * delta * dir;
+            }
 
-      this.mouse.x = e.clientX / this.domElement.width * 2 - 1;
-      this.mouse.y = (e.clientY - bound.y) / this.domElement.height * 2 - 1;
-      this.mouse.delta.x = this.mouse.x - this.mouse.start.x;
-      this.mouse.delta.y = this.mouse.y - this.mouse.start.y;
+            if (this.keyboard.keys.up || this.keyboard.keys.down) {
+                // move forward/ back
 
-      // target rotation yaw
-      this.target.rotation.yaw = this.mouse.rotation.yaw + this.mouse.delta.x;
+                var speed = this.config.physics.noclip ? this.config.speed.noclip * (1 - Math.abs(Math.sin(this.target.rotation.pitch))) : this.config.speed.normal;
+                var _dir = (this.keyboard.keys.up ? 1 : 0) + (this.keyboard.keys.down ? -1 : 0);
+                var yaw = this.rotation.yaw + this.offset.rotation.yaw;
+                var dx = Math.sin(yaw) * speed * _dir;
+                var dz = Math.cos(yaw) * speed * _dir;
+                this.target.motion.x = dx;
+                this.target.motion.z = dz;
+            } else {
+                // stop moving
 
-      // target rotation pitch
-      var pitch = this.mouse.rotation.pitch + this.mouse.delta.y;
+                this.target.motion.x = 0;
+                this.target.motion.z = 0;
+            }
 
-      // if limit reached, reset start point
-      if (pitch > this.config.rotation.maxPitch || pitch < this.config.rotation.minPitch) {
-        pitch = Math.max(this.config.rotation.minPitch, Math.min(this.config.rotation.maxPitch, pitch));
-        this.mouse.start.y = this.mouse.y;
-        this.mouse.rotation.pitch = pitch;
-      }
+            // handle jump key
 
-      this.target.rotation.pitch = pitch;
-    }
-  },
-  handleMouseUp: function handleMouseUp(e) {
-    this.mouse.active = false;
-  },
+            if (this.keyboard.keys.jump) {
+                if (this.motion.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
+                    // jump
 
+                    this.motion.y = this.config.speed.jump;
 
-  resizeCamera: function resizeCamera() {
-    var w = this.domElement.width;
-    var h = this.domElement.height;
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
-  },
+                    // prevent double jump
 
-  bindControls: function bindControls() {
-    var self = this;
+                    this.fallTimer = this.config.speed.fallTimerThreshold;
+                }
 
-    // keys
-    self.keys = {
-      up: false,
-      down: false,
-      left: false,
-      right: false,
-      jump: false,
-      x: false
-    };
-    self.mouse = {
-      x: 0,
-      y: 0,
-      start: {
-        x: 0,
-        y: 0
-      },
-      delta: {
-        x: 0,
-        y: 0
-      },
-      rotation: {
-        pitch: 0,
-        yaw: 0
-      },
-      locked: false,
-      active: false
-    };
+                // release key
 
-    // mouse
-    self.domElement.addEventListener('click', function (e) {
-      //  console.log(self)
-    }, false);
-    self.domElement.addEventListener('mousedown', function (e) {
-      self.handleMouseDown(e);
-    }, false);
-    self.domElement.addEventListener('mousemove', function (e) {
-      self.handleMouseMove(e);
-    }, false);
-    self.domElement.addEventListener('mouseup', function (e) {
-      self.handleMouseUp(e);
-    }, false);
-    self.domElement.addEventListener('mouseleave', function (e) {
-      self.handleMouseUp(e);
-    }, false);
+                this.keyboard.releaseKey('jump');
+            }
 
-    // keyboard
-    document.addEventListener('keydown', function (e) {
-      self.handleKeyDown(e);
-    }, false);
-    document.addEventListener('keyup', function (e) {
-      self.handleKeyUp(e);
-    }, false);
-  }
-};
+            // compute falling
+
+            this.falling = this.motion.y != 0;
+            this.fallTimer = this.falling ? this.fallTimer + delta : 0;
+
+            // toggle noclip
+
+            if (this.keyboard.keys.x) {
+                this.keyboard.releaseKey('x');
+                this.config.physics.noclip = this.config.physics.noclip == false;
+            }
+
+            // handle noclip
+
+            if (this.config.physics.noclip) {
+                if (this.keyboard.keys.up || this.keyboard.keys.down) {
+                    var _dir2 = (this.keyboard.keys.up ? 1 : 0) + (this.keyboard.keys.down ? -1 : 0);
+                    var pitch = this.target.rotation.pitch;
+                    this.target.motion.y = Math.sin(pitch) * this.config.speed.noclip * _dir2;
+                } else {
+                    this.target.motion.y = 0;
+                }
+
+                this.falling = false;
+                this.motion.y = this.target.motion.y;
+            }
+
+            // reduce input if falling
+
+            if (!this.falling) {
+                this.motion.x = this.target.motion.x;
+                this.motion.z = this.target.motion.z;
+            } else {
+                this.motion.x += (this.target.motion.x - this.motion.x) * this.config.adjust.slow;
+                this.motion.z += (this.target.motion.z - this.motion.z) * this.config.adjust.slow;
+            }
+        }
+    }, {
+        key: 'move',
+        value: function move() {
+            // move
+
+            this.position.x += (this.target.position.x - this.position.x) * this.config.adjust.veryFast;
+            this.position.y += (this.target.position.y - this.position.y) * this.config.adjust.veryFast;
+            this.position.z += (this.target.position.z - this.position.z) * this.config.adjust.veryFast;
+
+            // rotate
+
+            this.rotation.yaw += Maths.minAngleDifference(this.rotation.yaw, this.target.rotation.yaw) * this.config.adjust.fast;
+            this.offset.rotation.yaw += (this.target.offset.rotation.yaw - this.offset.rotation.yaw) * this.config.adjust.normal;
+            this.rotation.yaw += this.rotation.yaw < 0 ? Maths.twoPi : this.rotation.yaw > Maths.twoPi ? -Maths.twoPi : 0;
+            this.rotation.pitch += (this.target.rotation.pitch - this.rotation.pitch) * this.config.adjust.normal;
+            this.offset.rotation.pitch += (this.target.offset.rotation.pitch - this.offset.rotation.pitch) * this.config.adjust.normal;
+            this.rotation.roll += (this.target.rotation.roll - this.rotation.roll) * this.config.adjust.fast;
+
+            // set camera from position/ rotation
+
+            var pitch = this.rotation.pitch + this.offset.rotation.pitch;
+            var yaw = this.rotation.yaw + this.offset.rotation.yaw;
+            var height = this.position.y + this.config.height;
+            var offxz = 1 - Math.abs(Math.sin(pitch));
+            var offy = 1;
+
+            // adjust camera roll for direction
+
+            this.camera.up.z = -Math.sin(this.rotation.yaw) * this.rotation.roll;
+            this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
+
+            // set position
+
+            this.camera.position.set(this.position.x - Math.sin(yaw) * offxz / 4, height - Math.sin(pitch) * offy / 4, this.position.z - Math.cos(yaw) * offxz / 4);
+
+            // look at target
+
+            this.camera.lookAt(new THREE.Vector3(this.position.x + Math.sin(yaw) * offxz, height + Math.sin(pitch) * offy, this.position.z + Math.cos(yaw) * offxz));
+
+            // move scene object
+
+            this.object.position.set(this.position.x, this.position.y, this.position.z);
+        }
+    }, {
+        key: 'resizeCamera',
+        value: function resizeCamera() {
+            // resize camera
+
+            var bound = this.domElement.getBoundingClientRect();
+            var w = bound.width;
+            var h = bound.height;
+            this.camera.aspect = w / h;
+            this.camera.updateProjectionMatrix();
+        }
+    }]);
+
+    return Player;
+}();
+
+;
 
 exports.default = Player;
 
@@ -1909,6 +1871,202 @@ Loader.prototype = {
 };
 
 exports.default = Loader;
+
+/***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Mouse = function () {
+  function Mouse(domElement) {
+    _classCallCheck(this, Mouse);
+
+    // mouse handler
+
+    this.domElement = domElement;
+    this.x = 0;
+    this.y = 0;
+    this.origin = new THREE.Vector2(0, 0);
+    this.delta = new THREE.Vector2(0, 0);
+    this.rotation = { pitch: 0, yaw: 0, roll: 0 };
+    this.locked = false;
+    this.active = false;
+  }
+
+  _createClass(Mouse, [{
+    key: "start",
+    value: function start(e, pitch, yaw) {
+      // set mouse position [-1, 1]
+
+      this.active = true;
+      var bound = this.domElement.getBoundingClientRect();
+      this.origin.x = (e.clientX - bound.x) / bound.width * 2 - 1;
+      this.origin.y = (e.clientY - bound.y) / bound.height * 2 - 1;
+      this.rotation.pitch = pitch;
+      this.rotation.yaw = yaw;
+    }
+  }, {
+    key: "move",
+    value: function move(e) {
+      // move mouse
+
+      var bound = this.domElement.getBoundingClientRect();
+      this.x = (e.clientX - bound.x) / bound.width * 2 - 1;
+      this.y = (e.clientY - bound.y) / bound.height * 2 - 1;
+      this.delta.x = this.x - this.origin.x;
+      this.delta.y = this.y - this.origin.y;
+    }
+  }, {
+    key: "stop",
+    value: function stop() {
+      // flag off
+
+      this.active = false;
+    }
+  }, {
+    key: "getPitch",
+    value: function getPitch(min, max) {
+      // get clamped pitch
+
+      var pitch = Math.max(min, Math.min(max, this.rotation.pitch + this.delta.y));
+
+      if (pitch == min || pitch == max) {
+        // reset start
+
+        this.origin.y = this.y;
+        this.rotation.pitch = pitch;
+      }
+
+      return pitch;
+    }
+  }, {
+    key: "getYaw",
+    value: function getYaw() {
+      // get yaw
+
+      return this.rotation.yaw + this.delta.x;
+    }
+  }, {
+    key: "isActive",
+    value: function isActive() {
+      return this.active;
+    }
+  }, {
+    key: "isLocked",
+    value: function isLocked() {
+      return this.locked;
+    }
+  }]);
+
+  return Mouse;
+}();
+
+exports.default = Mouse;
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Keyboard = function () {
+  function Keyboard() {
+    _classCallCheck(this, Keyboard);
+
+    // keyboard handler
+
+    this.keys = {};
+    this._events();
+  }
+
+  _createClass(Keyboard, [{
+    key: "_events",
+    value: function _events() {
+      var _this = this;
+
+      // hook events
+
+      this.onKeyDown = function (e) {
+        // key press
+
+        switch (e.keyCode) {
+          case 38:case 87:
+            _this.keys.up = true;
+            break;
+          case 37:case 65:
+            _this.keys.left = true;
+            break;
+          case 40:case 83:
+            _this.keys.down = true;
+            break;
+          case 39:case 68:
+            _this.keys.right = true;
+            break;
+          case 32:
+            _this.keys.jump = true;
+            break;
+          case 88:
+            _this.keys.x = true;
+          default:
+            break;
+        }
+      };
+      this.onKeyUp = function (e) {
+        // key release
+
+        switch (e.keyCode) {
+          case 38:case 87:
+            _this.keys.up = false;
+            break;
+          case 37:case 65:
+            _this.keys.left = false;
+            break;
+          case 40:case 83:
+            _this.keys.down = false;
+            break;
+          case 39:case 68:
+            _this.keys.right = false;
+            break;
+          default:
+            break;
+        }
+      };
+      this.pressKey = function (key) {
+        // simulate key press
+
+        _this.keys[key] = true;
+      };
+      this.releaseKey = function (key) {
+        // simulate key release
+
+        _this.keys[key] = false;
+      };
+    }
+  }]);
+
+  return Keyboard;
+}();
+
+exports.default = Keyboard;
 
 /***/ })
 /******/ ]);

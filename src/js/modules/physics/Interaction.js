@@ -15,18 +15,6 @@ const Interaction = function(position, rotation, motion) {
 };
 
 Interaction.prototype = {
-  applyPhysics: function(delta) {
-    this.falling = (this.motion.y < 0);
-    this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
-  },
-
-  setPhysics: function(params) {
-    this.config.physics.gravity = (params.gravity) ? params.gravity : this.config.physics.gravity;
-    this.config.physics.floor = (params.floor) ? params.floor : this.config.physics.floor;
-    this.config.physics.snapUp = (params.snapUp) ? params.snapUp : this.config.physics.snapUp;
-    this.config.physics.snapDown = (params.snapDown) ? params.snapDown : this.config.physics.snapDown;
-  },
-
   computeNextPosition: function(delta, system) {
     // move
     let position = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
@@ -155,6 +143,18 @@ Interaction.prototype = {
     }
 
     return success;
+  },
+
+  applyPhysics: function(delta) {
+    this.falling = (this.motion.y < 0);
+    this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
+  },
+
+  setPhysics: function(params) {
+    this.config.physics.gravity = (params.gravity) ? params.gravity : this.config.physics.gravity;
+    this.config.physics.floor = (params.floor) ? params.floor : this.config.physics.floor;
+    this.config.physics.snapUp = (params.snapUp) ? params.snapUp : this.config.physics.snapUp;
+    this.config.physics.snapDown = (params.snapDown) ? params.snapDown : this.config.physics.snapDown;
   },
 
   stepDownSlope: function(position, ceilingPlane) {

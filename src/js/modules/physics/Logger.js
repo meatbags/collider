@@ -7,7 +7,7 @@ const Logger = function() {
 
 Logger.prototype = {
   init: function() {
-    document.body.append(this.cvs);
+    document.body.appendChild(this.cvs);
     this.setStyle();
   },
 

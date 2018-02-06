@@ -40,8 +40,10 @@ class Ball {
     this.interaction.computeNextPosition(delta, system);
 
     // bounce
-    if (prev != 0 && this.motion.y == 0) {
-      //this.motion.y = Math.abs(prev) * 0.5;
+    if (prev < 0 && this.motion.y == 0) {
+      if (prev < -1) {
+        this.motion.y = -prev * 0.5;
+      }
     }
 
     // limit
