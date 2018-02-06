@@ -7,6 +7,7 @@ const Mesh = function(object) {
   this.isColliderMesh = true;
 
   if (object.geometry.isBufferGeometry) {
+    this.object = object;
     this.geometry = object.geometry;
     this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
     this.min = this.box.min;

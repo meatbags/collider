@@ -5,13 +5,16 @@
 import Config from '../config/Config';
 import Quadrants from './Quadrants';
 
-const System = function () {
-  this.quadrants = new Quadrants();
-  this.isColliderSystem = true;
-};
+class System {
+  constructor() {
+    // collider mesh system
 
-System.prototype = {
-  add: function() {
+    this.quadrants = new Quadrants();
+    this.meshes = [];
+    this.isColliderSystem = true;
+  }
+
+  add() {
     // add mesh to quadrants
 
     for (let i=0; i<arguments.length; i+=1) {
@@ -20,6 +23,7 @@ System.prototype = {
       if (mesh.isColliderMesh) {
         if (mesh.planes.length <= Config.system.maxPlanesPerMesh) {
           this.quadrants.add(mesh);
+          this.meshes.push(mesh.object);
         } else {
           console.warn('Warning: Mesh not included - plane count exceeds maximum (%s).', Config.system.maxPlanesPerMesh);
         }
@@ -27,9 +31,9 @@ System.prototype = {
         throw('Error: Input must be Collider.Mesh');
       }
     }
-  },
+  }
 
-  getCollision: function(point) {
+  getCollision(point) {
     // check for collision at point
 
     let collision = false;
@@ -43,9 +47,9 @@ System.prototype = {
     }
 
     return collision;
-  },
+  }
 
-  getCollisionMeshes: function(point) {
+  getCollisionMeshes(point) {
     // get all meshes which collide with point
 
     let collisions = [];
@@ -58,9 +62,9 @@ System.prototype = {
     }
 
     return collisions;
-  },
+  }
 
-  getCeilingPlane: function(point) {
+  getCeilingPlane(point) {
     // get ceiling and corresponding plane *above* point
 
     let ceiling = null;
@@ -83,6 +87,12 @@ System.prototype = {
 
     return ((ceiling === null) ? null : ceiling);
   }
-};
+
+  getMeshes() {
+    // return three meshes
+
+    return this.meshes;
+  }
+}
 
 export default System;

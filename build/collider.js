@@ -548,7 +548,7 @@ var _System = __webpack_require__(8);
 
 var _System2 = _interopRequireDefault(_System);
 
-var _Player = __webpack_require__(10);
+var _Player = __webpack_require__(9);
 
 var _Player2 = _interopRequireDefault(_Player);
 
@@ -560,7 +560,7 @@ var _Interaction = __webpack_require__(2);
 
 var _Interaction2 = _interopRequireDefault(_Interaction);
 
-var _Loader = __webpack_require__(11);
+var _Loader = __webpack_require__(12);
 
 var _Loader2 = _interopRequireDefault(_Loader);
 
@@ -612,6 +612,7 @@ var Mesh = function Mesh(object) {
   this.isColliderMesh = true;
 
   if (object.geometry.isBufferGeometry) {
+    this.object = object;
     this.geometry = object.geometry;
     this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
     this.min = this.box.min;
@@ -1229,189 +1230,127 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); // collision system - checks against all meshes
+// meshes are divided into quadrants for efficiency
+// recent collisions are cached
+
 var _Config = __webpack_require__(0);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Quadrants = __webpack_require__(9);
+var _Quadrants = __webpack_require__(13);
 
 var _Quadrants2 = _interopRequireDefault(_Quadrants);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-// collision system - checks against all meshes
-// meshes are divided into quadrants for efficiency
-// recent collisions are cached
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var System = function System() {
-  this.quadrants = new _Quadrants2.default();
-  this.isColliderSystem = true;
-};
+var System = function () {
+  function System() {
+    _classCallCheck(this, System);
 
-System.prototype = {
-  add: function add() {
-    // add mesh to quadrants
+    // collider mesh system
 
-    for (var i = 0; i < arguments.length; i += 1) {
-      var mesh = arguments[i];
+    this.quadrants = new _Quadrants2.default();
+    this.meshes = [];
+    this.isColliderSystem = true;
+  }
 
-      if (mesh.isColliderMesh) {
-        if (mesh.planes.length <= _Config2.default.system.maxPlanesPerMesh) {
-          this.quadrants.add(mesh);
+  _createClass(System, [{
+    key: 'add',
+    value: function add() {
+      // add mesh to quadrants
+
+      for (var i = 0; i < arguments.length; i += 1) {
+        var mesh = arguments[i];
+
+        if (mesh.isColliderMesh) {
+          if (mesh.planes.length <= _Config2.default.system.maxPlanesPerMesh) {
+            this.quadrants.add(mesh);
+            this.meshes.push(mesh.object);
+          } else {
+            console.warn('Warning: Mesh not included - plane count exceeds maximum (%s).', _Config2.default.system.maxPlanesPerMesh);
+          }
         } else {
-          console.warn('Warning: Mesh not included - plane count exceeds maximum (%s).', _Config2.default.system.maxPlanesPerMesh);
+          throw 'Error: Input must be Collider.Mesh';
         }
-      } else {
-        throw 'Error: Input must be Collider.Mesh';
       }
     }
-  },
+  }, {
+    key: 'getCollision',
+    value: function getCollision(point) {
+      // check for collision at point
 
-  getCollision: function getCollision(point) {
-    // check for collision at point
+      var collision = false;
+      var meshes = this.quadrants.getQuadrantMeshes(point);
 
-    var collision = false;
-    var meshes = this.quadrants.getQuadrantMeshes(point);
-
-    for (var i = 0; i < meshes.length; i += 1) {
-      if (meshes[i].getCollision(point)) {
-        collision = true;
-        break;
+      for (var i = 0; i < meshes.length; i += 1) {
+        if (meshes[i].getCollision(point)) {
+          collision = true;
+          break;
+        }
       }
+
+      return collision;
     }
+  }, {
+    key: 'getCollisionMeshes',
+    value: function getCollisionMeshes(point) {
+      // get all meshes which collide with point
 
-    return collision;
-  },
+      var collisions = [];
+      var meshes = this.quadrants.getQuadrantMeshes(point);
 
-  getCollisionMeshes: function getCollisionMeshes(point) {
-    // get all meshes which collide with point
-
-    var collisions = [];
-    var meshes = this.quadrants.getQuadrantMeshes(point);
-
-    for (var i = 0; i < meshes.length; i += 1) {
-      if (meshes[i].getCollision(point)) {
-        collisions.push(meshes[i]);
+      for (var i = 0; i < meshes.length; i += 1) {
+        if (meshes[i].getCollision(point)) {
+          collisions.push(meshes[i]);
+        }
       }
+
+      return collisions;
     }
+  }, {
+    key: 'getCeilingPlane',
+    value: function getCeilingPlane(point) {
+      // get ceiling and corresponding plane *above* point
 
-    return collisions;
-  },
+      var ceiling = null;
+      var meshes = this.quadrants.getQuadrantMeshes(point);
 
-  getCeilingPlane: function getCeilingPlane(point) {
-    // get ceiling and corresponding plane *above* point
+      for (var i = 0; i < meshes.length; i += 1) {
+        if (meshes[i].getCollision(point)) {
+          var result = meshes[i].getCeilingPlane(point);
 
-    var ceiling = null;
-    var meshes = this.quadrants.getQuadrantMeshes(point);
-
-    for (var i = 0; i < meshes.length; i += 1) {
-      if (meshes[i].getCollision(point)) {
-        var result = meshes[i].getCeilingPlane(point);
-
-        if (result != null) {
-          if (ceiling === null || result.y > ceiling.y) {
-            ceiling = {
-              y: result.y,
-              plane: result.plane
-            };
+          if (result != null) {
+            if (ceiling === null || result.y > ceiling.y) {
+              ceiling = {
+                y: result.y,
+                plane: result.plane
+              };
+            }
           }
         }
       }
-    }
 
-    return ceiling === null ? null : ceiling;
-  }
-};
+      return ceiling === null ? null : ceiling;
+    }
+  }, {
+    key: 'getMeshes',
+    value: function getMeshes() {
+      // return three meshes
+
+      return this.meshes;
+    }
+  }]);
+
+  return System;
+}();
 
 exports.default = System;
 
 /***/ }),
 /* 9 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _Config = __webpack_require__(0);
-
-var _Config2 = _interopRequireDefault(_Config);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var Quadrants = function Quadrants() {
-  this.q = [];
-}; // quadrant system for indexing large polygon groups
-
-Quadrants.prototype = {
-  positionToQuadrant: function positionToQuadrant(point) {
-    // convert point to quadrant keys
-
-    var keys = {
-      x: Math.floor(point.x / _Config2.default.quadrants.size.x),
-      y: Math.floor(point.y / _Config2.default.quadrants.size.y),
-      z: Math.floor(point.z / _Config2.default.quadrants.size.z)
-    };
-
-    return keys;
-  },
-
-  add: function add(mesh) {
-    // add a mesh to quadrant/s
-
-    var min = this.positionToQuadrant(mesh.min);
-    var max = this.positionToQuadrant(mesh.max);
-
-    for (var x = min.x; x <= max.x; x += 1) {
-      for (var y = min.y; y <= max.y; y += 1) {
-        for (var z = min.z; z <= max.z; z += 1) {
-          this.addToQuadrant(x, y, z, mesh);
-        }
-      }
-    }
-  },
-
-  addToQuadrant: function addToQuadrant(x, y, z, mesh) {
-    // if quadrant does not exist, create it
-
-    if (!this.q[x]) {
-      this.q[x] = [];
-    }
-
-    if (!this.q[x][y]) {
-      this.q[x][y] = [];
-    }
-
-    if (!this.q[x][y][z]) {
-      this.q[x][y][z] = [];
-    }
-
-    // add mesh to quadrant
-
-    this.q[x][y][z].push(mesh);
-  },
-
-
-  getQuadrantMeshes: function getQuadrantMeshes(point) {
-    // get quadrant for point
-
-    var pq = this.positionToQuadrant(point);
-
-    if (this.q[pq.x] && this.q[pq.x][pq.y] && this.q[pq.x][pq.y][pq.z]) {
-      return this.q[pq.x][pq.y][pq.z];
-    } else {
-      return [];
-    }
-  }
-};
-
-exports.default = Quadrants;
-
-/***/ }),
-/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1435,11 +1374,11 @@ var _Config = __webpack_require__(0);
 
 var _Config2 = _interopRequireDefault(_Config);
 
-var _Mouse = __webpack_require__(12);
+var _Mouse = __webpack_require__(10);
 
 var _Mouse2 = _interopRequireDefault(_Mouse);
 
-var _Keyboard = __webpack_require__(13);
+var _Keyboard = __webpack_require__(11);
 
 var _Keyboard2 = _interopRequireDefault(_Keyboard);
 
@@ -1729,7 +1668,203 @@ var Player = function () {
 exports.default = Player;
 
 /***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Mouse = function () {
+  function Mouse(domElement) {
+    _classCallCheck(this, Mouse);
+
+    // mouse handler
+
+    this.domElement = domElement;
+    this.x = 0;
+    this.y = 0;
+    this.origin = new THREE.Vector2(0, 0);
+    this.delta = new THREE.Vector2(0, 0);
+    this.rotation = { pitch: 0, yaw: 0, roll: 0 };
+    this.locked = false;
+    this.active = false;
+  }
+
+  _createClass(Mouse, [{
+    key: "start",
+    value: function start(e, pitch, yaw) {
+      // set mouse position [-1, 1]
+
+      this.active = true;
+      var bound = this.domElement.getBoundingClientRect();
+      this.origin.x = (e.clientX - bound.x) / bound.width * 2 - 1;
+      this.origin.y = (e.clientY - bound.y) / bound.height * 2 - 1;
+      this.rotation.pitch = pitch;
+      this.rotation.yaw = yaw;
+    }
+  }, {
+    key: "move",
+    value: function move(e) {
+      // move mouse
+
+      var bound = this.domElement.getBoundingClientRect();
+      this.x = (e.clientX - bound.x) / bound.width * 2 - 1;
+      this.y = (e.clientY - bound.y) / bound.height * 2 - 1;
+      this.delta.x = this.x - this.origin.x;
+      this.delta.y = this.y - this.origin.y;
+    }
+  }, {
+    key: "stop",
+    value: function stop() {
+      // flag off
+
+      this.active = false;
+    }
+  }, {
+    key: "getPitch",
+    value: function getPitch(min, max) {
+      // get clamped pitch
+
+      var pitch = Math.max(min, Math.min(max, this.rotation.pitch + this.delta.y));
+
+      if (pitch == min || pitch == max) {
+        // reset start
+
+        this.origin.y = this.y;
+        this.rotation.pitch = pitch;
+      }
+
+      return pitch;
+    }
+  }, {
+    key: "getYaw",
+    value: function getYaw() {
+      // get yaw
+
+      return this.rotation.yaw + this.delta.x;
+    }
+  }, {
+    key: "isActive",
+    value: function isActive() {
+      return this.active;
+    }
+  }, {
+    key: "isLocked",
+    value: function isLocked() {
+      return this.locked;
+    }
+  }]);
+
+  return Mouse;
+}();
+
+exports.default = Mouse;
+
+/***/ }),
 /* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Keyboard = function () {
+  function Keyboard() {
+    _classCallCheck(this, Keyboard);
+
+    // keyboard handler
+
+    this.keys = {};
+    this._events();
+  }
+
+  _createClass(Keyboard, [{
+    key: "_events",
+    value: function _events() {
+      var _this = this;
+
+      // hook events
+
+      this.onKeyDown = function (e) {
+        // key press
+
+        switch (e.keyCode) {
+          case 38:case 87:
+            _this.keys.up = true;
+            break;
+          case 37:case 65:
+            _this.keys.left = true;
+            break;
+          case 40:case 83:
+            _this.keys.down = true;
+            break;
+          case 39:case 68:
+            _this.keys.right = true;
+            break;
+          case 32:
+            _this.keys.jump = true;
+            break;
+          case 88:
+            _this.keys.x = true;
+          default:
+            break;
+        }
+      };
+      this.onKeyUp = function (e) {
+        // key release
+
+        switch (e.keyCode) {
+          case 38:case 87:
+            _this.keys.up = false;
+            break;
+          case 37:case 65:
+            _this.keys.left = false;
+            break;
+          case 40:case 83:
+            _this.keys.down = false;
+            break;
+          case 39:case 68:
+            _this.keys.right = false;
+            break;
+          default:
+            break;
+        }
+      };
+      this.pressKey = function (key) {
+        // simulate key press
+
+        _this.keys[key] = true;
+      };
+      this.releaseKey = function (key) {
+        // simulate key release
+
+        _this.keys[key] = false;
+      };
+    }
+  }]);
+
+  return Keyboard;
+}();
+
+exports.default = Keyboard;
+
+/***/ }),
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1873,107 +2008,6 @@ Loader.prototype = {
 exports.default = Loader;
 
 /***/ }),
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Mouse = function () {
-  function Mouse(domElement) {
-    _classCallCheck(this, Mouse);
-
-    // mouse handler
-
-    this.domElement = domElement;
-    this.x = 0;
-    this.y = 0;
-    this.origin = new THREE.Vector2(0, 0);
-    this.delta = new THREE.Vector2(0, 0);
-    this.rotation = { pitch: 0, yaw: 0, roll: 0 };
-    this.locked = false;
-    this.active = false;
-  }
-
-  _createClass(Mouse, [{
-    key: "start",
-    value: function start(e, pitch, yaw) {
-      // set mouse position [-1, 1]
-
-      this.active = true;
-      var bound = this.domElement.getBoundingClientRect();
-      this.origin.x = (e.clientX - bound.x) / bound.width * 2 - 1;
-      this.origin.y = (e.clientY - bound.y) / bound.height * 2 - 1;
-      this.rotation.pitch = pitch;
-      this.rotation.yaw = yaw;
-    }
-  }, {
-    key: "move",
-    value: function move(e) {
-      // move mouse
-
-      var bound = this.domElement.getBoundingClientRect();
-      this.x = (e.clientX - bound.x) / bound.width * 2 - 1;
-      this.y = (e.clientY - bound.y) / bound.height * 2 - 1;
-      this.delta.x = this.x - this.origin.x;
-      this.delta.y = this.y - this.origin.y;
-    }
-  }, {
-    key: "stop",
-    value: function stop() {
-      // flag off
-
-      this.active = false;
-    }
-  }, {
-    key: "getPitch",
-    value: function getPitch(min, max) {
-      // get clamped pitch
-
-      var pitch = Math.max(min, Math.min(max, this.rotation.pitch + this.delta.y));
-
-      if (pitch == min || pitch == max) {
-        // reset start
-
-        this.origin.y = this.y;
-        this.rotation.pitch = pitch;
-      }
-
-      return pitch;
-    }
-  }, {
-    key: "getYaw",
-    value: function getYaw() {
-      // get yaw
-
-      return this.rotation.yaw + this.delta.x;
-    }
-  }, {
-    key: "isActive",
-    value: function isActive() {
-      return this.active;
-    }
-  }, {
-    key: "isLocked",
-    value: function isLocked() {
-      return this.locked;
-    }
-  }]);
-
-  return Mouse;
-}();
-
-exports.default = Mouse;
-
-/***/ }),
 /* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1984,89 +2018,79 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+var _Config = __webpack_require__(0);
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+var _Config2 = _interopRequireDefault(_Config);
 
-var Keyboard = function () {
-  function Keyboard() {
-    _classCallCheck(this, Keyboard);
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-    // keyboard handler
+var Quadrants = function Quadrants() {
+  this.q = [];
+}; // quadrant system for indexing large polygon groups
 
-    this.keys = {};
-    this._events();
-  }
+Quadrants.prototype = {
+  positionToQuadrant: function positionToQuadrant(point) {
+    // convert point to quadrant keys
 
-  _createClass(Keyboard, [{
-    key: "_events",
-    value: function _events() {
-      var _this = this;
+    var keys = {
+      x: Math.floor(point.x / _Config2.default.quadrants.size.x),
+      y: Math.floor(point.y / _Config2.default.quadrants.size.y),
+      z: Math.floor(point.z / _Config2.default.quadrants.size.z)
+    };
 
-      // hook events
+    return keys;
+  },
 
-      this.onKeyDown = function (e) {
-        // key press
+  add: function add(mesh) {
+    // add a mesh to quadrant/s
 
-        switch (e.keyCode) {
-          case 38:case 87:
-            _this.keys.up = true;
-            break;
-          case 37:case 65:
-            _this.keys.left = true;
-            break;
-          case 40:case 83:
-            _this.keys.down = true;
-            break;
-          case 39:case 68:
-            _this.keys.right = true;
-            break;
-          case 32:
-            _this.keys.jump = true;
-            break;
-          case 88:
-            _this.keys.x = true;
-          default:
-            break;
+    var min = this.positionToQuadrant(mesh.min);
+    var max = this.positionToQuadrant(mesh.max);
+
+    for (var x = min.x; x <= max.x; x += 1) {
+      for (var y = min.y; y <= max.y; y += 1) {
+        for (var z = min.z; z <= max.z; z += 1) {
+          this.addToQuadrant(x, y, z, mesh);
         }
-      };
-      this.onKeyUp = function (e) {
-        // key release
-
-        switch (e.keyCode) {
-          case 38:case 87:
-            _this.keys.up = false;
-            break;
-          case 37:case 65:
-            _this.keys.left = false;
-            break;
-          case 40:case 83:
-            _this.keys.down = false;
-            break;
-          case 39:case 68:
-            _this.keys.right = false;
-            break;
-          default:
-            break;
-        }
-      };
-      this.pressKey = function (key) {
-        // simulate key press
-
-        _this.keys[key] = true;
-      };
-      this.releaseKey = function (key) {
-        // simulate key release
-
-        _this.keys[key] = false;
-      };
+      }
     }
-  }]);
+  },
 
-  return Keyboard;
-}();
+  addToQuadrant: function addToQuadrant(x, y, z, mesh) {
+    // if quadrant does not exist, create it
 
-exports.default = Keyboard;
+    if (!this.q[x]) {
+      this.q[x] = [];
+    }
+
+    if (!this.q[x][y]) {
+      this.q[x][y] = [];
+    }
+
+    if (!this.q[x][y][z]) {
+      this.q[x][y][z] = [];
+    }
+
+    // add mesh to quadrant
+
+    this.q[x][y][z].push(mesh);
+  },
+
+
+  getQuadrantMeshes: function getQuadrantMeshes(point) {
+    // get quadrant for point
+
+    var pq = this.positionToQuadrant(point);
+
+    if (this.q[pq.x] && this.q[pq.x][pq.y] && this.q[pq.x][pq.y][pq.z]) {
+      return this.q[pq.x][pq.y][pq.z];
+    } else {
+      return [];
+    }
+  }
+};
+
+exports.default = Quadrants;
 
 /***/ })
 /******/ ]);
