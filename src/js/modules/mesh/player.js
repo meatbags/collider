@@ -6,7 +6,7 @@ import { Mouse, Keyboard } from '../io';
 class Player {
   constructor(domElement) {
     // player handler
-
+    
     this.domElement = domElement;
     this.config = Config.sandbox.player;
 
@@ -58,61 +58,8 @@ class Player {
 
     // set up
 
-    this._events();
+    this.events();
     this.resizeCamera();
-  }
-
-  _events() {
-    // hook up doc events
-
-    this.mouse = new Mouse(this.domElement);
-
-    this.onMouseDown = (e) => {
-      // mouse down
-
-      if (!this.mouse.isLocked()) {
-        this.mouse.start(e, this.rotation.pitch, this.rotation.yaw);
-      }
-    };
-    this.onMouseMove = (e) => {
-      // mouse moved
-
-      if (this.mouse.isActive() && !(this.keyboard.keys.left || this.keyboard.keys.right)) {
-        this.mouse.move(e);
-
-        // set targets from delta
-
-        this.target.rotation.yaw = this.mouse.getYaw();
-        this.target.rotation.pitch = this.mouse.getPitch(this.minPitch, this.maxPitch);
-      }
-    };
-    this.onMouseUp = (e) => {
-      // mouse up
-
-      this.mouse.stop();
-    };
-
-    this.domElement.addEventListener('mousedown', this.onMouseDown, false);
-    this.domElement.addEventListener('mousemove', this.onMouseMove, false);
-    this.domElement.addEventListener('mouseup', this.onMouseUp, false);
-    this.domElement.addEventListener('mouseleave', this.onMouseUp, false);
-
-    // mobile
-
-    this.onMobileDown = (e) => { this.onMouseDown(e.touches[0]); };
-    this.onMobileMove = (e) => { this.onMouseMove(e.touches[0]); };
-    this.onMobileUp = (e) => { this.onMouseUp(e.touches[0]); };
-
-    this.domElement.addEventListener('touchstart', this.onMobileDown, false);
-    this.domElement.addEventListener('touchmove', this.onMobileMove, false);
-    this.domElement.addEventListener('touchend', this.onMobileUp, false);
-
-    // keyboard
-
-    this.keyboard = new Keyboard();
-
-		document.addEventListener('keydown', this.keyboard.onKeyDown, false);
-		document.addEventListener('keyup', this.keyboard.onKeyUp, false);
   }
 
   update(delta, objects) {
@@ -266,6 +213,52 @@ class Player {
     const h = bound.height;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+  }
+
+  events() {
+    // hook up doc events
+    this.mouse = new Mouse(this.domElement);
+    this.onMouseDown = (e) => {
+      // mouse down
+
+      if (!this.mouse.isLocked()) {
+        this.mouse.start(e, this.rotation.pitch, this.rotation.yaw);
+      }
+    };
+    this.onMouseMove = (e) => {
+      // mouse moved
+
+      if (this.mouse.isActive() && !(this.keyboard.keys.left || this.keyboard.keys.right)) {
+        this.mouse.move(e);
+
+        // set targets from delta
+
+        this.target.rotation.yaw = this.mouse.getYaw();
+        this.target.rotation.pitch = this.mouse.getPitch(this.minPitch, this.maxPitch);
+      }
+    };
+    this.onMouseUp = (e) => {
+      // mouse up
+
+      this.mouse.stop();
+    };
+    this.domElement.addEventListener('mousedown', this.onMouseDown, false);
+    this.domElement.addEventListener('mousemove', this.onMouseMove, false);
+    this.domElement.addEventListener('mouseup', this.onMouseUp, false);
+    this.domElement.addEventListener('mouseleave', this.onMouseUp, false);
+
+    // mobile TODO make robust
+    this.onMobileDown = (e) => { this.onMouseDown(e.touches[0]); };
+    this.onMobileMove = (e) => { this.onMouseMove(e.touches[0]); };
+    this.onMobileUp = (e) => { this.onMouseUp(e.touches[0]); };
+    this.domElement.addEventListener('touchstart', this.onMobileDown, false);
+    this.domElement.addEventListener('touchmove', this.onMobileMove, false);
+    this.domElement.addEventListener('touchend', this.onMobileUp, false);
+
+    // keyboard
+    this.keyboard = new Keyboard();
+		document.addEventListener('keydown', this.keyboard.onKeyDown, false);
+		document.addEventListener('keyup', this.keyboard.onKeyUp, false);
   }
 };
 
