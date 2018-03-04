@@ -1,29 +1,25 @@
-import Config from '../config/Config';
+import { Config } from '../conf';
 
-const Loader = function(basePath) {
-  this.basePath = basePath;
-  this.init();
-};
-
-Loader.prototype = {
-  init: function() {
-    // FBX Loader (animation + PBR support)
+class Loader {
+  constructor(basePath) {
+    this.basePath = basePath;
     this.FBXLoader = new THREE.FBXLoader();
 
     // default envmap
+
     this.envTextureCube = new THREE.CubeTextureLoader().load([
       this.basePath + 'envmap/horizontal.jpg', // +x
       this.basePath + 'envmap/horizontal.jpg', // -x
-      this.basePath + 'envmap/posy.jpg', // +y
-      this.basePath + 'envmap/negy.jpg', // -y
+      this.basePath + 'envmap/posy.jpg',
+      this.basePath + 'envmap/negy.jpg',
       this.basePath + 'envmap/horizontal.jpg', // +z
       this.basePath + 'envmap/horizontal.jpg', // -z
     ]);
-		//this.envTextureCube.format = THREE.RGBFormat;
+    //this.envTextureCube.format = THREE.RGBFormat;
 		//this.envTextureCube.mapping = THREE.CubeReflectionMapping;
-  },
+  }
 
-  loadFBX: function(filename) {
+  loadFBX(filename) {
     const self = this;
 
     return new Promise(
@@ -62,9 +58,9 @@ Loader.prototype = {
         }
       }
     )
-  },
+  }
 
-  process: function(obj, materials) {
+  process(obj, materials) {
     for (let i=0; i<obj.children.length; i+=1) {
       const child = obj.children[i];
       const meta = materials.materialsInfo[child.material.name];
@@ -106,9 +102,9 @@ Loader.prototype = {
         //child.material.emissive = child.material.color;
       }
     }
-  },
+  }
 
-  loadOBJ: function(filename) {
+  loadOBJ(filename) {
     const self = this;
 
     return new Promise(
@@ -128,6 +124,6 @@ Loader.prototype = {
       }
     );
   }
-};
+}
 
-export default Loader;
+export { Loader };

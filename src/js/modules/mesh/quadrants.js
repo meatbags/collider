@@ -1,13 +1,13 @@
-// quadrant system for indexing large polygon groups
+import { Config } from '../conf';
 
-import Config from '../config/Config';
+class Quadrants {
+  constructor() {
+    // index meshes into quadrants
 
-const Quadrants = function() {
-  this.q = [];
-};
+    this.q = [];
+  }
 
-Quadrants.prototype = {
-  positionToQuadrant: function(point) {
+  positionToQuadrant(point) {
     // convert point to quadrant keys
 
     const keys = {
@@ -17,9 +17,9 @@ Quadrants.prototype = {
     };
 
     return keys;
-  },
+  }
 
-  add: function(mesh) {
+  add(mesh) {
     // add a mesh to quadrant/s
 
     const min = this.positionToQuadrant(mesh.min);
@@ -32,7 +32,7 @@ Quadrants.prototype = {
         }
       }
     }
-  },
+  }
 
   addToQuadrant(x, y, z, mesh) {
     // if quadrant does not exist, create it
@@ -52,9 +52,9 @@ Quadrants.prototype = {
     // add mesh to quadrant
 
     this.q[x][y][z].push(mesh);
-  },
+  }
 
-  getQuadrantMeshes: function(point) {
+  getQuadrantMeshes(point) {
     // get quadrant for point
 
     const pq = this.positionToQuadrant(point);
@@ -67,4 +67,4 @@ Quadrants.prototype = {
   }
 };
 
-export default Quadrants;
+export { Quadrants };

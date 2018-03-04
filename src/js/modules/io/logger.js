@@ -1,17 +1,13 @@
-const Logger = function() {
-  this.cvs = document.createElement('canvas');
-  this.ctx = this.cvs.getContext('2d');
-  this.disabled = false;
-  this.init();
-}
-
-Logger.prototype = {
-  init: function() {
+class Logger {
+  constructor() {
+    this.cvs = document.createElement('canvas');
+    this.ctx = this.cvs.getContext('2d');
+    this.disabled = false;
     document.body.appendChild(this.cvs);
     this.setStyle();
-  },
+  }
 
-  setStyle: function() {
+  setStyle() {
     this.cvs.style.position = 'fixed';
     this.cvs.width = window.innerWidth;
     this.cvs.style.pointerEvents = 'none';
@@ -19,25 +15,25 @@ Logger.prototype = {
     this.cvs.style.zIndex = 10;
     this.cvs.style.top = 0;
     this.cvs.style.left = 0;
-  },
+  }
 
-  clear: function() {
+  clear() {
     this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
-  },
+  }
 
-  format: function(value) {
+  format(value) {
     return Math.floor(value * 10) / 10;
-  },
+  }
 
-  formatVector: function(vec) {
+  formatVector(vec) {
     return this.format(vec.x) + ', ' + this.format(vec.y) + ', ' + this.format(vec.z);
-  },
+  }
 
-  disable: function() {
+  disable() {
     this.disabled = true;
-  },
+  }
 
-  print: function() {
+  print() {
     if (!this.disabled) {
       this.clear();
 
@@ -46,6 +42,6 @@ Logger.prototype = {
       }
     }
   }
-};
+}
 
-export default Logger;
+export { Logger };

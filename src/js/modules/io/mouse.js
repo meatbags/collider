@@ -69,4 +69,4 @@ class Mouse {
   }
 }
 
-export default Mouse;
+export { Mouse };

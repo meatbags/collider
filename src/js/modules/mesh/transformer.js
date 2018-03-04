@@ -1,28 +1,28 @@
-import * as Maths from './Maths';
+import * as Maths from '../maths';
 
-const Transformer = function(object) {
-  this.point = new THREE.Vector3();
-  this.position = object.position;
-  this.rotation = object.rotation;
-  this.scale = object.scale;
-  this.rotationOrder = object.rotation.order.split('');
-  this.axis = {
-    x: new THREE.Vector3(1, 0, 0),
-    y: new THREE.Vector3(0, 1, 0),
-    z: new THREE.Vector3(0, 0, 1)
-  };
-  this.checkDefault();
-};
+class Transformer {
+  constructor(object) {
+    this.point = new THREE.Vector3();
+    this.position = object.position;
+    this.rotation = object.rotation;
+    this.scale = object.scale;
+    this.rotationOrder = object.rotation.order.split('');
+    this.axis = {
+      x: new THREE.Vector3(1, 0, 0),
+      y: new THREE.Vector3(0, 1, 0),
+      z: new THREE.Vector3(0, 0, 1)
+    };
+    this.checkDefault();
+  }
 
-Transformer.prototype = {
-  set: function(point) {
+  set(point) {
     // transform point
     this.point.x = point.x - this.position.x;
     this.point.y = point.y - this.position.y;
     this.point.z = point.z - this.position.z;
-  },
+  }
 
-  getTransformedPoint: function(point) {
+  getTransformedPoint(point) {
     const transformed = {
       x: point.x - this.position.x,
       y: point.y - this.position.y,
@@ -30,15 +30,15 @@ Transformer.prototype = {
     };
 
     return transformed;
-  },
+  }
 
-  reverseY: function(y) {
+  reverseY(y) {
     const newY = y + this.position.y;
 
     return newY;
-  },
+  }
 
-  reverse: function(point) {
+  reverse(point) {
     const transformed = {
       x: point.x + this.position.x,
       y: point.y + this.position.y,
@@ -46,9 +46,9 @@ Transformer.prototype = {
     };
 
     return transformed;
-  },
+  }
 
-  bakeRotation: function(plane) {
+  bakeRotation(plane) {
     for (let i=this.rotationOrder.length-1; i>-1; i-=1) {
       if (this.rotationOrder[i] == 'X') {
         plane.p1.applyAxisAngle(this.axis.x, this.rotation.x);
@@ -75,15 +75,15 @@ Transformer.prototype = {
         plane.n3.applyAxisAngle(this.axis.z, this.rotation.z);
       }
     }
-  },
+  }
 
-  bakeScale: function(plane) {
+  bakeScale(plane) {
     plane.p1 = Maths.scaleByVector(plane.p1, this.scale);
     plane.p2 = Maths.scaleByVector(plane.p2, this.scale);
     plane.p3 = Maths.scaleByVector(plane.p3, this.scale);
-  },
+  }
 
-  checkDefault: function() {
+  checkDefault() {
     // check if transforms are set to default
     this.default = {
       position: (this.position.x == 0 && this.position.y == 0 && this.position.z == 0),
@@ -91,6 +91,6 @@ Transformer.prototype = {
       scale: (this.scale.x == 1 && this.scale.y == 1 && this.scale.z == 1)
     };
   }
-};
+}
 
-export default Transformer;
+export { Transformer };

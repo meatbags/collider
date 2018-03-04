@@ -1,20 +1,18 @@
-import * as Maths from './Maths';
-import Config from '../config/Config';
+import * as Maths from '../maths/general';
+import { Config } from '../conf';
 
-const Plane = function(p1, p2, p3, n1, n2, n3) {
-  this.p1 = p1;
-  this.p2 = p2;
-  this.p3 = p3;
-  this.n1 = n1;
-  this.n2 = n2;
-  this.n3 = n3;
-  this.culled = false;
-  this.generatePlane();
-};
+class Plane {
+  constructor(p1, p2, p3, n1, n2, n3) {
+    this.p1 = p1;
+    this.p2 = p2;
+    this.p3 = p3;
+    this.n1 = n1;
+    this.n2 = n2;
+    this.n3 = n3;
+    this.culled = false;
 
-Plane.prototype = {
-  generatePlane: function() {
-    // edge data
+    // generate plane
+
     this.e1 = {};
     this.e2 = {};
     this.e3 = {};
@@ -26,6 +24,7 @@ Plane.prototype = {
     this.e3.vec = Maths.subtractVector(this.p1, this.p3);
 
     // get 2D component & normal
+
     this.e1.vec2 = new THREE.Vector2(this.e1.vec.x, this.e1.vec.z);
     this.e2.vec2 = new THREE.Vector2(this.e2.vec.x, this.e2.vec.z);
     this.e3.vec2 = new THREE.Vector2(this.e3.vec.x, this.e3.vec.z);
@@ -34,10 +33,12 @@ Plane.prototype = {
     this.e3.norm2 = new THREE.Vector2(-this.e3.vec.z, this.e3.vec.x);
 
     // get normal
+
     this.normal = Maths.normalise(Maths.crossProduct(this.e3.vec, this.e1.vec));
     this.normalXZ = new THREE.Vector3(this.normal.x, 0, this.normal.z);
 
     // reverse naughty normals
+
     if (
       Maths.dotProduct(this.normal, this.n1) < 0 &&
       Maths.dotProduct(this.normal, this.n2) < 0 &&
@@ -47,6 +48,7 @@ Plane.prototype = {
     }
 
     // get position
+
     this.position = new THREE.Vector3(
       (this.p1.x + this.p2.x + this.p3.x) / 3,
       (this.p1.y + this.p2.y + this.p3.y) / 3,
@@ -54,13 +56,15 @@ Plane.prototype = {
     );
 
     // cache D for solving plane
+
     this.D = -(this.normal.x * this.position.x) - (this.normal.y * this.position.y) - (this.normal.z * this.position.z);
 
     // create bounding box
-    this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
-  },
 
-  isPointAbove: function(point) {
+    this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
+  }
+
+  isPointAbove(point) {
     // is point above plane
 
     const vec = Maths.subtractVector(point, this.position);
@@ -68,9 +72,9 @@ Plane.prototype = {
     const res = (dot > 0);
 
     return res;
-  },
+  }
 
-  isPointBelow: function(point) {
+  isPointBelow(point) {
     // is point below plane
 
     const vec = Maths.subtractVector(point, this.position);
@@ -78,9 +82,9 @@ Plane.prototype = {
     const res = (dot < 0);
 
     return res;
-  },
+  }
 
-  isPointAboveOrEqual: function(point) {
+  isPointAboveOrEqual(point) {
     // is point above plane or on surface
 
     const vec = Maths.subtractVector(point, this.position);
@@ -88,9 +92,9 @@ Plane.prototype = {
     const res = (dot >= -Config.plane.dotBuffer);
 
     return res;
-  },
+  }
 
-  isPointBelowOrEqual: function(point) {
+  isPointBelowOrEqual(point) {
     // is point below plane or on surface
 
     const vec = Maths.subtractVector(point, this.position);
@@ -98,17 +102,17 @@ Plane.prototype = {
     const res = (dot <= Config.plane.dotBuffer);
 
     return res;
-  },
+  }
 
-  isPointOnSurface: function(point) {
+  isPointOnSurface(point) {
     const vec = Maths.subtractVector(point, this.position);
     const dot = Maths.dotProduct(vec, this.normal);
     const res = (dot <= Config.plane.dotBuffer && dot >= -Config.plane.dotBuffer);
 
     return res;
-  },
+  }
 
-  isPlaneAbove: function(plane) {
+  isPlaneAbove(plane) {
     // check if whole plane is above
 
     return (
@@ -116,31 +120,32 @@ Plane.prototype = {
       this.isPointAboveOrEqual(plane.p2) &&
       this.isPointAboveOrEqual(plane.p3)
     );
-  },
+  }
 
-  containsPoint: function(point) {
+  containsPoint(point) {
     return this.box.containsPoint(point);
-  },
+  }
 
-  containsBox: function(box) {
+  containsBox(box) {
     return this.box.containsBox(box);
-  },
+  }
 
-  intersectsBox: function(box) {
+  intersectsBox(box) {
     return this.box.intersectsBox(box);
-  },
+  }
 
-  containsPoint2D: function(point) {
+  containsPoint2D(point) {
     // is x, z inside bounding box
+
     return (
       this.box.min.x <= point.x &&
       this.box.max.x >= point.x &&
       this.box.min.z <= point.z &&
       this.box.max.z >= point.z
     );
-  },
+  }
 
-  containsPointPrecise2D: function(point) {
+  containsPointPrecise2D(point) {
     if (
       Maths.dotProduct2({x: point.x - this.e1.centre.x, y: point.z - this.e1.centre.z}, this.e1.norm2) < Config.plane.dotBuffer &&
       Maths.dotProduct2({x: point.x - this.e2.centre.x, y: point.z - this.e2.centre.z}, this.e2.norm2) < Config.plane.dotBuffer &&
@@ -150,17 +155,17 @@ Plane.prototype = {
     }
 
     return false;
-  },
+  }
 
-  distanceToPlane: function(point) {
+  distanceToPlane(point) {
     return (
       Math.abs(
         this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D
       )
     );
-  },
+  }
 
-  getIntersect: function(p1, p2) {
+  getIntersect(p1, p2) {
     // get intersection of plane and line between p1, p2
 
     const vec = Maths.subtractVector(p2, p1);
@@ -194,9 +199,9 @@ Plane.prototype = {
     }
 
     return null;
-  },
+  }
 
-  getNormalIntersect: function(point) {
+  getNormalIntersect(point) {
     // get intersect which extends normal vector (or inverse) to point
 
     const point2 =  Maths.addVector(point, this.normal);
@@ -209,7 +214,7 @@ Plane.prototype = {
     const intersect = new THREE.Vector3(x, y, z);
 
     return intersect;
-  },
+  }
 
   getNormalIntersect2D(point) {
     // get 2D (xz) intersect which extends from point to surface
@@ -226,23 +231,23 @@ Plane.prototype = {
         point.z - ((this.normal.z * numPart) / denom)
       );
     }
-  },
+  }
 
-  getY: function(x, z) {
+  getY(x, z) {
     // solve plane for x, z
     if (this.normal.y != 0) {
       return (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
     } else {
       return null;
     }
-  },
+  }
 
-  getPerpendicularNormals: function() {
+  getPerpendicularNormals() {
     return {
       right: new THREE.Vector3(-this.normal.z, 0, this.normal.x),
       left: new THREE.Vector3(this.normal.z, 0, -this.normal.x)
     };
   }
-};
+}
 
-export default Plane;
+export { Plane };

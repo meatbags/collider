@@ -2,16 +2,10 @@
  * @author meatbags / https://github.com/meatbags
 */
 
-// physics
+// mesh, system, collider, player
 
-import Mesh from './modules/physics/Mesh';
-import System from './modules/physics/System';
-import Player from './modules/physics/Player';
-import Logger from './modules/physics/Logger';
-import Interaction from './modules/physics/Interaction';
+export * from './modules/mesh';
 
-// graphics
+// loaders
 
-import Loader from './modules/graphics/Loader';
-
-export { Mesh, System, Player, Logger, Loader, Interaction };
+export * from './modules/file';

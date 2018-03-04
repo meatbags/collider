@@ -1,28 +1,30 @@
-import Config from '../config/Config';
-import Plane from './Plane';
-import Transformer from './Transformer';
-import { subtractVector, dotProduct, normalise, distanceBetween } from './Maths';
+import { Config } from '../conf';
+import { Plane } from './plane';
+import { Transformer } from './transformer';
+import { subtractVector, dotProduct, normalise, distanceBetween } from '../maths';
 
-const Mesh = function(object) {
-  this.isColliderMesh = true;
+class Mesh {
+  constructor(object) {
+    // collision mesh
 
-  if (object.geometry.isBufferGeometry) {
-    this.object = object;
-    this.geometry = object.geometry;
-    this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
-    this.min = this.box.min;
-    this.max = this.box.max;
-    this.planes = [];
-    this.transform = new Transformer(object);
-    this.generatePlanes();
-    this.conformPlanes();
-  } else {
-    throw('Error: Input is not THREE.BufferGeometry');
+    this.isColliderMesh = true;
+
+    if (object.geometry.isBufferGeometry) {
+      this.object = object;
+      this.geometry = object.geometry;
+      this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
+      this.min = this.box.min;
+      this.max = this.box.max;
+      this.planes = [];
+      this.transform = new Transformer(object);
+      this.generatePlanes();
+      this.conformPlanes();
+    } else {
+      throw('Error: Input is not THREE.BufferGeometry');
+    }
   }
-};
 
-Mesh.prototype = {
-  generatePlanes: function() {
+  generatePlanes() {
     // create planes from buffer geometry attribute
 
     const verts = this.geometry.attributes.position.array;
@@ -63,9 +65,9 @@ Mesh.prototype = {
         );
       }
     }
-  },
+  }
 
-  conformPlanes: function() {
+  conformPlanes() {
     let conformed = false;
 
     // conform scale
@@ -93,9 +95,9 @@ Mesh.prototype = {
       // set new collision box
       this.setBoxFromPlanes();
     }
-  },
+  }
 
-  setBoxFromPlanes: function() {
+  setBoxFromPlanes() {
     const array = [];
 
     for (let i=0; i<this.planes.length; i+=1) {
@@ -107,9 +109,9 @@ Mesh.prototype = {
     }
 
     this.box.setFromPoints(array);
-  },
+  }
 
-  getCollision: function(point) {
+  getCollision(point) {
     this.transform.set(point);
 
     if (this.box.containsPoint(this.transform.point)) {
@@ -141,18 +143,18 @@ Mesh.prototype = {
     } else {
       return false;
     }
-  },
+  }
 
-  getCollision2D: function(point) {
+  getCollision2D(point) {
     this.transform.set(point)
 
     return (
       this.transform.point.x >= this.min.x && this.transform.point.x <= this.max.x &&
       this.transform.point.z >= this.min.z && this.transform.point.z <= this.max.z
     );
-  },
+  }
 
-  getCeiling2D: function(point) {
+  getCeiling2D(point) {
     this.transform.set(point)
     let y = null;
 
@@ -167,9 +169,9 @@ Mesh.prototype = {
     }
 
     return ((y == null) ? null : this.transform.reverseY(y));
-  },
+  }
 
-  getCeiling: function(point) {
+  getCeiling(point) {
     // get ceiling *above* point
     this.transform.set(point)
     let y = null;
@@ -185,9 +187,9 @@ Mesh.prototype = {
     }
 
     return ((y == null) ? null : this.transform.reverseY(y));
-  },
+  }
 
-  getCeilingPlane: function(point) {
+  getCeilingPlane(point) {
     // get ceiling and plane *above* point
     this.transform.set(point);
     let ceiling = null;
@@ -214,9 +216,9 @@ Mesh.prototype = {
       y: this.transform.reverseY(ceiling.y),
       plane: ceiling.plane
     });
-  },
+  }
 
-  getIntersectPlane: function(p1, p2) {
+  getIntersectPlane(p1, p2) {
     const tp1 = this.transform.getTransformedPoint(p1);
     const tp2 = this.transform.getTransformedPoint(p2);
     const box = new THREE.Box3().setFromPoints([tp1, tp2]);
@@ -245,10 +247,11 @@ Mesh.prototype = {
       plane: intersectPlane.plane,
       distance: intersectPlane.distance
     });
-  },
+  }
 
-  getIntersectPlane2D: function(p1, p2) {
+  getIntersectPlane2D(p1, p2) {
     // find 2D intersect *nearest* to p2
+
     const tp1 = this.transform.getTransformedPoint(p1);
     const tp2 = this.transform.getTransformedPoint(p2);
     const box = new THREE.Box3().setFromPoints([tp1, tp2]);
@@ -278,6 +281,6 @@ Mesh.prototype = {
       distance: intersectPlane.distance
     });
   }
-};
+}
 
-export default Mesh;
+export { Mesh };

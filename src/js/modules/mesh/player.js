@@ -1,8 +1,7 @@
-import * as Maths from './Maths';
-import Interaction from './Interaction';
-import Config from '../config/Config';
-import Mouse from './Mouse';
-import Keyboard from './Keyboard';
+import * as Maths from '../maths/general';
+import { Collider } from './collider';
+import { Config } from '../conf';
+import { Mouse, Keyboard } from '../io';
 
 class Player {
   constructor(domElement) {
@@ -52,7 +51,7 @@ class Player {
 
     // world
 
-    this.interaction = new Interaction(this.target.position, this.target.rotation, this.motion);
+    this.collider = new Collider(this.target.position, this.motion);
     this.object = new THREE.Group();
     this.camera = new THREE.PerspectiveCamera(Config.sandbox.camera.fov, Config.sandbox.camera.aspect, Config.sandbox.camera.near, Config.sandbox.camera.far);
     this.camera.up = new THREE.Vector3(0, 1, 0);
@@ -120,7 +119,7 @@ class Player {
     // apply input, compute physics, move
 
     this.input(delta);
-    this.interaction.computeNextPosition(delta, objects);
+    this.collider.move(delta, objects);
     this.move();
 	}
 
@@ -270,4 +269,4 @@ class Player {
   }
 };
 
-export default Player;
+export { Player };

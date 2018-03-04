@@ -74,72 +74,18 @@ var Collider =
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-var Config = {
-  system: {
-    maxPlanesPerMesh: 250
-  },
-  quadrants: {
-    size: {
-      x: 100,
-      y: 100,
-      z: 100
-    }
-  },
-  plane: {
-    dotBuffer: 0.001,
-    collisionThreshold: 0.5
-  },
-  sandbox: {
-    physics: {
-      gravity: 20,
-      maxVelocity: 50,
-      floor: -0.5,
-      snapUp: 1,
-      snapDown: 0.5,
-      minSlope: Math.PI / 5,
-      noclip: false
-    },
-    player: {
-      height: 2,
-      position: {
-        x: 0,
-        y: 0,
-        z: 0
-      },
-      rotation: {
-        pitch: 0,
-        yaw: Math.PI,
-        roll: 0,
-        maxPitch: Math.PI * 0.3,
-        minPitch: Math.PI * -0.3
-      },
-      speed: {
-        normal: 8,
-        slowed: 4,
-        noclip: 20,
-        rotation: Math.PI * 0.75,
-        jump: 10,
-        fallTimerThreshold: 0.2
-      }
-    },
-    camera: {
-      fov: 60,
-      aspect: 1,
-      near: 0.1,
-      far: 1000
-    },
-    adjust: {
-      verySlow: 0.01,
-      slow: 0.025,
-      normal: 0.05,
-      fast: 0.09,
-      rapid: 0.12,
-      veryFast: 0.2
-    }
-  }
-};
 
-exports.default = Config;
+var _config = __webpack_require__(7);
+
+Object.keys(_config).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _config[key];
+    }
+  });
+});
 
 /***/ }),
 /* 1 */
@@ -284,187 +230,17 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _Config = __webpack_require__(0);
+var _general = __webpack_require__(1);
 
-var _Config2 = _interopRequireDefault(_Config);
-
-var _Maths = __webpack_require__(1);
-
-var Maths = _interopRequireWildcard(_Maths);
-
-var _Logger = __webpack_require__(3);
-
-var _Logger2 = _interopRequireDefault(_Logger);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var Interaction = function Interaction(position, rotation, motion) {
-  this.position = position;
-  this.rotation = rotation;
-  this.motion = motion;
-  this.falling = false;
-  this.config = {};
-  this.config.physics = _Config2.default.sandbox.physics;
-  this.logger = new _Logger2.default();
-}; // interaction object for building physical systems
-
-Interaction.prototype = {
-  computeNextPosition: function computeNextPosition(delta, system) {
-    // move
-    var position = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
-
-    // collision system
-    if (!this.config.physics.noclip) {
-      var meshes = system.getCollisionMeshes(position);
-
-      // apply gravity
-      this.applyPhysics(delta);
-
-      if (meshes.length > 0) {
-        // check for slopes
-        if (this.stepUpSlopes(position, meshes)) {
-          meshes = system.getCollisionMeshes(position);
-        }
-
-        // check for walls
-        if (this.testObstructions(position, meshes, system)) {
-          // check for slopes
-          meshes = system.getCollisionMeshes(position);
-          this.stepUpSlopes(position, meshes);
-        }
-      } else if (this.motion.y < 0 && !this.falling) {
-        // check under position
-        var under = Maths.copyVector(position);
-        under.y -= this.config.physics.snapDown;
-        var mesh = system.getCeilingPlane(under);
-
-        // check for slopes
-        this.stepDownSlope(position, mesh);
-      }
+Object.keys(_general).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _general[key];
     }
-
-    // move
-    this.position.x = position.x;
-    this.position.y = position.y;
-    this.position.z = position.z;
-
-    // limit
-    if (this.position.y < this.config.physics.floor) {
-      this.motion.y = 0;
-      this.position.y = this.config.physics.floor;
-    }
-
-    // dev
-    /*
-    this.logger.print(
-      'M ' + this.logger.formatVector(this.motion),
-      'P ' + this.logger.formatVector(this.position),
-      'V ' + this.logger.formatVector({x: this.rotation.pitch, y: this.rotation.yaw, z: this.rotation.roll})
-    );
-    */
-  },
-
-  testObstructions: function testObstructions(position, meshes, system) {
-    // check for obstructions
-    var obstruction = false;
-    var extruded = false;
-
-    for (var i = 0; i < meshes.length; i += 1) {
-      var ceiling = meshes[i].getCeilingPlane(position);
-
-      if (ceiling != null && (ceiling.plane.normal.y < this.config.physics.minSlope || ceiling.y - this.position.y > this.config.physics.snapUp)) {
-        obstruction = meshes[i];
-        break; // only one obstruction needed
-      }
-    }
-
-    // handle obstruction
-    if (obstruction) {
-      var extrude = Maths.copyVector(position);
-      var intersectPlane = obstruction.getIntersectPlane2D(this.position, position);
-
-      // extrude position from object
-      if (intersectPlane != null) {
-        position.x = intersectPlane.intersect.x;
-        position.z = intersectPlane.intersect.z;
-
-        // get collisions at *new* point
-        var hits = 0;
-        meshes = system.getCollisionMeshes(position);
-
-        for (var _i = 0; _i < meshes.length; _i += 1) {
-          var _ceiling = meshes[_i].getCeilingPlane(position);
-
-          // if position is climbable, ignore
-          if (_ceiling != null && (_ceiling.plane.normal.y < this.config.physics.minSlope || _ceiling.y - this.position.y > this.config.physics.snapUp)) {
-            hits += 1;
-          }
-        }
-
-        // stop motion if cornered (collisions > 1)
-        if (hits > 1) {
-          position.x = this.position.x;
-          position.z = this.position.z;
-        } else {
-          extruded = true;
-        }
-      } else {
-        position.x = this.position.x;
-        position.z = this.position.z;
-      }
-    }
-
-    return extruded;
-  },
-
-  stepUpSlopes: function stepUpSlopes(position, meshes) {
-    // check for upward slopes
-    var success = false;
-
-    for (var i = 0; i < meshes.length; i += 1) {
-      var ceiling = meshes[i].getCeilingPlane(position);
-
-      // climb
-      if (ceiling != null && ceiling.plane.normal.y >= this.config.physics.minSlope && ceiling.y - this.position.y <= this.config.physics.snapUp) {
-        if (ceiling.y >= position.y) {
-          success = true;
-          position.y = ceiling.y;
-          this.motion.y = 0;
-        }
-      }
-    }
-
-    return success;
-  },
-
-  applyPhysics: function applyPhysics(delta) {
-    this.falling = this.motion.y < 0;
-    this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
-  },
-
-  setPhysics: function setPhysics(params) {
-    this.config.physics.gravity = params.gravity ? params.gravity : this.config.physics.gravity;
-    this.config.physics.floor = params.floor ? params.floor : this.config.physics.floor;
-    this.config.physics.snapUp = params.snapUp ? params.snapUp : this.config.physics.snapUp;
-    this.config.physics.snapDown = params.snapDown ? params.snapDown : this.config.physics.snapDown;
-  },
-
-  stepDownSlope: function stepDownSlope(position, ceilingPlane) {
-    var success = false;
-
-    if (ceilingPlane != null && ceilingPlane.plane.normal.y >= this.config.physics.minSlope) {
-      position.y = ceilingPlane.y;
-      this.motion.y = 0;
-      success = true;
-    }
-
-    return success;
-  }
-};
-
-exports.default = Interaction;
+  });
+});
 
 /***/ }),
 /* 3 */
@@ -476,57 +252,196 @@ exports.default = Interaction;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-var Logger = function Logger() {
-  this.cvs = document.createElement('canvas');
-  this.ctx = this.cvs.getContext('2d');
-  this.disabled = false;
-  this.init();
-};
+exports.Collider = undefined;
 
-Logger.prototype = {
-  init: function init() {
-    document.body.appendChild(this.cvs);
-    this.setStyle();
-  },
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-  setStyle: function setStyle() {
-    this.cvs.style.position = 'fixed';
-    this.cvs.width = window.innerWidth;
-    this.cvs.style.pointerEvents = 'none';
-    this.cvs.height = 400;
-    this.cvs.style.zIndex = 10;
-    this.cvs.style.top = 0;
-    this.cvs.style.left = 0;
-  },
+var _conf = __webpack_require__(0);
 
-  clear: function clear() {
-    this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
-  },
+var _general = __webpack_require__(1);
 
-  format: function format(value) {
-    return Math.floor(value * 10) / 10;
-  },
+var Maths = _interopRequireWildcard(_general);
 
-  formatVector: function formatVector(vec) {
-    return this.format(vec.x) + ', ' + this.format(vec.y) + ', ' + this.format(vec.z);
-  },
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
-  disable: function disable() {
-    this.disabled = true;
-  },
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-  print: function print() {
-    if (!this.disabled) {
-      this.clear();
+var Collider = function () {
+  function Collider(position, motion) {
+    _classCallCheck(this, Collider);
 
-      for (var i = 0; i < arguments.length; i += 1) {
-        this.ctx.fillText(arguments[i], 20, 20 + i * 20);
+    // collision object
+
+    this.position = position;
+    this.motion = motion;
+    this.falling = false;
+    this.config = {};
+    this.config.physics = _conf.Config.sandbox.physics;
+  }
+
+  _createClass(Collider, [{
+    key: 'gravity',
+    value: function gravity(delta) {
+      this.falling = this.motion.y < 0;
+      this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
+    }
+  }, {
+    key: 'setPhysics',
+    value: function setPhysics(params) {
+      for (var key in params) {
+        if (params.hasOwnProperty(key) && this.config.physics.hasOwnProperty(key)) {
+          this.config.physics[key] = params[key];
+        }
       }
     }
-  }
-};
+  }, {
+    key: 'move',
+    value: function move(delta, system) {
+      // move against the collider system
 
-exports.default = Logger;
+      var position = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
+
+      if (!this.config.physics.noclip) {
+        this.gravity(delta);
+        var meshes = system.getCollisionMeshes(position);
+
+        if (meshes.length > 0) {
+          // upward slopes
+
+          if (this.stepUpSlopes(position, meshes)) {
+            meshes = system.getCollisionMeshes(position);
+          }
+
+          // walls
+
+          if (this.feel(position, meshes, system)) {
+            meshes = system.getCollisionMeshes(position);
+            this.stepUpSlopes(position, meshes);
+          }
+        } else if (this.motion.y < 0 && !this.falling) {
+          // downward slopes
+
+          var under = Maths.copyVector(position);
+          under.y -= this.config.physics.snapDown;
+          var mesh = system.getCeilingPlane(under);
+          this.stepDownSlope(position, mesh);
+        }
+      }
+
+      this.position.x = position.x;
+      this.position.y = position.y;
+      this.position.z = position.z;
+
+      // spatial limit
+
+      if (this.position.y < this.config.physics.floor) {
+        this.motion.y = 0;
+        this.position.y = this.config.physics.floor;
+      }
+    }
+  }, {
+    key: 'feel',
+    value: function feel(position, meshes, system) {
+      // test for obstructions
+
+      var obstruction = false;
+      var extruded = false;
+
+      for (var i = 0; i < meshes.length; i += 1) {
+        var ceiling = meshes[i].getCeilingPlane(position);
+
+        // get first obstruction
+
+        if (ceiling != null && (ceiling.plane.normal.y < this.config.physics.minSlope || ceiling.y - this.position.y > this.config.physics.snapUp)) {
+          obstruction = meshes[i];
+          break;
+        }
+      }
+
+      // change vector or stop
+
+      if (obstruction) {
+        var extrude = Maths.copyVector(position);
+        var intersectPlane = obstruction.getIntersectPlane2D(this.position, position);
+
+        if (intersectPlane != null) {
+          position.x = intersectPlane.intersect.x;
+          position.z = intersectPlane.intersect.z;
+
+          // get collisions at *new* point
+
+          var hits = 0;
+          meshes = system.getCollisionMeshes(position);
+
+          for (var _i = 0; _i < meshes.length; _i += 1) {
+            var _ceiling = meshes[_i].getCeilingPlane(position);
+
+            // ignore if climbable
+
+            if (_ceiling != null && (_ceiling.plane.normal.y < this.config.physics.minSlope || _ceiling.y - this.position.y > this.config.physics.snapUp)) {
+              hits += 1;
+            }
+          }
+
+          // stop motion if more than one collision (corner)
+
+          if (hits > 1) {
+            position.x = this.position.x;
+            position.z = this.position.z;
+          } else {
+            extruded = true;
+          }
+        } else {
+          position.x = this.position.x;
+          position.z = this.position.z;
+        }
+      }
+
+      return extruded;
+    }
+  }, {
+    key: 'stepUpSlopes',
+    value: function stepUpSlopes(position, meshes) {
+      // check for upward slopes in meshes
+
+      var success = false;
+
+      for (var i = 0; i < meshes.length; i += 1) {
+        var ceiling = meshes[i].getCeilingPlane(position);
+
+        // climb
+        if (ceiling != null && ceiling.plane.normal.y >= this.config.physics.minSlope && ceiling.y - this.position.y <= this.config.physics.snapUp) {
+          if (ceiling.y >= position.y) {
+            success = true;
+            position.y = ceiling.y;
+            this.motion.y = 0;
+          }
+        }
+      }
+
+      return success;
+    }
+  }, {
+    key: 'stepDownSlope',
+    value: function stepDownSlope(position, ceilingPlane) {
+      // descend a given slope
+
+      var success = false;
+
+      if (ceilingPlane != null && ceilingPlane.plane.normal.y >= this.config.physics.minSlope) {
+        position.y = ceilingPlane.y;
+        this.motion.y = 0;
+        success = true;
+      }
+
+      return success;
+    }
+  }]);
+
+  return Collider;
+}();
+
+exports.Collider = Collider;
 
 /***/ }),
 /* 4 */
@@ -538,337 +453,33 @@ exports.default = Logger;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Interaction = exports.Loader = exports.Logger = exports.Player = exports.System = exports.Mesh = undefined;
 
-var _Mesh = __webpack_require__(5);
+var _mesh = __webpack_require__(18);
 
-var _Mesh2 = _interopRequireDefault(_Mesh);
-
-var _System = __webpack_require__(8);
-
-var _System2 = _interopRequireDefault(_System);
-
-var _Player = __webpack_require__(9);
-
-var _Player2 = _interopRequireDefault(_Player);
-
-var _Logger = __webpack_require__(3);
-
-var _Logger2 = _interopRequireDefault(_Logger);
-
-var _Interaction = __webpack_require__(2);
-
-var _Interaction2 = _interopRequireDefault(_Interaction);
-
-var _Loader = __webpack_require__(12);
-
-var _Loader2 = _interopRequireDefault(_Loader);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/**
- * @author meatbags / https://github.com/meatbags
-*/
-
-// physics
-
-exports.Mesh = _Mesh2.default;
-exports.System = _System2.default;
-exports.Player = _Player2.default;
-exports.Logger = _Logger2.default;
-exports.Loader = _Loader2.default;
-exports.Interaction = _Interaction2.default;
-
-// graphics
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
+Object.keys(_mesh).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _mesh[key];
+    }
+  });
 });
 
-var _Config = __webpack_require__(0);
+var _file = __webpack_require__(19);
 
-var _Config2 = _interopRequireDefault(_Config);
-
-var _Plane = __webpack_require__(6);
-
-var _Plane2 = _interopRequireDefault(_Plane);
-
-var _Transformer = __webpack_require__(7);
-
-var _Transformer2 = _interopRequireDefault(_Transformer);
-
-var _Maths = __webpack_require__(1);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var Mesh = function Mesh(object) {
-  this.isColliderMesh = true;
-
-  if (object.geometry.isBufferGeometry) {
-    this.object = object;
-    this.geometry = object.geometry;
-    this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
-    this.min = this.box.min;
-    this.max = this.box.max;
-    this.planes = [];
-    this.transform = new _Transformer2.default(object);
-    this.generatePlanes();
-    this.conformPlanes();
-  } else {
-    throw 'Error: Input is not THREE.BufferGeometry';
-  }
-};
-
-Mesh.prototype = {
-  generatePlanes: function generatePlanes() {
-    // create planes from buffer geometry attribute
-
-    var verts = this.geometry.attributes.position.array;
-    var norms = this.geometry.attributes.normal.array;
-
-    if (this.geometry.index) {
-      // handle indexed geometry
-      var indices = this.geometry.index.array;
-      var size = this.geometry.attributes.position.itemSize;
-      var step = 3;
-
-      for (var i = 0; i < indices.length; i += step) {
-        var j = indices[i] * size;
-        var k = indices[i + 1] * size;
-        var l = indices[i + 2] * size;
-
-        this.planes.push(new _Plane2.default(new THREE.Vector3(verts[j], verts[j + 1], verts[j + 2]), new THREE.Vector3(verts[k], verts[k + 1], verts[k + 2]), new THREE.Vector3(verts[l], verts[l + 1], verts[l + 2]), new THREE.Vector3(norms[j], norms[j + 1], norms[j + 2]), new THREE.Vector3(norms[k], norms[k + 1], norms[k + 2]), new THREE.Vector3(norms[l], norms[l + 1], norms[l + 2])));
-      }
-    } else {
-      var _step = 9;
-
-      for (var _i = 0; _i < verts.length; _i += _step) {
-        this.planes.push(new _Plane2.default(new THREE.Vector3(verts[_i + 0], verts[_i + 1], verts[_i + 2]), new THREE.Vector3(verts[_i + 3], verts[_i + 4], verts[_i + 5]), new THREE.Vector3(verts[_i + 6], verts[_i + 7], verts[_i + 8]), new THREE.Vector3(norms[_i + 0], norms[_i + 1], norms[_i + 2]), new THREE.Vector3(norms[_i + 3], norms[_i + 4], norms[_i + 5]), new THREE.Vector3(norms[_i + 6], norms[_i + 7], norms[_i + 8])));
-      }
+Object.keys(_file).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _file[key];
     }
-  },
-
-  conformPlanes: function conformPlanes() {
-    var conformed = false;
-
-    // conform scale
-    if (!this.transform.default.scale) {
-      for (var i = 0; i < this.planes.length; i += 1) {
-        this.transform.bakeScale(this.planes[i]);
-      }
-      conformed = true;
-    }
-
-    // conform rotation
-    if (!this.transform.default.rotation) {
-      for (var _i2 = 0; _i2 < this.planes.length; _i2 += 1) {
-        this.transform.bakeRotation(this.planes[_i2]);
-      }
-      conformed = true;
-    }
-
-    if (conformed) {
-      // get new plane data
-      for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
-        this.planes[_i3].generatePlane();
-      }
-
-      // set new collision box
-      this.setBoxFromPlanes();
-    }
-  },
-
-  setBoxFromPlanes: function setBoxFromPlanes() {
-    var array = [];
-
-    for (var i = 0; i < this.planes.length; i += 1) {
-      var p = this.planes[i];
-
-      array.push(p.p1);
-      array.push(p.p2);
-      array.push(p.p3);
-    }
-
-    this.box.setFromPoints(array);
-  },
-
-  getCollision: function getCollision(point) {
-    this.transform.set(point);
-
-    if (this.box.containsPoint(this.transform.point)) {
-      // reset
-      for (var i = 0; i < this.planes.length; i += 1) {
-        this.planes[i].culled = false;
-      }
-
-      // first pass - cull faces
-      for (var _i4 = 0; _i4 < this.planes.length; _i4 += 1) {
-        if (!this.planes[_i4].culled && this.planes[_i4].isPointBelowOrEqual(this.transform.point)) {
-          // cull planes above plane
-          for (var j = 0; j < this.planes.length; j += 1) {
-            if (!this.planes[j].culled && j != _i4 && this.planes[_i4].isPlaneAbove(this.planes[j])) {
-              this.planes[j].culled = true;
-            }
-          }
-        }
-      }
-
-      // second pass - get result
-      for (var _i5 = 0; _i5 < this.planes.length; _i5 += 1) {
-        if (!this.planes[_i5].culled && !this.planes[_i5].isPointBelowOrEqual(this.transform.point)) {
-          return false;
-        }
-      }
-
-      return true;
-    } else {
-      return false;
-    }
-  },
-
-  getCollision2D: function getCollision2D(point) {
-    this.transform.set(point);
-
-    return this.transform.point.x >= this.min.x && this.transform.point.x <= this.max.x && this.transform.point.z >= this.min.z && this.transform.point.z <= this.max.z;
-  },
-
-  getCeiling2D: function getCeiling2D(point) {
-    this.transform.set(point);
-    var y = null;
-
-    for (var i = 0; i < this.planes.length; i += 1) {
-      if (this.planes[i].containsPoint2D(this.transform.point)) {
-        var planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
-
-        if (y === null || planeCeiling > y) {
-          y = planeCeiling;
-        }
-      }
-    }
-
-    return y == null ? null : this.transform.reverseY(y);
-  },
-
-  getCeiling: function getCeiling(point) {
-    // get ceiling *above* point
-    this.transform.set(point);
-    var y = null;
-
-    for (var i = 0; i < this.planes.length; i += 1) {
-      if (this.planes[i].containsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
-        var planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
-
-        if (planeCeiling >= this.transform.point.y && (y === null || planeCeiling < y)) {
-          y = planeCeiling;
-        }
-      }
-    }
-
-    return y == null ? null : this.transform.reverseY(y);
-  },
-
-  getCeilingPlane: function getCeilingPlane(point) {
-    // get ceiling and plane *above* point
-    this.transform.set(point);
-    var ceiling = null;
-
-    for (var i = 0; i < this.planes.length; i += 1) {
-      // check general box, then precise, then for ceiling
-      if (this.planes[i].containsPoint2D(this.transform.point)) {
-
-        if (this.planes[i].containsPointPrecise2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
-          var planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
-
-          if (planeCeiling != null && planeCeiling >= this.transform.point.y && (ceiling == null || planeCeiling > ceiling.y)) {
-            ceiling = {
-              y: planeCeiling,
-              plane: this.planes[i]
-            };
-          }
-        }
-      }
-    }
-
-    return ceiling == null ? null : {
-      y: this.transform.reverseY(ceiling.y),
-      plane: ceiling.plane
-    };
-  },
-
-  getIntersectPlane: function getIntersectPlane(p1, p2) {
-    var tp1 = this.transform.getTransformedPoint(p1);
-    var tp2 = this.transform.getTransformedPoint(p2);
-    var box = new THREE.Box3().setFromPoints([tp1, tp2]);
-    var intersectPlane = null;
-
-    for (var i = 0; i < this.planes.length; i += 1) {
-      if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
-        var intersect = this.planes[i].getIntersect(tp1, tp2);
-
-        if (intersect != null) {
-          var distance = (0, _Maths.distanceBetween)(tp1, intersect);
-
-          if (intersectPlane === null || distance < intersectPlane.distance) {
-            intersectPlane = {
-              intersect: intersect,
-              plane: this.planes[i],
-              distance: distance
-            };
-          }
-        }
-      }
-    }
-
-    return intersectPlane == null ? null : {
-      intersect: this.transform.reverse(intersectPlane.intersect),
-      plane: intersectPlane.plane,
-      distance: intersectPlane.distance
-    };
-  },
-
-  getIntersectPlane2D: function getIntersectPlane2D(p1, p2) {
-    // find 2D intersect *nearest* to p2
-    var tp1 = this.transform.getTransformedPoint(p1);
-    var tp2 = this.transform.getTransformedPoint(p2);
-    var box = new THREE.Box3().setFromPoints([tp1, tp2]);
-    var intersectPlane = null;
-
-    for (var i = 0; i < this.planes.length; i += 1) {
-      if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
-        var intersect2D = this.planes[i].getNormalIntersect2D(tp2);
-
-        if (intersect2D != null) {
-          var distance = (0, _Maths.distanceBetween)(tp2, intersect2D);
-
-          if (intersectPlane === null || distance < intersectPlane.distance) {
-            intersectPlane = {
-              plane: this.planes[i],
-              intersect: intersect2D,
-              distance: distance
-            };
-          }
-        }
-      }
-    }
-
-    return intersectPlane == null ? null : {
-      intersect: this.transform.reverse(intersectPlane.intersect),
-      plane: intersectPlane.plane,
-      distance: intersectPlane.distance
-    };
-  }
-};
-
-exports.default = Mesh;
+  });
+});
 
 /***/ }),
+/* 5 */,
 /* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -878,236 +489,298 @@ exports.default = Mesh;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.Mesh = undefined;
 
-var _Maths = __webpack_require__(1);
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var Maths = _interopRequireWildcard(_Maths);
+var _conf = __webpack_require__(0);
 
-var _Config = __webpack_require__(0);
+var _plane = __webpack_require__(17);
 
-var _Config2 = _interopRequireDefault(_Config);
+var _transformer = __webpack_require__(8);
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var _maths = __webpack_require__(2);
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Plane = function Plane(p1, p2, p3, n1, n2, n3) {
-  this.p1 = p1;
-  this.p2 = p2;
-  this.p3 = p3;
-  this.n1 = n1;
-  this.n2 = n2;
-  this.n3 = n3;
-  this.culled = false;
-  this.generatePlane();
-};
+var Mesh = function () {
+  function Mesh(object) {
+    _classCallCheck(this, Mesh);
 
-Plane.prototype = {
-  generatePlane: function generatePlane() {
-    // edge data
-    this.e1 = {};
-    this.e2 = {};
-    this.e3 = {};
-    this.e1.centre = Maths.scaleVector(Maths.addVector(this.p1, this.p2), 0.5);
-    this.e2.centre = Maths.scaleVector(Maths.addVector(this.p2, this.p3), 0.5);
-    this.e3.centre = Maths.scaleVector(Maths.addVector(this.p3, this.p1), 0.5);
-    this.e1.vec = Maths.subtractVector(this.p2, this.p1);
-    this.e2.vec = Maths.subtractVector(this.p3, this.p2);
-    this.e3.vec = Maths.subtractVector(this.p1, this.p3);
+    // collision mesh
 
-    // get 2D component & normal
-    this.e1.vec2 = new THREE.Vector2(this.e1.vec.x, this.e1.vec.z);
-    this.e2.vec2 = new THREE.Vector2(this.e2.vec.x, this.e2.vec.z);
-    this.e3.vec2 = new THREE.Vector2(this.e3.vec.x, this.e3.vec.z);
-    this.e1.norm2 = new THREE.Vector2(-this.e1.vec.z, this.e1.vec.x);
-    this.e2.norm2 = new THREE.Vector2(-this.e2.vec.z, this.e2.vec.x);
-    this.e3.norm2 = new THREE.Vector2(-this.e3.vec.z, this.e3.vec.x);
+    this.isColliderMesh = true;
 
-    // get normal
-    this.normal = Maths.normalise(Maths.crossProduct(this.e3.vec, this.e1.vec));
-    this.normalXZ = new THREE.Vector3(this.normal.x, 0, this.normal.z);
-
-    // reverse naughty normals
-    if (Maths.dotProduct(this.normal, this.n1) < 0 && Maths.dotProduct(this.normal, this.n2) < 0 && Maths.dotProduct(this.normal, this.n3) < 0) {
-      this.normal = Maths.reverseVector(this.normal);
+    if (object.geometry.isBufferGeometry) {
+      this.object = object;
+      this.geometry = object.geometry;
+      this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
+      this.min = this.box.min;
+      this.max = this.box.max;
+      this.planes = [];
+      this.transform = new _transformer.Transformer(object);
+      this.generatePlanes();
+      this.conformPlanes();
+    } else {
+      throw 'Error: Input is not THREE.BufferGeometry';
     }
+  }
 
-    // get position
-    this.position = new THREE.Vector3((this.p1.x + this.p2.x + this.p3.x) / 3, (this.p1.y + this.p2.y + this.p3.y) / 3, (this.p1.z + this.p2.z + this.p3.z) / 3);
+  _createClass(Mesh, [{
+    key: 'generatePlanes',
+    value: function generatePlanes() {
+      // create planes from buffer geometry attribute
 
-    // cache D for solving plane
-    this.D = -(this.normal.x * this.position.x) - this.normal.y * this.position.y - this.normal.z * this.position.z;
+      var verts = this.geometry.attributes.position.array;
+      var norms = this.geometry.attributes.normal.array;
 
-    // create bounding box
-    this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
-  },
+      if (this.geometry.index) {
+        // handle indexed geometry
+        var indices = this.geometry.index.array;
+        var size = this.geometry.attributes.position.itemSize;
+        var step = 3;
 
-  isPointAbove: function isPointAbove(point) {
-    // is point above plane
+        for (var i = 0; i < indices.length; i += step) {
+          var j = indices[i] * size;
+          var k = indices[i + 1] * size;
+          var l = indices[i + 2] * size;
 
-    var vec = Maths.subtractVector(point, this.position);
-    var dot = Maths.dotProduct(vec, this.normal);
-    var res = dot > 0;
+          this.planes.push(new _plane.Plane(new THREE.Vector3(verts[j], verts[j + 1], verts[j + 2]), new THREE.Vector3(verts[k], verts[k + 1], verts[k + 2]), new THREE.Vector3(verts[l], verts[l + 1], verts[l + 2]), new THREE.Vector3(norms[j], norms[j + 1], norms[j + 2]), new THREE.Vector3(norms[k], norms[k + 1], norms[k + 2]), new THREE.Vector3(norms[l], norms[l + 1], norms[l + 2])));
+        }
+      } else {
+        var _step = 9;
 
-    return res;
-  },
-
-  isPointBelow: function isPointBelow(point) {
-    // is point below plane
-
-    var vec = Maths.subtractVector(point, this.position);
-    var dot = Maths.dotProduct(vec, this.normal);
-    var res = dot < 0;
-
-    return res;
-  },
-
-  isPointAboveOrEqual: function isPointAboveOrEqual(point) {
-    // is point above plane or on surface
-
-    var vec = Maths.subtractVector(point, this.position);
-    var dot = Maths.dotProduct(vec, this.normal);
-    var res = dot >= -_Config2.default.plane.dotBuffer;
-
-    return res;
-  },
-
-  isPointBelowOrEqual: function isPointBelowOrEqual(point) {
-    // is point below plane or on surface
-
-    var vec = Maths.subtractVector(point, this.position);
-    var dot = Maths.dotProduct(vec, this.normal);
-    var res = dot <= _Config2.default.plane.dotBuffer;
-
-    return res;
-  },
-
-  isPointOnSurface: function isPointOnSurface(point) {
-    var vec = Maths.subtractVector(point, this.position);
-    var dot = Maths.dotProduct(vec, this.normal);
-    var res = dot <= _Config2.default.plane.dotBuffer && dot >= -_Config2.default.plane.dotBuffer;
-
-    return res;
-  },
-
-  isPlaneAbove: function isPlaneAbove(plane) {
-    // check if whole plane is above
-
-    return this.isPointAboveOrEqual(plane.p1) && this.isPointAboveOrEqual(plane.p2) && this.isPointAboveOrEqual(plane.p3);
-  },
-
-  containsPoint: function containsPoint(point) {
-    return this.box.containsPoint(point);
-  },
-
-  containsBox: function containsBox(box) {
-    return this.box.containsBox(box);
-  },
-
-  intersectsBox: function intersectsBox(box) {
-    return this.box.intersectsBox(box);
-  },
-
-  containsPoint2D: function containsPoint2D(point) {
-    // is x, z inside bounding box
-    return this.box.min.x <= point.x && this.box.max.x >= point.x && this.box.min.z <= point.z && this.box.max.z >= point.z;
-  },
-
-  containsPointPrecise2D: function containsPointPrecise2D(point) {
-    if (Maths.dotProduct2({ x: point.x - this.e1.centre.x, y: point.z - this.e1.centre.z }, this.e1.norm2) < _Config2.default.plane.dotBuffer && Maths.dotProduct2({ x: point.x - this.e2.centre.x, y: point.z - this.e2.centre.z }, this.e2.norm2) < _Config2.default.plane.dotBuffer && Maths.dotProduct2({ x: point.x - this.e3.centre.x, y: point.z - this.e3.centre.z }, this.e3.norm2) < _Config2.default.plane.dotBuffer) {
-      return true;
-    }
-
-    return false;
-  },
-
-  distanceToPlane: function distanceToPlane(point) {
-    return Math.abs(this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D);
-  },
-
-  getIntersect: function getIntersect(p1, p2) {
-    // get intersection of plane and line between p1, p2
-
-    var vec = Maths.subtractVector(p2, p1);
-    var dot = Maths.dotProduct(this.normal, Maths.normalise(vec));
-
-    // check for parallel lines
-    if (Math.abs(dot) <= _Config2.default.plane.dotBuffer) {
-      return null;
-    }
-
-    var numPart = this.normal.x * p1.x + this.normal.y * p1.y + this.normal.z * p1.z + this.D;
-    var denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
-
-    // invalid
-    if (denom == 0) {
-      return null;
-    }
-
-    var x = p1.x - vec.x * numPart / denom;
-    var y = p1.y - vec.y * numPart / denom;
-    var z = p1.z - vec.z * numPart / denom;
-    var point = new THREE.Vector3(x, y, z);
-
-    // return intersect if point is inside verts & line
-    if (this.containsPoint(point)) {
-      var box = new THREE.Box3().setFromPoints([p2, p1]).expandByScalar(0.05);
-
-      if (box.containsPoint(point)) {
-        return point;
+        for (var _i = 0; _i < verts.length; _i += _step) {
+          this.planes.push(new _plane.Plane(new THREE.Vector3(verts[_i + 0], verts[_i + 1], verts[_i + 2]), new THREE.Vector3(verts[_i + 3], verts[_i + 4], verts[_i + 5]), new THREE.Vector3(verts[_i + 6], verts[_i + 7], verts[_i + 8]), new THREE.Vector3(norms[_i + 0], norms[_i + 1], norms[_i + 2]), new THREE.Vector3(norms[_i + 3], norms[_i + 4], norms[_i + 5]), new THREE.Vector3(norms[_i + 6], norms[_i + 7], norms[_i + 8])));
+        }
       }
     }
+  }, {
+    key: 'conformPlanes',
+    value: function conformPlanes() {
+      var conformed = false;
 
-    return null;
-  },
+      // conform scale
+      if (!this.transform.default.scale) {
+        for (var i = 0; i < this.planes.length; i += 1) {
+          this.transform.bakeScale(this.planes[i]);
+        }
+        conformed = true;
+      }
 
-  getNormalIntersect: function getNormalIntersect(point) {
-    // get intersect which extends normal vector (or inverse) to point
+      // conform rotation
+      if (!this.transform.default.rotation) {
+        for (var _i2 = 0; _i2 < this.planes.length; _i2 += 1) {
+          this.transform.bakeRotation(this.planes[_i2]);
+        }
+        conformed = true;
+      }
 
-    var point2 = Maths.addVector(point, this.normal);
-    var vec = Maths.subtractVector(point2, point);
-    var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
-    var denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
-    var x = point.x - vec.x * numPart / denom;
-    var y = point.y - vec.y * numPart / denom;
-    var z = point.z - vec.z * numPart / denom;
-    var intersect = new THREE.Vector3(x, y, z);
+      if (conformed) {
+        // get new plane data
+        for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
+          this.planes[_i3].generatePlane();
+        }
 
-    return intersect;
-  },
-
-  getNormalIntersect2D: function getNormalIntersect2D(point) {
-    // get 2D (xz) intersect which extends from point to surface
-
-    var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
-    var denom = this.normal.x * this.normal.x + this.normal.z * this.normal.z;
-
-    if (denom == 0) {
-      return null;
-    } else {
-      return new THREE.Vector3(point.x - this.normal.x * numPart / denom, point.y, point.z - this.normal.z * numPart / denom);
+        // set new collision box
+        this.setBoxFromPlanes();
+      }
     }
-  },
+  }, {
+    key: 'setBoxFromPlanes',
+    value: function setBoxFromPlanes() {
+      var array = [];
 
+      for (var i = 0; i < this.planes.length; i += 1) {
+        var p = this.planes[i];
 
-  getY: function getY(x, z) {
-    // solve plane for x, z
-    if (this.normal.y != 0) {
-      return (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
-    } else {
-      return null;
+        array.push(p.p1);
+        array.push(p.p2);
+        array.push(p.p3);
+      }
+
+      this.box.setFromPoints(array);
     }
-  },
+  }, {
+    key: 'getCollision',
+    value: function getCollision(point) {
+      this.transform.set(point);
 
-  getPerpendicularNormals: function getPerpendicularNormals() {
-    return {
-      right: new THREE.Vector3(-this.normal.z, 0, this.normal.x),
-      left: new THREE.Vector3(this.normal.z, 0, -this.normal.x)
-    };
-  }
-};
+      if (this.box.containsPoint(this.transform.point)) {
+        // reset
+        for (var i = 0; i < this.planes.length; i += 1) {
+          this.planes[i].culled = false;
+        }
 
-exports.default = Plane;
+        // first pass - cull faces
+        for (var _i4 = 0; _i4 < this.planes.length; _i4 += 1) {
+          if (!this.planes[_i4].culled && this.planes[_i4].isPointBelowOrEqual(this.transform.point)) {
+            // cull planes above plane
+            for (var j = 0; j < this.planes.length; j += 1) {
+              if (!this.planes[j].culled && j != _i4 && this.planes[_i4].isPlaneAbove(this.planes[j])) {
+                this.planes[j].culled = true;
+              }
+            }
+          }
+        }
+
+        // second pass - get result
+        for (var _i5 = 0; _i5 < this.planes.length; _i5 += 1) {
+          if (!this.planes[_i5].culled && !this.planes[_i5].isPointBelowOrEqual(this.transform.point)) {
+            return false;
+          }
+        }
+
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }, {
+    key: 'getCollision2D',
+    value: function getCollision2D(point) {
+      this.transform.set(point);
+
+      return this.transform.point.x >= this.min.x && this.transform.point.x <= this.max.x && this.transform.point.z >= this.min.z && this.transform.point.z <= this.max.z;
+    }
+  }, {
+    key: 'getCeiling2D',
+    value: function getCeiling2D(point) {
+      this.transform.set(point);
+      var y = null;
+
+      for (var i = 0; i < this.planes.length; i += 1) {
+        if (this.planes[i].containsPoint2D(this.transform.point)) {
+          var planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
+
+          if (y === null || planeCeiling > y) {
+            y = planeCeiling;
+          }
+        }
+      }
+
+      return y == null ? null : this.transform.reverseY(y);
+    }
+  }, {
+    key: 'getCeiling',
+    value: function getCeiling(point) {
+      // get ceiling *above* point
+      this.transform.set(point);
+      var y = null;
+
+      for (var i = 0; i < this.planes.length; i += 1) {
+        if (this.planes[i].containsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
+          var planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
+
+          if (planeCeiling >= this.transform.point.y && (y === null || planeCeiling < y)) {
+            y = planeCeiling;
+          }
+        }
+      }
+
+      return y == null ? null : this.transform.reverseY(y);
+    }
+  }, {
+    key: 'getCeilingPlane',
+    value: function getCeilingPlane(point) {
+      // get ceiling and plane *above* point
+      this.transform.set(point);
+      var ceiling = null;
+
+      for (var i = 0; i < this.planes.length; i += 1) {
+        // check general box, then precise, then for ceiling
+        if (this.planes[i].containsPoint2D(this.transform.point)) {
+
+          if (this.planes[i].containsPointPrecise2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
+            var planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
+
+            if (planeCeiling != null && planeCeiling >= this.transform.point.y && (ceiling == null || planeCeiling > ceiling.y)) {
+              ceiling = {
+                y: planeCeiling,
+                plane: this.planes[i]
+              };
+            }
+          }
+        }
+      }
+
+      return ceiling == null ? null : {
+        y: this.transform.reverseY(ceiling.y),
+        plane: ceiling.plane
+      };
+    }
+  }, {
+    key: 'getIntersectPlane',
+    value: function getIntersectPlane(p1, p2) {
+      var tp1 = this.transform.getTransformedPoint(p1);
+      var tp2 = this.transform.getTransformedPoint(p2);
+      var box = new THREE.Box3().setFromPoints([tp1, tp2]);
+      var intersectPlane = null;
+
+      for (var i = 0; i < this.planes.length; i += 1) {
+        if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
+          var intersect = this.planes[i].getIntersect(tp1, tp2);
+
+          if (intersect != null) {
+            var distance = (0, _maths.distanceBetween)(tp1, intersect);
+
+            if (intersectPlane === null || distance < intersectPlane.distance) {
+              intersectPlane = {
+                intersect: intersect,
+                plane: this.planes[i],
+                distance: distance
+              };
+            }
+          }
+        }
+      }
+
+      return intersectPlane == null ? null : {
+        intersect: this.transform.reverse(intersectPlane.intersect),
+        plane: intersectPlane.plane,
+        distance: intersectPlane.distance
+      };
+    }
+  }, {
+    key: 'getIntersectPlane2D',
+    value: function getIntersectPlane2D(p1, p2) {
+      // find 2D intersect *nearest* to p2
+
+      var tp1 = this.transform.getTransformedPoint(p1);
+      var tp2 = this.transform.getTransformedPoint(p2);
+      var box = new THREE.Box3().setFromPoints([tp1, tp2]);
+      var intersectPlane = null;
+
+      for (var i = 0; i < this.planes.length; i += 1) {
+        if (this.planes[i].intersectsBox(box) || this.planes[i].containsBox(box)) {
+          var intersect2D = this.planes[i].getNormalIntersect2D(tp2);
+
+          if (intersect2D != null) {
+            var distance = (0, _maths.distanceBetween)(tp2, intersect2D);
+
+            if (intersectPlane === null || distance < intersectPlane.distance) {
+              intersectPlane = {
+                plane: this.planes[i],
+                intersect: intersect2D,
+                distance: distance
+              };
+            }
+          }
+        }
+      }
+
+      return intersectPlane == null ? null : {
+        intersect: this.transform.reverse(intersectPlane.intersect),
+        plane: intersectPlane.plane,
+        distance: intersectPlane.distance
+      };
+    }
+  }]);
+
+  return Mesh;
+}();
+
+exports.Mesh = Mesh;
 
 /***/ }),
 /* 7 */
@@ -1119,105 +792,72 @@ exports.default = Plane;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-
-var _Maths = __webpack_require__(1);
-
-var Maths = _interopRequireWildcard(_Maths);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-var Transformer = function Transformer(object) {
-  this.point = new THREE.Vector3();
-  this.position = object.position;
-  this.rotation = object.rotation;
-  this.scale = object.scale;
-  this.rotationOrder = object.rotation.order.split('');
-  this.axis = {
-    x: new THREE.Vector3(1, 0, 0),
-    y: new THREE.Vector3(0, 1, 0),
-    z: new THREE.Vector3(0, 0, 1)
-  };
-  this.checkDefault();
-};
-
-Transformer.prototype = {
-  set: function set(point) {
-    // transform point
-    this.point.x = point.x - this.position.x;
-    this.point.y = point.y - this.position.y;
-    this.point.z = point.z - this.position.z;
+var Config = {
+  system: {
+    maxPlanesPerMesh: 250
   },
-
-  getTransformedPoint: function getTransformedPoint(point) {
-    var transformed = {
-      x: point.x - this.position.x,
-      y: point.y - this.position.y,
-      z: point.z - this.position.z
-    };
-
-    return transformed;
-  },
-
-  reverseY: function reverseY(y) {
-    var newY = y + this.position.y;
-
-    return newY;
-  },
-
-  reverse: function reverse(point) {
-    var transformed = {
-      x: point.x + this.position.x,
-      y: point.y + this.position.y,
-      z: point.z + this.position.z
-    };
-
-    return transformed;
-  },
-
-  bakeRotation: function bakeRotation(plane) {
-    for (var i = this.rotationOrder.length - 1; i > -1; i -= 1) {
-      if (this.rotationOrder[i] == 'X') {
-        plane.p1.applyAxisAngle(this.axis.x, this.rotation.x);
-        plane.p2.applyAxisAngle(this.axis.x, this.rotation.x);
-        plane.p3.applyAxisAngle(this.axis.x, this.rotation.x);
-        plane.n1.applyAxisAngle(this.axis.x, this.rotation.x);
-        plane.n2.applyAxisAngle(this.axis.x, this.rotation.x);
-        plane.n3.applyAxisAngle(this.axis.x, this.rotation.x);
-      } else if (this.rotationOrder[i] == 'Y') {
-        plane.p1.applyAxisAngle(this.axis.y, this.rotation.y);
-        plane.p2.applyAxisAngle(this.axis.y, this.rotation.y);
-        plane.p3.applyAxisAngle(this.axis.y, this.rotation.y);
-        plane.n1.applyAxisAngle(this.axis.y, this.rotation.y);
-        plane.n2.applyAxisAngle(this.axis.y, this.rotation.y);
-        plane.n3.applyAxisAngle(this.axis.y, this.rotation.y);
-      } else if (this.rotationOrder[i] == 'Z') {
-        plane.p1.applyAxisAngle(this.axis.z, this.rotation.z);
-        plane.p2.applyAxisAngle(this.axis.z, this.rotation.z);
-        plane.p3.applyAxisAngle(this.axis.z, this.rotation.z);
-        plane.n1.applyAxisAngle(this.axis.z, this.rotation.z);
-        plane.n2.applyAxisAngle(this.axis.z, this.rotation.z);
-        plane.n3.applyAxisAngle(this.axis.z, this.rotation.z);
-      }
+  quadrants: {
+    size: {
+      x: 100,
+      y: 100,
+      z: 100
     }
   },
-
-  bakeScale: function bakeScale(plane) {
-    plane.p1 = Maths.scaleByVector(plane.p1, this.scale);
-    plane.p2 = Maths.scaleByVector(plane.p2, this.scale);
-    plane.p3 = Maths.scaleByVector(plane.p3, this.scale);
+  plane: {
+    dotBuffer: 0.001,
+    collisionThreshold: 0.5
   },
-
-  checkDefault: function checkDefault() {
-    // check if transforms are set to default
-    this.default = {
-      position: this.position.x == 0 && this.position.y == 0 && this.position.z == 0,
-      rotation: this.rotation.x == 0 && this.rotation.y == 0 && this.rotation.z == 0,
-      scale: this.scale.x == 1 && this.scale.y == 1 && this.scale.z == 1
-    };
+  sandbox: {
+    physics: {
+      gravity: 20,
+      maxVelocity: 50,
+      floor: -0.5,
+      snapUp: 1,
+      snapDown: 0.5,
+      minSlope: Math.PI / 5,
+      noclip: false
+    },
+    player: {
+      height: 2,
+      position: {
+        x: 0,
+        y: 0,
+        z: 0
+      },
+      rotation: {
+        pitch: 0,
+        yaw: Math.PI,
+        roll: 0,
+        maxPitch: Math.PI * 0.3,
+        minPitch: Math.PI * -0.3
+      },
+      speed: {
+        normal: 8,
+        slowed: 4,
+        noclip: 20,
+        rotation: Math.PI * 0.75,
+        jump: 10,
+        fallTimerThreshold: 0.2
+      }
+    },
+    camera: {
+      fov: 60,
+      aspect: 1,
+      near: 0.1,
+      far: 1000
+    },
+    adjust: {
+      verySlow: 0.01,
+      slow: 0.025,
+      normal: 0.05,
+      fast: 0.09,
+      rapid: 0.12,
+      veryFast: 0.2
+    }
   }
 };
 
-exports.default = Transformer;
+exports.Config = Config;
 
 /***/ }),
 /* 8 */
@@ -1229,20 +869,141 @@ exports.default = Transformer;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.Transformer = undefined;
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); // collision system - checks against all meshes
-// meshes are divided into quadrants for efficiency
-// recent collisions are cached
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Config = __webpack_require__(0);
+var _maths = __webpack_require__(2);
 
-var _Config2 = _interopRequireDefault(_Config);
+var Maths = _interopRequireWildcard(_maths);
 
-var _Quadrants = __webpack_require__(13);
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
-var _Quadrants2 = _interopRequireDefault(_Quadrants);
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var Transformer = function () {
+  function Transformer(object) {
+    _classCallCheck(this, Transformer);
+
+    this.point = new THREE.Vector3();
+    this.position = object.position;
+    this.rotation = object.rotation;
+    this.scale = object.scale;
+    this.rotationOrder = object.rotation.order.split('');
+    this.axis = {
+      x: new THREE.Vector3(1, 0, 0),
+      y: new THREE.Vector3(0, 1, 0),
+      z: new THREE.Vector3(0, 0, 1)
+    };
+    this.checkDefault();
+  }
+
+  _createClass(Transformer, [{
+    key: 'set',
+    value: function set(point) {
+      // transform point
+      this.point.x = point.x - this.position.x;
+      this.point.y = point.y - this.position.y;
+      this.point.z = point.z - this.position.z;
+    }
+  }, {
+    key: 'getTransformedPoint',
+    value: function getTransformedPoint(point) {
+      var transformed = {
+        x: point.x - this.position.x,
+        y: point.y - this.position.y,
+        z: point.z - this.position.z
+      };
+
+      return transformed;
+    }
+  }, {
+    key: 'reverseY',
+    value: function reverseY(y) {
+      var newY = y + this.position.y;
+
+      return newY;
+    }
+  }, {
+    key: 'reverse',
+    value: function reverse(point) {
+      var transformed = {
+        x: point.x + this.position.x,
+        y: point.y + this.position.y,
+        z: point.z + this.position.z
+      };
+
+      return transformed;
+    }
+  }, {
+    key: 'bakeRotation',
+    value: function bakeRotation(plane) {
+      for (var i = this.rotationOrder.length - 1; i > -1; i -= 1) {
+        if (this.rotationOrder[i] == 'X') {
+          plane.p1.applyAxisAngle(this.axis.x, this.rotation.x);
+          plane.p2.applyAxisAngle(this.axis.x, this.rotation.x);
+          plane.p3.applyAxisAngle(this.axis.x, this.rotation.x);
+          plane.n1.applyAxisAngle(this.axis.x, this.rotation.x);
+          plane.n2.applyAxisAngle(this.axis.x, this.rotation.x);
+          plane.n3.applyAxisAngle(this.axis.x, this.rotation.x);
+        } else if (this.rotationOrder[i] == 'Y') {
+          plane.p1.applyAxisAngle(this.axis.y, this.rotation.y);
+          plane.p2.applyAxisAngle(this.axis.y, this.rotation.y);
+          plane.p3.applyAxisAngle(this.axis.y, this.rotation.y);
+          plane.n1.applyAxisAngle(this.axis.y, this.rotation.y);
+          plane.n2.applyAxisAngle(this.axis.y, this.rotation.y);
+          plane.n3.applyAxisAngle(this.axis.y, this.rotation.y);
+        } else if (this.rotationOrder[i] == 'Z') {
+          plane.p1.applyAxisAngle(this.axis.z, this.rotation.z);
+          plane.p2.applyAxisAngle(this.axis.z, this.rotation.z);
+          plane.p3.applyAxisAngle(this.axis.z, this.rotation.z);
+          plane.n1.applyAxisAngle(this.axis.z, this.rotation.z);
+          plane.n2.applyAxisAngle(this.axis.z, this.rotation.z);
+          plane.n3.applyAxisAngle(this.axis.z, this.rotation.z);
+        }
+      }
+    }
+  }, {
+    key: 'bakeScale',
+    value: function bakeScale(plane) {
+      plane.p1 = Maths.scaleByVector(plane.p1, this.scale);
+      plane.p2 = Maths.scaleByVector(plane.p2, this.scale);
+      plane.p3 = Maths.scaleByVector(plane.p3, this.scale);
+    }
+  }, {
+    key: 'checkDefault',
+    value: function checkDefault() {
+      // check if transforms are set to default
+      this.default = {
+        position: this.position.x == 0 && this.position.y == 0 && this.position.z == 0,
+        rotation: this.rotation.x == 0 && this.rotation.y == 0 && this.rotation.z == 0,
+        scale: this.scale.x == 1 && this.scale.y == 1 && this.scale.z == 1
+      };
+    }
+  }]);
+
+  return Transformer;
+}();
+
+exports.Transformer = Transformer;
+
+/***/ }),
+/* 9 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.System = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _conf = __webpack_require__(0);
+
+var _quadrants = __webpack_require__(10);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -1252,7 +1013,7 @@ var System = function () {
 
     // collider mesh system
 
-    this.quadrants = new _Quadrants2.default();
+    this.quadrants = new _quadrants.Quadrants();
     this.meshes = [];
     this.isColliderSystem = true;
   }
@@ -1266,11 +1027,11 @@ var System = function () {
         var mesh = arguments[i];
 
         if (mesh.isColliderMesh) {
-          if (mesh.planes.length <= _Config2.default.system.maxPlanesPerMesh) {
+          if (mesh.planes.length <= _conf.Config.system.maxPlanesPerMesh) {
             this.quadrants.add(mesh);
             this.meshes.push(mesh.object);
           } else {
-            console.warn('Warning: Mesh not included - plane count exceeds maximum (%s).', _Config2.default.system.maxPlanesPerMesh);
+            console.warn('Warning: Mesh not included - plane count exceeds maximum (%s).', _conf.Config.system.maxPlanesPerMesh);
           }
         } else {
           throw 'Error: Input must be Collider.Mesh';
@@ -1347,10 +1108,109 @@ var System = function () {
   return System;
 }();
 
-exports.default = System;
+exports.System = System;
 
 /***/ }),
-/* 9 */
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.Quadrants = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _conf = __webpack_require__(0);
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Quadrants = function () {
+  function Quadrants() {
+    _classCallCheck(this, Quadrants);
+
+    // index meshes into quadrants
+
+    this.q = [];
+  }
+
+  _createClass(Quadrants, [{
+    key: 'positionToQuadrant',
+    value: function positionToQuadrant(point) {
+      // convert point to quadrant keys
+
+      var keys = {
+        x: Math.floor(point.x / _conf.Config.quadrants.size.x),
+        y: Math.floor(point.y / _conf.Config.quadrants.size.y),
+        z: Math.floor(point.z / _conf.Config.quadrants.size.z)
+      };
+
+      return keys;
+    }
+  }, {
+    key: 'add',
+    value: function add(mesh) {
+      // add a mesh to quadrant/s
+
+      var min = this.positionToQuadrant(mesh.min);
+      var max = this.positionToQuadrant(mesh.max);
+
+      for (var x = min.x; x <= max.x; x += 1) {
+        for (var y = min.y; y <= max.y; y += 1) {
+          for (var z = min.z; z <= max.z; z += 1) {
+            this.addToQuadrant(x, y, z, mesh);
+          }
+        }
+      }
+    }
+  }, {
+    key: 'addToQuadrant',
+    value: function addToQuadrant(x, y, z, mesh) {
+      // if quadrant does not exist, create it
+
+      if (!this.q[x]) {
+        this.q[x] = [];
+      }
+
+      if (!this.q[x][y]) {
+        this.q[x][y] = [];
+      }
+
+      if (!this.q[x][y][z]) {
+        this.q[x][y][z] = [];
+      }
+
+      // add mesh to quadrant
+
+      this.q[x][y][z].push(mesh);
+    }
+  }, {
+    key: 'getQuadrantMeshes',
+    value: function getQuadrantMeshes(point) {
+      // get quadrant for point
+
+      var pq = this.positionToQuadrant(point);
+
+      if (this.q[pq.x] && this.q[pq.x][pq.y] && this.q[pq.x][pq.y][pq.z]) {
+        return this.q[pq.x][pq.y][pq.z];
+      } else {
+        return [];
+      }
+    }
+  }]);
+
+  return Quadrants;
+}();
+
+;
+
+exports.Quadrants = Quadrants;
+
+/***/ }),
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1359,30 +1219,19 @@ exports.default = System;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+exports.Player = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Maths = __webpack_require__(1);
+var _general = __webpack_require__(1);
 
-var Maths = _interopRequireWildcard(_Maths);
+var Maths = _interopRequireWildcard(_general);
 
-var _Interaction = __webpack_require__(2);
+var _collider = __webpack_require__(3);
 
-var _Interaction2 = _interopRequireDefault(_Interaction);
+var _conf = __webpack_require__(0);
 
-var _Config = __webpack_require__(0);
-
-var _Config2 = _interopRequireDefault(_Config);
-
-var _Mouse = __webpack_require__(10);
-
-var _Mouse2 = _interopRequireDefault(_Mouse);
-
-var _Keyboard = __webpack_require__(11);
-
-var _Keyboard2 = _interopRequireDefault(_Keyboard);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var _io = __webpack_require__(12);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -1395,12 +1244,12 @@ var Player = function () {
         // player handler
 
         this.domElement = domElement;
-        this.config = _Config2.default.sandbox.player;
+        this.config = _conf.Config.sandbox.player;
 
         // physical props
 
-        this.config.adjust = _Config2.default.sandbox.adjust;
-        this.config.physics = _Config2.default.sandbox.physics;
+        this.config.adjust = _conf.Config.sandbox.adjust;
+        this.config.physics = _conf.Config.sandbox.physics;
         this.minPitch = this.config.rotation.minPitch;
         this.maxPitch = this.config.rotation.maxPitch;
         this.position = new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z);
@@ -1438,9 +1287,9 @@ var Player = function () {
 
         // world
 
-        this.interaction = new _Interaction2.default(this.target.position, this.target.rotation, this.motion);
+        this.collider = new _collider.Collider(this.target.position, this.motion);
         this.object = new THREE.Group();
-        this.camera = new THREE.PerspectiveCamera(_Config2.default.sandbox.camera.fov, _Config2.default.sandbox.camera.aspect, _Config2.default.sandbox.camera.near, _Config2.default.sandbox.camera.far);
+        this.camera = new THREE.PerspectiveCamera(_conf.Config.sandbox.camera.fov, _conf.Config.sandbox.camera.aspect, _conf.Config.sandbox.camera.near, _conf.Config.sandbox.camera.far);
         this.camera.up = new THREE.Vector3(0, 1, 0);
 
         // set up
@@ -1456,7 +1305,7 @@ var Player = function () {
 
             // hook up doc events
 
-            this.mouse = new _Mouse2.default(this.domElement);
+            this.mouse = new _io.Mouse(this.domElement);
 
             this.onMouseDown = function (e) {
                 // mouse down
@@ -1506,7 +1355,7 @@ var Player = function () {
 
             // keyboard
 
-            this.keyboard = new _Keyboard2.default();
+            this.keyboard = new _io.Keyboard();
 
             document.addEventListener('keydown', this.keyboard.onKeyDown, false);
             document.addEventListener('keyup', this.keyboard.onKeyUp, false);
@@ -1517,7 +1366,7 @@ var Player = function () {
             // apply input, compute physics, move
 
             this.input(delta);
-            this.interaction.computeNextPosition(delta, objects);
+            this.collider.move(delta, objects);
             this.move();
         }
     }, {
@@ -1665,10 +1514,227 @@ var Player = function () {
 
 ;
 
-exports.default = Player;
+exports.Player = Player;
 
 /***/ }),
-/* 10 */
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _keyboard = __webpack_require__(13);
+
+Object.keys(_keyboard).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _keyboard[key];
+    }
+  });
+});
+
+var _logger = __webpack_require__(14);
+
+Object.keys(_logger).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _logger[key];
+    }
+  });
+});
+
+var _mouse = __webpack_require__(15);
+
+Object.keys(_mouse).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _mouse[key];
+    }
+  });
+});
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Keyboard = function () {
+  function Keyboard() {
+    _classCallCheck(this, Keyboard);
+
+    // keyboard handler
+
+    this.keys = {};
+    this._events();
+  }
+
+  _createClass(Keyboard, [{
+    key: "_events",
+    value: function _events() {
+      var _this = this;
+
+      // hook events
+
+      this.onKeyDown = function (e) {
+        // key press
+
+        switch (e.keyCode) {
+          case 38:case 87:
+            _this.keys.up = true;
+            break;
+          case 37:case 65:
+            _this.keys.left = true;
+            break;
+          case 40:case 83:
+            _this.keys.down = true;
+            break;
+          case 39:case 68:
+            _this.keys.right = true;
+            break;
+          case 32:
+            _this.keys.jump = true;
+            break;
+          case 88:
+            _this.keys.x = true;
+          default:
+            break;
+        }
+      };
+      this.onKeyUp = function (e) {
+        // key release
+
+        switch (e.keyCode) {
+          case 38:case 87:
+            _this.keys.up = false;
+            break;
+          case 37:case 65:
+            _this.keys.left = false;
+            break;
+          case 40:case 83:
+            _this.keys.down = false;
+            break;
+          case 39:case 68:
+            _this.keys.right = false;
+            break;
+          default:
+            break;
+        }
+      };
+      this.pressKey = function (key) {
+        // simulate key press
+
+        _this.keys[key] = true;
+      };
+      this.releaseKey = function (key) {
+        // simulate key release
+
+        _this.keys[key] = false;
+      };
+    }
+  }]);
+
+  return Keyboard;
+}();
+
+exports.Keyboard = Keyboard;
+
+/***/ }),
+/* 14 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Logger = function () {
+  function Logger() {
+    _classCallCheck(this, Logger);
+
+    this.cvs = document.createElement('canvas');
+    this.ctx = this.cvs.getContext('2d');
+    this.disabled = false;
+    document.body.appendChild(this.cvs);
+    this.setStyle();
+  }
+
+  _createClass(Logger, [{
+    key: 'setStyle',
+    value: function setStyle() {
+      this.cvs.style.position = 'fixed';
+      this.cvs.width = window.innerWidth;
+      this.cvs.style.pointerEvents = 'none';
+      this.cvs.height = 400;
+      this.cvs.style.zIndex = 10;
+      this.cvs.style.top = 0;
+      this.cvs.style.left = 0;
+    }
+  }, {
+    key: 'clear',
+    value: function clear() {
+      this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
+    }
+  }, {
+    key: 'format',
+    value: function format(value) {
+      return Math.floor(value * 10) / 10;
+    }
+  }, {
+    key: 'formatVector',
+    value: function formatVector(vec) {
+      return this.format(vec.x) + ', ' + this.format(vec.y) + ', ' + this.format(vec.z);
+    }
+  }, {
+    key: 'disable',
+    value: function disable() {
+      this.disabled = true;
+    }
+  }, {
+    key: 'print',
+    value: function print() {
+      if (!this.disabled) {
+        this.clear();
+
+        for (var i = 0; i < arguments.length; i += 1) {
+          this.ctx.fillText(arguments[i], 20, 20 + i * 20);
+        }
+      }
+    }
+  }]);
+
+  return Logger;
+}();
+
+exports.Logger = Logger;
+
+/***/ }),
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1766,10 +1832,10 @@ var Mouse = function () {
   return Mouse;
 }();
 
-exports.default = Mouse;
+exports.Mouse = Mouse;
 
 /***/ }),
-/* 11 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1778,237 +1844,415 @@ exports.default = Mouse;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.Loader = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _conf = __webpack_require__(0);
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Keyboard = function () {
-  function Keyboard() {
-    _classCallCheck(this, Keyboard);
+var Loader = function () {
+  function Loader(basePath) {
+    _classCallCheck(this, Loader);
 
-    // keyboard handler
-
-    this.keys = {};
-    this._events();
-  }
-
-  _createClass(Keyboard, [{
-    key: "_events",
-    value: function _events() {
-      var _this = this;
-
-      // hook events
-
-      this.onKeyDown = function (e) {
-        // key press
-
-        switch (e.keyCode) {
-          case 38:case 87:
-            _this.keys.up = true;
-            break;
-          case 37:case 65:
-            _this.keys.left = true;
-            break;
-          case 40:case 83:
-            _this.keys.down = true;
-            break;
-          case 39:case 68:
-            _this.keys.right = true;
-            break;
-          case 32:
-            _this.keys.jump = true;
-            break;
-          case 88:
-            _this.keys.x = true;
-          default:
-            break;
-        }
-      };
-      this.onKeyUp = function (e) {
-        // key release
-
-        switch (e.keyCode) {
-          case 38:case 87:
-            _this.keys.up = false;
-            break;
-          case 37:case 65:
-            _this.keys.left = false;
-            break;
-          case 40:case 83:
-            _this.keys.down = false;
-            break;
-          case 39:case 68:
-            _this.keys.right = false;
-            break;
-          default:
-            break;
-        }
-      };
-      this.pressKey = function (key) {
-        // simulate key press
-
-        _this.keys[key] = true;
-      };
-      this.releaseKey = function (key) {
-        // simulate key release
-
-        _this.keys[key] = false;
-      };
-    }
-  }]);
-
-  return Keyboard;
-}();
-
-exports.default = Keyboard;
-
-/***/ }),
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _Config = __webpack_require__(0);
-
-var _Config2 = _interopRequireDefault(_Config);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var Loader = function Loader(basePath) {
-  this.basePath = basePath;
-  this.init();
-};
-
-Loader.prototype = {
-  init: function init() {
-    // FBX Loader (animation + PBR support)
+    this.basePath = basePath;
     this.FBXLoader = new THREE.FBXLoader();
 
     // default envmap
+
     this.envTextureCube = new THREE.CubeTextureLoader().load([this.basePath + 'envmap/horizontal.jpg', // +x
     this.basePath + 'envmap/horizontal.jpg', // -x
-    this.basePath + 'envmap/posy.jpg', // +y
-    this.basePath + 'envmap/negy.jpg', // -y
-    this.basePath + 'envmap/horizontal.jpg', // +z
+    this.basePath + 'envmap/posy.jpg', this.basePath + 'envmap/negy.jpg', this.basePath + 'envmap/horizontal.jpg', // +z
     this.basePath + 'envmap/horizontal.jpg'] // -z
     );
     //this.envTextureCube.format = THREE.RGBFormat;
     //this.envTextureCube.mapping = THREE.CubeReflectionMapping;
-  },
+  }
 
-  loadFBX: function loadFBX(filename) {
-    var self = this;
+  _createClass(Loader, [{
+    key: 'loadFBX',
+    value: function loadFBX(filename) {
+      var self = this;
 
-    return new Promise(function (resolve, reject) {
-      try {
-        self.FBXLoader.load(self.basePath + filename, function (object) {
-          var meshes = [];
+      return new Promise(function (resolve, reject) {
+        try {
+          self.FBXLoader.load(self.basePath + filename, function (object) {
+            var meshes = [];
 
-          // get meshes (ignore lights, etc)
-          for (var i = 0; i < object.children.length; i += 1) {
-            if (object.children[i].type == 'Mesh') {
-              meshes.push(object.children[i]);
-            } else if (object.children[i].type == 'Group') {
-              for (var j = 0; j < object.children[i].children.length; j += 1) {
-                if (object.children[i].children[j].type == 'Mesh') {
-                  meshes.push(object.children[i].children[j]);
+            // get meshes (ignore lights, etc)
+            for (var i = 0; i < object.children.length; i += 1) {
+              if (object.children[i].type == 'Mesh') {
+                meshes.push(object.children[i]);
+              } else if (object.children[i].type == 'Group') {
+                for (var j = 0; j < object.children[i].children.length; j += 1) {
+                  if (object.children[i].children[j].type == 'Mesh') {
+                    meshes.push(object.children[i].children[j]);
+                  }
                 }
               }
             }
-          }
 
-          // set defualts (env map, normal scale etc)
-          for (var _i = 0; _i < meshes.length; _i += 1) {
-            var mat = meshes[_i].material;
+            // set defualts (env map, normal scale etc)
+            for (var _i = 0; _i < meshes.length; _i += 1) {
+              var mat = meshes[_i].material;
 
-            mat.envMap = self.envTextureCube;
-            mat.envMapIntensity = 0.25; //mat.metalness;
-            mat.bumpScale = 0.01;
-            mat.normalScale = new THREE.Vector2(0.1, 0.1);
-          }
+              mat.envMap = self.envTextureCube;
+              mat.envMapIntensity = 0.25; //mat.metalness;
+              mat.bumpScale = 0.01;
+              mat.normalScale = new THREE.Vector2(0.1, 0.1);
+            }
 
-          resolve(meshes);
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  },
+            resolve(meshes);
+          });
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+  }, {
+    key: 'process',
+    value: function process(obj, materials) {
+      for (var i = 0; i < obj.children.length; i += 1) {
+        var child = obj.children[i];
+        var meta = materials.materialsInfo[child.material.name];
 
-  process: function process(obj, materials) {
-    for (var i = 0; i < obj.children.length; i += 1) {
-      var child = obj.children[i];
-      var meta = materials.materialsInfo[child.material.name];
+        // set material
+        child.material = materials.materials[child.material.name];
 
-      // set material
-      child.material = materials.materials[child.material.name];
+        console.log(meta, child.material);
 
-      console.log(meta, child.material);
+        // load lightmaps
+        if (meta.map_ka) {
+          var uvs = child.geometry.attributes.uv.array;
+          var src = meta.map_ka;
+          var tex = new THREE.TextureLoader().load(self.basePath + src);
 
-      // load lightmaps
-      if (meta.map_ka) {
-        var uvs = child.geometry.attributes.uv.array;
-        var src = meta.map_ka;
-        var tex = new THREE.TextureLoader().load(self.basePath + src);
-
-        child.material.lightMap = tex;
-        child.material.lightMapIntensity = _Config2.default.Loader.lightMapIntensity;
-        child.geometry.addAttribute('uv2', new THREE.BufferAttribute(uvs, 2));
-      }
-
-      // make glass translucent
-      if (child.material.map) {
-        // if textured, set full colour
-        child.material.color = new THREE.Color(0xffffff);
-
-        // set transparent for .png
-        if (child.material.map.image.src.indexOf('.png') !== -1) {
-          child.material.transparent = true;
-          child.material.side = THREE.DoubleSide;
+          child.material.lightMap = tex;
+          child.material.lightMapIntensity = _conf.Config.Loader.lightMapIntensity;
+          child.geometry.addAttribute('uv2', new THREE.BufferAttribute(uvs, 2));
         }
 
-        // for glass
-        if (child.material.map.image.src.indexOf('glass') != -1) {
-          child.material.transparent = true;
-          child.material.opacity = _Config2.default.Loader.glassOpacity;
+        // make glass translucent
+        if (child.material.map) {
+          // if textured, set full colour
+          child.material.color = new THREE.Color(0xffffff);
+
+          // set transparent for .png
+          if (child.material.map.image.src.indexOf('.png') !== -1) {
+            child.material.transparent = true;
+            child.material.side = THREE.DoubleSide;
+          }
+
+          // for glass
+          if (child.material.map.image.src.indexOf('glass') != -1) {
+            child.material.transparent = true;
+            child.material.opacity = _conf.Config.Loader.glassOpacity;
+          }
+        } else {
+          // no texture, set colour
+          //child.material.emissive = child.material.color;
         }
-      } else {
-        // no texture, set colour
-        //child.material.emissive = child.material.color;
       }
     }
-  },
+  }, {
+    key: 'loadOBJ',
+    value: function loadOBJ(filename) {
+      var self = this;
 
-  loadOBJ: function loadOBJ(filename) {
-    var self = this;
-
-    return new Promise(function (resolve, reject) {
-      try {
-        self.materialLoader.load(filename + '.mtl', function (materials) {
-          materials.preload();
-          //self.objectLoader.setMaterials(materials);
-          self.objectLoader.load(filename + '.obj', function (obj) {
-            self.process(obj, materials);
-            resolve(obj);
+      return new Promise(function (resolve, reject) {
+        try {
+          self.materialLoader.load(filename + '.mtl', function (materials) {
+            materials.preload();
+            //self.objectLoader.setMaterials(materials);
+            self.objectLoader.load(filename + '.obj', function (obj) {
+              self.process(obj, materials);
+              resolve(obj);
+            });
           });
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-};
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+  }]);
 
-exports.default = Loader;
+  return Loader;
+}();
+
+exports.Loader = Loader;
 
 /***/ }),
-/* 13 */
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.Plane = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _general = __webpack_require__(1);
+
+var Maths = _interopRequireWildcard(_general);
+
+var _conf = __webpack_require__(0);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Plane = function () {
+  function Plane(p1, p2, p3, n1, n2, n3) {
+    _classCallCheck(this, Plane);
+
+    this.p1 = p1;
+    this.p2 = p2;
+    this.p3 = p3;
+    this.n1 = n1;
+    this.n2 = n2;
+    this.n3 = n3;
+    this.culled = false;
+
+    // generate plane
+
+    this.e1 = {};
+    this.e2 = {};
+    this.e3 = {};
+    this.e1.centre = Maths.scaleVector(Maths.addVector(this.p1, this.p2), 0.5);
+    this.e2.centre = Maths.scaleVector(Maths.addVector(this.p2, this.p3), 0.5);
+    this.e3.centre = Maths.scaleVector(Maths.addVector(this.p3, this.p1), 0.5);
+    this.e1.vec = Maths.subtractVector(this.p2, this.p1);
+    this.e2.vec = Maths.subtractVector(this.p3, this.p2);
+    this.e3.vec = Maths.subtractVector(this.p1, this.p3);
+
+    // get 2D component & normal
+
+    this.e1.vec2 = new THREE.Vector2(this.e1.vec.x, this.e1.vec.z);
+    this.e2.vec2 = new THREE.Vector2(this.e2.vec.x, this.e2.vec.z);
+    this.e3.vec2 = new THREE.Vector2(this.e3.vec.x, this.e3.vec.z);
+    this.e1.norm2 = new THREE.Vector2(-this.e1.vec.z, this.e1.vec.x);
+    this.e2.norm2 = new THREE.Vector2(-this.e2.vec.z, this.e2.vec.x);
+    this.e3.norm2 = new THREE.Vector2(-this.e3.vec.z, this.e3.vec.x);
+
+    // get normal
+
+    this.normal = Maths.normalise(Maths.crossProduct(this.e3.vec, this.e1.vec));
+    this.normalXZ = new THREE.Vector3(this.normal.x, 0, this.normal.z);
+
+    // reverse naughty normals
+
+    if (Maths.dotProduct(this.normal, this.n1) < 0 && Maths.dotProduct(this.normal, this.n2) < 0 && Maths.dotProduct(this.normal, this.n3) < 0) {
+      this.normal = Maths.reverseVector(this.normal);
+    }
+
+    // get position
+
+    this.position = new THREE.Vector3((this.p1.x + this.p2.x + this.p3.x) / 3, (this.p1.y + this.p2.y + this.p3.y) / 3, (this.p1.z + this.p2.z + this.p3.z) / 3);
+
+    // cache D for solving plane
+
+    this.D = -(this.normal.x * this.position.x) - this.normal.y * this.position.y - this.normal.z * this.position.z;
+
+    // create bounding box
+
+    this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
+  }
+
+  _createClass(Plane, [{
+    key: 'isPointAbove',
+    value: function isPointAbove(point) {
+      // is point above plane
+
+      var vec = Maths.subtractVector(point, this.position);
+      var dot = Maths.dotProduct(vec, this.normal);
+      var res = dot > 0;
+
+      return res;
+    }
+  }, {
+    key: 'isPointBelow',
+    value: function isPointBelow(point) {
+      // is point below plane
+
+      var vec = Maths.subtractVector(point, this.position);
+      var dot = Maths.dotProduct(vec, this.normal);
+      var res = dot < 0;
+
+      return res;
+    }
+  }, {
+    key: 'isPointAboveOrEqual',
+    value: function isPointAboveOrEqual(point) {
+      // is point above plane or on surface
+
+      var vec = Maths.subtractVector(point, this.position);
+      var dot = Maths.dotProduct(vec, this.normal);
+      var res = dot >= -_conf.Config.plane.dotBuffer;
+
+      return res;
+    }
+  }, {
+    key: 'isPointBelowOrEqual',
+    value: function isPointBelowOrEqual(point) {
+      // is point below plane or on surface
+
+      var vec = Maths.subtractVector(point, this.position);
+      var dot = Maths.dotProduct(vec, this.normal);
+      var res = dot <= _conf.Config.plane.dotBuffer;
+
+      return res;
+    }
+  }, {
+    key: 'isPointOnSurface',
+    value: function isPointOnSurface(point) {
+      var vec = Maths.subtractVector(point, this.position);
+      var dot = Maths.dotProduct(vec, this.normal);
+      var res = dot <= _conf.Config.plane.dotBuffer && dot >= -_conf.Config.plane.dotBuffer;
+
+      return res;
+    }
+  }, {
+    key: 'isPlaneAbove',
+    value: function isPlaneAbove(plane) {
+      // check if whole plane is above
+
+      return this.isPointAboveOrEqual(plane.p1) && this.isPointAboveOrEqual(plane.p2) && this.isPointAboveOrEqual(plane.p3);
+    }
+  }, {
+    key: 'containsPoint',
+    value: function containsPoint(point) {
+      return this.box.containsPoint(point);
+    }
+  }, {
+    key: 'containsBox',
+    value: function containsBox(box) {
+      return this.box.containsBox(box);
+    }
+  }, {
+    key: 'intersectsBox',
+    value: function intersectsBox(box) {
+      return this.box.intersectsBox(box);
+    }
+  }, {
+    key: 'containsPoint2D',
+    value: function containsPoint2D(point) {
+      // is x, z inside bounding box
+
+      return this.box.min.x <= point.x && this.box.max.x >= point.x && this.box.min.z <= point.z && this.box.max.z >= point.z;
+    }
+  }, {
+    key: 'containsPointPrecise2D',
+    value: function containsPointPrecise2D(point) {
+      if (Maths.dotProduct2({ x: point.x - this.e1.centre.x, y: point.z - this.e1.centre.z }, this.e1.norm2) < _conf.Config.plane.dotBuffer && Maths.dotProduct2({ x: point.x - this.e2.centre.x, y: point.z - this.e2.centre.z }, this.e2.norm2) < _conf.Config.plane.dotBuffer && Maths.dotProduct2({ x: point.x - this.e3.centre.x, y: point.z - this.e3.centre.z }, this.e3.norm2) < _conf.Config.plane.dotBuffer) {
+        return true;
+      }
+
+      return false;
+    }
+  }, {
+    key: 'distanceToPlane',
+    value: function distanceToPlane(point) {
+      return Math.abs(this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D);
+    }
+  }, {
+    key: 'getIntersect',
+    value: function getIntersect(p1, p2) {
+      // get intersection of plane and line between p1, p2
+
+      var vec = Maths.subtractVector(p2, p1);
+      var dot = Maths.dotProduct(this.normal, Maths.normalise(vec));
+
+      // check for parallel lines
+      if (Math.abs(dot) <= _conf.Config.plane.dotBuffer) {
+        return null;
+      }
+
+      var numPart = this.normal.x * p1.x + this.normal.y * p1.y + this.normal.z * p1.z + this.D;
+      var denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
+
+      // invalid
+      if (denom == 0) {
+        return null;
+      }
+
+      var x = p1.x - vec.x * numPart / denom;
+      var y = p1.y - vec.y * numPart / denom;
+      var z = p1.z - vec.z * numPart / denom;
+      var point = new THREE.Vector3(x, y, z);
+
+      // return intersect if point is inside verts & line
+      if (this.containsPoint(point)) {
+        var box = new THREE.Box3().setFromPoints([p2, p1]).expandByScalar(0.05);
+
+        if (box.containsPoint(point)) {
+          return point;
+        }
+      }
+
+      return null;
+    }
+  }, {
+    key: 'getNormalIntersect',
+    value: function getNormalIntersect(point) {
+      // get intersect which extends normal vector (or inverse) to point
+
+      var point2 = Maths.addVector(point, this.normal);
+      var vec = Maths.subtractVector(point2, point);
+      var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
+      var denom = this.normal.x * vec.x + this.normal.y * vec.y + this.normal.z * vec.z;
+      var x = point.x - vec.x * numPart / denom;
+      var y = point.y - vec.y * numPart / denom;
+      var z = point.z - vec.z * numPart / denom;
+      var intersect = new THREE.Vector3(x, y, z);
+
+      return intersect;
+    }
+  }, {
+    key: 'getNormalIntersect2D',
+    value: function getNormalIntersect2D(point) {
+      // get 2D (xz) intersect which extends from point to surface
+
+      var numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
+      var denom = this.normal.x * this.normal.x + this.normal.z * this.normal.z;
+
+      if (denom == 0) {
+        return null;
+      } else {
+        return new THREE.Vector3(point.x - this.normal.x * numPart / denom, point.y, point.z - this.normal.z * numPart / denom);
+      }
+    }
+  }, {
+    key: 'getY',
+    value: function getY(x, z) {
+      // solve plane for x, z
+      if (this.normal.y != 0) {
+        return (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
+      } else {
+        return null;
+      }
+    }
+  }, {
+    key: 'getPerpendicularNormals',
+    value: function getPerpendicularNormals() {
+      return {
+        right: new THREE.Vector3(-this.normal.z, 0, this.normal.x),
+        left: new THREE.Vector3(this.normal.z, 0, -this.normal.x)
+      };
+    }
+  }]);
+
+  return Plane;
+}();
+
+exports.Plane = Plane;
+
+/***/ }),
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2018,79 +2262,76 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _Config = __webpack_require__(0);
+var _collider = __webpack_require__(3);
 
-var _Config2 = _interopRequireDefault(_Config);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var Quadrants = function Quadrants() {
-  this.q = [];
-}; // quadrant system for indexing large polygon groups
-
-Quadrants.prototype = {
-  positionToQuadrant: function positionToQuadrant(point) {
-    // convert point to quadrant keys
-
-    var keys = {
-      x: Math.floor(point.x / _Config2.default.quadrants.size.x),
-      y: Math.floor(point.y / _Config2.default.quadrants.size.y),
-      z: Math.floor(point.z / _Config2.default.quadrants.size.z)
-    };
-
-    return keys;
-  },
-
-  add: function add(mesh) {
-    // add a mesh to quadrant/s
-
-    var min = this.positionToQuadrant(mesh.min);
-    var max = this.positionToQuadrant(mesh.max);
-
-    for (var x = min.x; x <= max.x; x += 1) {
-      for (var y = min.y; y <= max.y; y += 1) {
-        for (var z = min.z; z <= max.z; z += 1) {
-          this.addToQuadrant(x, y, z, mesh);
-        }
-      }
+Object.keys(_collider).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _collider[key];
     }
-  },
+  });
+});
 
-  addToQuadrant: function addToQuadrant(x, y, z, mesh) {
-    // if quadrant does not exist, create it
+var _mesh = __webpack_require__(6);
 
-    if (!this.q[x]) {
-      this.q[x] = [];
+Object.keys(_mesh).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _mesh[key];
     }
+  });
+});
 
-    if (!this.q[x][y]) {
-      this.q[x][y] = [];
+var _player = __webpack_require__(11);
+
+Object.keys(_player).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _player[key];
     }
+  });
+});
 
-    if (!this.q[x][y][z]) {
-      this.q[x][y][z] = [];
+var _system = __webpack_require__(9);
+
+Object.keys(_system).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _system[key];
     }
+  });
+});
 
-    // add mesh to quadrant
+/***/ }),
+/* 19 */
+/***/ (function(module, exports, __webpack_require__) {
 
-    this.q[x][y][z].push(mesh);
-  },
+"use strict";
 
 
-  getQuadrantMeshes: function getQuadrantMeshes(point) {
-    // get quadrant for point
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
 
-    var pq = this.positionToQuadrant(point);
+var _loader = __webpack_require__(16);
 
-    if (this.q[pq.x] && this.q[pq.x][pq.y] && this.q[pq.x][pq.y][pq.z]) {
-      return this.q[pq.x][pq.y][pq.z];
-    } else {
-      return [];
+Object.keys(_loader).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _loader[key];
     }
-  }
-};
-
-exports.default = Quadrants;
+  });
+});
 
 /***/ })
 /******/ ]);

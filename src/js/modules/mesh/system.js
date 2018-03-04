@@ -1,9 +1,5 @@
-// collision system - checks against all meshes
-// meshes are divided into quadrants for efficiency
-// recent collisions are cached
-
-import Config from '../config/Config';
-import Quadrants from './Quadrants';
+import { Config } from '../conf';
+import { Quadrants } from './quadrants';
 
 class System {
   constructor() {
@@ -95,4 +91,4 @@ class System {
   }
 }
 
-export default System;
+export { System };
