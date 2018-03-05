@@ -11,7 +11,13 @@ class Plane {
     this.n3 = n3;
     this.culled = false;
 
-    // generate plane
+    // first state of plane
+
+    this.generatePlane();
+  }
+
+  generatePlane() {
+    // regenerate plane
 
     this.e1 = {};
     this.e2 = {};

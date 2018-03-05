@@ -950,52 +950,59 @@ var Plane = function () {
     this.n3 = n3;
     this.culled = false;
 
-    // generate plane
+    // first state of plane
 
-    this.e1 = {};
-    this.e2 = {};
-    this.e3 = {};
-    this.e1.centre = Maths.scaleVector(Maths.addVector(this.p1, this.p2), 0.5);
-    this.e2.centre = Maths.scaleVector(Maths.addVector(this.p2, this.p3), 0.5);
-    this.e3.centre = Maths.scaleVector(Maths.addVector(this.p3, this.p1), 0.5);
-    this.e1.vec = Maths.subtractVector(this.p2, this.p1);
-    this.e2.vec = Maths.subtractVector(this.p3, this.p2);
-    this.e3.vec = Maths.subtractVector(this.p1, this.p3);
-
-    // get 2D component & normal
-
-    this.e1.vec2 = new THREE.Vector2(this.e1.vec.x, this.e1.vec.z);
-    this.e2.vec2 = new THREE.Vector2(this.e2.vec.x, this.e2.vec.z);
-    this.e3.vec2 = new THREE.Vector2(this.e3.vec.x, this.e3.vec.z);
-    this.e1.norm2 = new THREE.Vector2(-this.e1.vec.z, this.e1.vec.x);
-    this.e2.norm2 = new THREE.Vector2(-this.e2.vec.z, this.e2.vec.x);
-    this.e3.norm2 = new THREE.Vector2(-this.e3.vec.z, this.e3.vec.x);
-
-    // get normal
-
-    this.normal = Maths.normalise(Maths.crossProduct(this.e3.vec, this.e1.vec));
-    this.normalXZ = new THREE.Vector3(this.normal.x, 0, this.normal.z);
-
-    // reverse naughty normals
-
-    if (Maths.dotProduct(this.normal, this.n1) < 0 && Maths.dotProduct(this.normal, this.n2) < 0 && Maths.dotProduct(this.normal, this.n3) < 0) {
-      this.normal = Maths.reverseVector(this.normal);
-    }
-
-    // get position
-
-    this.position = new THREE.Vector3((this.p1.x + this.p2.x + this.p3.x) / 3, (this.p1.y + this.p2.y + this.p3.y) / 3, (this.p1.z + this.p2.z + this.p3.z) / 3);
-
-    // cache D for solving plane
-
-    this.D = -(this.normal.x * this.position.x) - this.normal.y * this.position.y - this.normal.z * this.position.z;
-
-    // create bounding box
-
-    this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
+    this.generatePlane();
   }
 
   _createClass(Plane, [{
+    key: 'generatePlane',
+    value: function generatePlane() {
+      // regenerate plane
+
+      this.e1 = {};
+      this.e2 = {};
+      this.e3 = {};
+      this.e1.centre = Maths.scaleVector(Maths.addVector(this.p1, this.p2), 0.5);
+      this.e2.centre = Maths.scaleVector(Maths.addVector(this.p2, this.p3), 0.5);
+      this.e3.centre = Maths.scaleVector(Maths.addVector(this.p3, this.p1), 0.5);
+      this.e1.vec = Maths.subtractVector(this.p2, this.p1);
+      this.e2.vec = Maths.subtractVector(this.p3, this.p2);
+      this.e3.vec = Maths.subtractVector(this.p1, this.p3);
+
+      // get 2D component & normal
+
+      this.e1.vec2 = new THREE.Vector2(this.e1.vec.x, this.e1.vec.z);
+      this.e2.vec2 = new THREE.Vector2(this.e2.vec.x, this.e2.vec.z);
+      this.e3.vec2 = new THREE.Vector2(this.e3.vec.x, this.e3.vec.z);
+      this.e1.norm2 = new THREE.Vector2(-this.e1.vec.z, this.e1.vec.x);
+      this.e2.norm2 = new THREE.Vector2(-this.e2.vec.z, this.e2.vec.x);
+      this.e3.norm2 = new THREE.Vector2(-this.e3.vec.z, this.e3.vec.x);
+
+      // get normal
+
+      this.normal = Maths.normalise(Maths.crossProduct(this.e3.vec, this.e1.vec));
+      this.normalXZ = new THREE.Vector3(this.normal.x, 0, this.normal.z);
+
+      // reverse naughty normals
+
+      if (Maths.dotProduct(this.normal, this.n1) < 0 && Maths.dotProduct(this.normal, this.n2) < 0 && Maths.dotProduct(this.normal, this.n3) < 0) {
+        this.normal = Maths.reverseVector(this.normal);
+      }
+
+      // get position
+
+      this.position = new THREE.Vector3((this.p1.x + this.p2.x + this.p3.x) / 3, (this.p1.y + this.p2.y + this.p3.y) / 3, (this.p1.z + this.p2.z + this.p3.z) / 3);
+
+      // cache D for solving plane
+
+      this.D = -(this.normal.x * this.position.x) - this.normal.y * this.position.y - this.normal.z * this.position.z;
+
+      // create bounding box
+
+      this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
+    }
+  }, {
     key: 'isPointAbove',
     value: function isPointAbove(point) {
       // is point above plane

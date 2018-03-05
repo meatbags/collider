@@ -3,8 +3,8 @@ var webpack = require('webpack');
 
 module.exports = {
   entry: {
-    'collider': './src/js/app.js',
-    'collider.min': './src/js/app.js'
+    'collider': './src/app.js',
+    'collider.min': './src/app.js'
   },
   output: {
     library: 'Collider',

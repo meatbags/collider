@@ -2,6 +2,8 @@ import * as Maths from '../maths';
 
 class Transformer {
   constructor(object) {
+    // bake initial transformations into vectex data
+
     this.point = new THREE.Vector3();
     this.position = object.position;
     this.rotation = object.rotation;
