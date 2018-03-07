@@ -6,7 +6,7 @@ import { Mouse, Keyboard } from '../io';
 class Player {
   constructor(domElement) {
     // player handler
-    
+
     this.domElement = domElement;
     this.config = Config.sandbox.player;
 
@@ -53,6 +53,9 @@ class Player {
 
     this.collider = new Collider(this.target.position, this.motion);
     this.object = new THREE.Group();
+    this.light = new THREE.PointLight(0xffffff, 0.1);
+    this.light.position.y = 1;
+    this.object.add(this.light);
     this.camera = new THREE.PerspectiveCamera(Config.sandbox.camera.fov, Config.sandbox.camera.aspect, Config.sandbox.camera.near, Config.sandbox.camera.far);
     this.camera.up = new THREE.Vector3(0, 1, 0);
 

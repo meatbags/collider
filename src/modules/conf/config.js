@@ -47,7 +47,7 @@ const Config = {
       },
     },
     camera: {
-      fov: 60,
+      fov: 75,
       aspect: 1,
       near: 0.1,
       far: 1000,

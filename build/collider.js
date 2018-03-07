@@ -87,6 +87,18 @@ Object.keys(_config).forEach(function (key) {
   });
 });
 
+var _physics = __webpack_require__(7);
+
+Object.keys(_physics).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _physics[key];
+    }
+  });
+});
+
 /***/ }),
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
@@ -247,168 +259,137 @@ var Collider = function () {
   function Collider(position, motion) {
     _classCallCheck(this, Collider);
 
-    // collision object
-
     this.position = position;
     this.motion = motion;
-    this.falling = false;
-    this.config = { physics: _conf.Config.sandbox.physics };
+    this.config = _conf.Physics;
   }
 
   _createClass(Collider, [{
-    key: 'gravity',
-    value: function gravity(delta) {
+    key: 'setPhysics',
+    value: function setPhysics(params) {
+      for (var key in params) {
+        if (params.hasOwnProperty(key) && this.confighasOwnProperty(key)) {
+          this.config[key] = params[key];
+        }
+      }
+    }
+  }, {
+    key: 'applyPhysics',
+    value: function applyPhysics(delta) {
       this.falling = this.motion.y < 0;
-      this.motion.y = Math.max(this.motion.y - this.config.physics.gravity * delta, -this.config.physics.maxVelocity);
+      this.motion.y = Math.max(this.motion.y - this.config.gravity * delta, -this.config.maxVelocity);
     }
   }, {
     key: 'move',
     value: function move(delta, system) {
-      // move against the collider system
+      // move collider against the system
+      var p = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
+      this.applyPhysics(delta);
+      var collisions = system.getCollisionMeshes(p);
 
-      var position = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
-
-      this.gravity(delta);
-      var meshes = system.getCollisionMeshes(position);
-
-      if (meshes.length > 0) {
-        // upward slopes
-
-        if (this.stepUpSlopes(position, meshes)) {
-          meshes = system.getCollisionMeshes(position);
+      // interact with slopes, walls
+      if (collisions.length > 0) {
+        if (this.stepUpSlopes(p, collisions)) {
+          collisions = system.getCollisionMeshes(p);
         }
-
-        // walls
-
-        if (this.feel(position, meshes, system)) {
-          meshes = system.getCollisionMeshes(position);
-          this.stepUpSlopes(position, meshes);
+        if (this.extrudeFromWalls(p, collisions, system)) {
+          this.stepUpSlopes(p, system.getCollisionMeshes(p));
         }
       } else if (this.motion.y < 0 && !this.falling) {
-        // downward slopes
-
-        var under = Maths.copyVector(position);
-        under.y -= this.config.physics.snapDown;
-        var mesh = system.getCeilingPlane(under);
-        this.stepDownSlope(position, mesh);
+        this.stepDownSlope(p, system.getCeilingPlane(new THREE.Vector3(p.x, p.y - this.config.snapDown, p.z)));
       }
 
-      this.position.x = position.x;
-      this.position.y = position.y;
-      this.position.z = position.z;
-
-      // spatial limit
-
-      if (this.position.y < this.config.physics.floor) {
+      // global floor
+      if (p.y < this.config.floor) {
         this.motion.y = 0;
-        this.position.y = this.config.physics.floor;
+        p.y = this.config.floor;
       }
+
+      // set position
+      this.position.x = p.x;
+      this.position.y = p.y;
+      this.position.z = p.z;
     }
   }, {
-    key: 'feel',
-    value: function feel(position, meshes, system) {
-      // test for obstructions
-
-      var obstruction = false;
-      var extruded = false;
+    key: 'extrudeFromWalls',
+    value: function extrudeFromWalls(p, meshes, system) {
+      // extrude position from obstructions
+      var isExtruded = false;
+      var firstObstruction = false;
 
       for (var i = 0; i < meshes.length; i += 1) {
-        var ceiling = meshes[i].getCeilingPlane(position);
-
-        // get first obstruction
-
-        if (ceiling != null && (ceiling.plane.normal.y < this.config.physics.minSlope || ceiling.y - this.position.y > this.config.physics.snapUp)) {
-          obstruction = meshes[i];
+        var ceiling = meshes[i].getCeilingPlane(p);
+        if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || ceiling.y - this.position.y > this.config.snapUp)) {
+          firstObstruction = meshes[i];
           break;
         }
       }
 
-      // change vector or stop
-
-      if (obstruction) {
-        var extrude = Maths.copyVector(position);
-        var intersectPlane = obstruction.getIntersectPlane2D(this.position, position);
+      // extrude from obstruction
+      if (firstObstruction) {
+        var intersectPlane = firstObstruction.getIntersectPlane2D(this.position, p);
+        var extrude = new THREE.Vector3(p.x, p.y, p.z);
 
         if (intersectPlane != null) {
-          position.x = intersectPlane.intersect.x;
-          position.z = intersectPlane.intersect.z;
-
-          // get collisions at *new* point
-
+          p.x = intersectPlane.intersect.x;
+          p.z = intersectPlane.intersect.z;
           var hits = 0;
-          meshes = system.getCollisionMeshes(position);
+          meshes = system.getCollisionMeshes(p);
 
           for (var _i = 0; _i < meshes.length; _i += 1) {
-            var _ceiling = meshes[_i].getCeilingPlane(position);
-
+            var _ceiling = meshes[_i].getCeilingPlane(p);
             // ignore if climbable
-
-            if (_ceiling != null && (_ceiling.plane.normal.y < this.config.physics.minSlope || _ceiling.y - this.position.y > this.config.physics.snapUp)) {
+            if (_ceiling != null && (_ceiling.plane.normal.y < this.config.minSlope || _ceiling.y - this.position.y > this.config.snapUp)) {
               hits += 1;
             }
           }
 
-          // stop motion if more than one collision (corner)
-
+          // stop motion if cornered
           if (hits > 1) {
-            position.x = this.position.x;
-            position.z = this.position.z;
+            p.x = this.position.x;
+            p.z = this.position.z;
           } else {
-            extruded = true;
+            isExtruded = true;
           }
         } else {
-          position.x = this.position.x;
-          position.z = this.position.z;
+          p.x = this.position.x;
+          p.z = this.position.z;
         }
       }
 
-      return extruded;
-    }
-  }, {
-    key: 'setPhysics',
-    value: function setPhysics(params) {
-      for (var key in params) {
-        if (params.hasOwnProperty(key) && this.config.physics.hasOwnProperty(key)) {
-          this.config.physics[key] = params[key];
-        }
-      }
+      return isExtruded;
     }
   }, {
     key: 'stepUpSlopes',
     value: function stepUpSlopes(position, meshes) {
-      // check for upward slopes in meshes
+      var steppedUp = false;
 
-      var success = false;
-
-      for (var i = 0; i < meshes.length; i += 1) {
+      for (var i = 0, len = meshes.length; i < len; ++i) {
         var ceiling = meshes[i].getCeilingPlane(position);
-
-        // climb
-        if (ceiling != null && ceiling.plane.normal.y >= this.config.physics.minSlope && ceiling.y - this.position.y <= this.config.physics.snapUp) {
+        // climb up slopes
+        if (ceiling != null && ceiling.plane.normal.y >= this.config.minSlope && ceiling.y - this.position.y <= this.config.snapUp) {
           if (ceiling.y >= position.y) {
-            success = true;
+            steppedUp = true;
             position.y = ceiling.y;
             this.motion.y = 0;
           }
         }
       }
 
-      return success;
+      return steppedUp;
     }
   }, {
     key: 'stepDownSlope',
     value: function stepDownSlope(position, ceilingPlane) {
-      // descend a given slope
+      var steppedDown = false;
 
-      var success = false;
-
-      if (ceilingPlane != null && ceilingPlane.plane.normal.y >= this.config.physics.minSlope) {
+      if (ceilingPlane != null && ceilingPlane.plane.normal.y >= this.config.minSlope) {
         position.y = ceilingPlane.y;
         this.motion.y = 0;
-        success = true;
+        steppedDown = true;
       }
 
-      return success;
+      return steppedDown;
     }
   }]);
 
@@ -463,7 +444,7 @@ Object.keys(_mesh).forEach(function (key) {
   });
 });
 
-var _file = __webpack_require__(17);
+var _file = __webpack_require__(18);
 
 Object.keys(_file).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -498,7 +479,7 @@ Object.keys(_collider).forEach(function (key) {
   });
 });
 
-var _mesh = __webpack_require__(7);
+var _mesh = __webpack_require__(8);
 
 Object.keys(_mesh).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -510,7 +491,7 @@ Object.keys(_mesh).forEach(function (key) {
   });
 });
 
-var _player = __webpack_require__(10);
+var _player = __webpack_require__(11);
 
 Object.keys(_player).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -522,7 +503,7 @@ Object.keys(_player).forEach(function (key) {
   });
 });
 
-var _system = __webpack_require__(15);
+var _system = __webpack_require__(16);
 
 Object.keys(_system).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -593,7 +574,7 @@ var Config = {
       }
     },
     camera: {
-      fov: 60,
+      fov: 75,
       aspect: 1,
       near: 0.1,
       far: 1000
@@ -621,15 +602,40 @@ exports.Config = Config;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+// physical properties
+
+var Physics = {
+  gravity: 20,
+  maxVelocity: 50,
+  friction: 0.5,
+  floor: 0,
+  snapUp: 1,
+  snapDown: 0.5,
+  minSlope: Math.PI / 5,
+  noclip: false
+};
+
+exports.Physics = Physics;
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
 exports.Mesh = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _conf = __webpack_require__(0);
 
-var _plane = __webpack_require__(8);
+var _plane = __webpack_require__(9);
 
-var _transformer = __webpack_require__(9);
+var _transformer = __webpack_require__(10);
 
 var _maths = __webpack_require__(3);
 
@@ -915,7 +921,7 @@ var Mesh = function () {
 exports.Mesh = Mesh;
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1191,7 +1197,7 @@ var Plane = function () {
 exports.Plane = Plane;
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1215,6 +1221,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var Transformer = function () {
   function Transformer(object) {
     _classCallCheck(this, Transformer);
+
+    // bake initial transformations into vectex data
 
     this.point = new THREE.Vector3();
     this.position = object.position;
@@ -1319,7 +1327,7 @@ var Transformer = function () {
 exports.Transformer = Transformer;
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1340,7 +1348,7 @@ var _collider = __webpack_require__(2);
 
 var _conf = __webpack_require__(0);
 
-var _io = __webpack_require__(11);
+var _io = __webpack_require__(12);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -1398,6 +1406,9 @@ var Player = function () {
 
     this.collider = new _collider.Collider(this.target.position, this.motion);
     this.object = new THREE.Group();
+    this.light = new THREE.PointLight(0xffffff, 0.1);
+    this.light.position.y = 1;
+    this.object.add(this.light);
     this.camera = new THREE.PerspectiveCamera(_conf.Config.sandbox.camera.fov, _conf.Config.sandbox.camera.aspect, _conf.Config.sandbox.camera.near, _conf.Config.sandbox.camera.far);
     this.camera.up = new THREE.Vector3(0, 1, 0);
 
@@ -1619,7 +1630,7 @@ var Player = function () {
 exports.Player = Player;
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1629,7 +1640,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _keyboard = __webpack_require__(12);
+var _keyboard = __webpack_require__(13);
 
 Object.keys(_keyboard).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1641,7 +1652,7 @@ Object.keys(_keyboard).forEach(function (key) {
   });
 });
 
-var _logger = __webpack_require__(13);
+var _logger = __webpack_require__(14);
 
 Object.keys(_logger).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1653,7 +1664,7 @@ Object.keys(_logger).forEach(function (key) {
   });
 });
 
-var _mouse = __webpack_require__(14);
+var _mouse = __webpack_require__(15);
 
 Object.keys(_mouse).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1666,7 +1677,7 @@ Object.keys(_mouse).forEach(function (key) {
 });
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1761,7 +1772,7 @@ var Keyboard = function () {
 exports.Keyboard = Keyboard;
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1836,7 +1847,7 @@ var Logger = function () {
 exports.Logger = Logger;
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1937,7 +1948,7 @@ var Mouse = function () {
 exports.Mouse = Mouse;
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1952,7 +1963,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _conf = __webpack_require__(0);
 
-var _quadrants = __webpack_require__(16);
+var _quadrants = __webpack_require__(17);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -2060,7 +2071,7 @@ var System = function () {
 exports.System = System;
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2159,7 +2170,7 @@ var Quadrants = function () {
 exports.Quadrants = Quadrants;
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2169,7 +2180,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _loader = __webpack_require__(18);
+var _loader = __webpack_require__(19);
 
 Object.keys(_loader).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -2182,7 +2193,7 @@ Object.keys(_loader).forEach(function (key) {
 });
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
