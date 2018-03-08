@@ -54,15 +54,26 @@ const App = {
     App.scene.add(floor);
     App.colliderSystem.add(new Collider.Mesh(floor));
 
-    for (var i=0; i<150; i++) {
-      const s = 3 + 2 * Math.random();
-      const h = 4 + Math.random() * 5;
+    let angle = 0;
+    let height = -1;
+    let len = 40;
+    const rand = (v) => { return Math.random() * v - v / 2; };
+
+    for (var i=0; i<1000; i++) {
+      angle += Math.PI / 70;
+      height += 0.5;
+      const L = len + rand(2);
+      const x = Math.sin(angle) * L + rand(20);
+      const y = height + rand(2)
+      const z = Math.cos(angle) * L + rand(20);
+      const s = 5 + 2 * Math.random();
+      const h = 3 + Math.random() * 5;
       const box = new THREE.Mesh(new THREE.BoxBufferGeometry(s, h, s), new THREE.MeshPhysicalMaterial({roughness: 1}));
-      box.position.set(Math.random() * 100 - 50, -2 + Math.random() * 6, Math.random() * 100 - 50);
-      const x = Math.random() * Math.PI / 4 - Math.PI / 8;
-      const y = Math.random() * Math.PI / 4 - Math.PI / 8;
-      const z = Math.random() * Math.PI / 4 - Math.PI / 8;
-      box.rotation.set(x, y, z);
+      box.position.set(x, y, z);
+      const rx = Math.random() * Math.PI / 4 - Math.PI / 8;
+      const ry = Math.random() * Math.PI / 4 - Math.PI / 8;
+      const rz = Math.random() * Math.PI / 4 - Math.PI / 8;
+      box.rotation.set(rx, ry, rz);
       if (Math.abs(box.position.x) < 2) {
         box.position.x += 4;
       }
@@ -72,17 +83,6 @@ const App = {
       App.scene.add(box);
       App.colliderSystem.add(new Collider.Mesh(box));
     }
-    /*
-    App.ready = false;
-    App.loader = new Collider.Loader('./assets/');
-    App.loader.loadFBX('model.fbx').then(function(meshes){
-      for (let i=0; i<meshes.length; i+=1) {
-        App.scene.add(meshes[i]);
-        App.colliderSystem.add(new Collider.Mesh(meshes[i]));
-      }
-      App.ready = true;
-    }, function(err){ throw(err); });
-    */
   },
 
   loadLighting: function() {

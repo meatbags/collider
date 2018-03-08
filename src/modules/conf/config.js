@@ -40,7 +40,7 @@ const Config = {
       speed: {
         normal: 8,
         slowed: 4,
-        noclip: 20,
+        noclip: 30,
         rotation: Math.PI * 0.75,
         jump: 10,
         fallTimerThreshold: 0.2,

@@ -232,173 +232,7 @@ exports.normalise = normalise;
 exports.normalise2 = normalise2;
 
 /***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.Collider = undefined;
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _conf = __webpack_require__(0);
-
-var _general = __webpack_require__(1);
-
-var Maths = _interopRequireWildcard(_general);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Collider = function () {
-  function Collider(position, motion) {
-    _classCallCheck(this, Collider);
-
-    this.position = position;
-    this.motion = motion;
-    this.config = _conf.Physics;
-  }
-
-  _createClass(Collider, [{
-    key: 'setPhysics',
-    value: function setPhysics(params) {
-      for (var key in params) {
-        if (params.hasOwnProperty(key) && this.confighasOwnProperty(key)) {
-          this.config[key] = params[key];
-        }
-      }
-    }
-  }, {
-    key: 'applyPhysics',
-    value: function applyPhysics(delta) {
-      this.falling = this.motion.y < 0;
-      this.motion.y = Math.max(this.motion.y - this.config.gravity * delta, -this.config.maxVelocity);
-    }
-  }, {
-    key: 'move',
-    value: function move(delta, system) {
-      // move collider against the system
-      var p = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
-      this.applyPhysics(delta);
-      var collisions = system.getCollisionMeshes(p);
-
-      // interact with slopes, walls
-      if (collisions.length > 0) {
-        if (this.stepUpSlopes(p, collisions)) {
-          collisions = system.getCollisionMeshes(p);
-        }
-        if (this.extrudeFromWalls(p, collisions, system)) {
-          this.stepUpSlopes(p, system.getCollisionMeshes(p));
-        }
-      } else if (this.motion.y < 0 && !this.falling) {
-        this.stepDownSlope(p, system.getCeilingPlane(new THREE.Vector3(p.x, p.y - this.config.snapDown, p.z)));
-      }
-
-      // global floor
-      if (p.y < this.config.floor) {
-        this.motion.y = 0;
-        p.y = this.config.floor;
-      }
-
-      // set position
-      this.position.x = p.x;
-      this.position.y = p.y;
-      this.position.z = p.z;
-    }
-  }, {
-    key: 'extrudeFromWalls',
-    value: function extrudeFromWalls(p, meshes, system) {
-      // extrude position from obstructions
-      var isExtruded = false;
-      var firstObstruction = false;
-
-      for (var i = 0; i < meshes.length; i += 1) {
-        var ceiling = meshes[i].getCeilingPlane(p);
-        if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || ceiling.y - this.position.y > this.config.snapUp)) {
-          firstObstruction = meshes[i];
-          break;
-        }
-      }
-
-      // extrude from obstruction
-      if (firstObstruction) {
-        var intersectPlane = firstObstruction.getIntersectPlane2D(this.position, p);
-        var extrude = new THREE.Vector3(p.x, p.y, p.z);
-
-        if (intersectPlane != null) {
-          p.x = intersectPlane.intersect.x;
-          p.z = intersectPlane.intersect.z;
-          var hits = 0;
-          meshes = system.getCollisionMeshes(p);
-
-          for (var _i = 0; _i < meshes.length; _i += 1) {
-            var _ceiling = meshes[_i].getCeilingPlane(p);
-            // ignore if climbable
-            if (_ceiling != null && (_ceiling.plane.normal.y < this.config.minSlope || _ceiling.y - this.position.y > this.config.snapUp)) {
-              hits += 1;
-            }
-          }
-
-          // stop motion if cornered
-          if (hits > 1) {
-            p.x = this.position.x;
-            p.z = this.position.z;
-          } else {
-            isExtruded = true;
-          }
-        } else {
-          p.x = this.position.x;
-          p.z = this.position.z;
-        }
-      }
-
-      return isExtruded;
-    }
-  }, {
-    key: 'stepUpSlopes',
-    value: function stepUpSlopes(position, meshes) {
-      var steppedUp = false;
-
-      for (var i = 0, len = meshes.length; i < len; ++i) {
-        var ceiling = meshes[i].getCeilingPlane(position);
-        // climb up slopes
-        if (ceiling != null && ceiling.plane.normal.y >= this.config.minSlope && ceiling.y - this.position.y <= this.config.snapUp) {
-          if (ceiling.y >= position.y) {
-            steppedUp = true;
-            position.y = ceiling.y;
-            this.motion.y = 0;
-          }
-        }
-      }
-
-      return steppedUp;
-    }
-  }, {
-    key: 'stepDownSlope',
-    value: function stepDownSlope(position, ceilingPlane) {
-      var steppedDown = false;
-
-      if (ceilingPlane != null && ceilingPlane.plane.normal.y >= this.config.minSlope) {
-        position.y = ceilingPlane.y;
-        this.motion.y = 0;
-        steppedDown = true;
-      }
-
-      return steppedDown;
-    }
-  }]);
-
-  return Collider;
-}();
-
-exports.Collider = Collider;
-
-/***/ }),
+/* 2 */,
 /* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -444,14 +278,14 @@ Object.keys(_mesh).forEach(function (key) {
   });
 });
 
-var _file = __webpack_require__(18);
+var _collider = __webpack_require__(21);
 
-Object.keys(_file).forEach(function (key) {
+Object.keys(_collider).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
   Object.defineProperty(exports, key, {
     enumerable: true,
     get: function get() {
-      return _file[key];
+      return _collider[key];
     }
   });
 });
@@ -467,18 +301,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _collider = __webpack_require__(2);
-
-Object.keys(_collider).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _collider[key];
-    }
-  });
-});
-
 var _mesh = __webpack_require__(8);
 
 Object.keys(_mesh).forEach(function (key) {
@@ -487,18 +309,6 @@ Object.keys(_mesh).forEach(function (key) {
     enumerable: true,
     get: function get() {
       return _mesh[key];
-    }
-  });
-});
-
-var _player = __webpack_require__(11);
-
-Object.keys(_player).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _player[key];
     }
   });
 });
@@ -567,7 +377,7 @@ var Config = {
       speed: {
         normal: 8,
         slowed: 4,
-        noclip: 20,
+        noclip: 30,
         rotation: Math.PI * 0.75,
         jump: 10,
         fallTimerThreshold: 0.2
@@ -660,7 +470,7 @@ var Mesh = function () {
       this.generatePlanes();
       this.conformPlanes();
     } else {
-      throw 'Error: Input is not THREE.BufferGeometry';
+      throw 'Error: THREE.BufferGeometry not found';
     }
   }
 
@@ -729,22 +539,23 @@ var Mesh = function () {
     value: function setBoxFromPlanes() {
       var array = [];
 
-      for (var i = 0; i < this.planes.length; i += 1) {
+      for (var i = 0, len = this.planes.length; i < len; ++i) {
         var p = this.planes[i];
-
         array.push(p.p1);
         array.push(p.p2);
         array.push(p.p3);
       }
 
       this.box.setFromPoints(array);
+      this.box.translate(this.transform.position);
     }
   }, {
     key: 'getCollision',
     value: function getCollision(point) {
-      this.transform.set(point);
+      if (this.box.containsPoint(point)) {
+        // transform point to put inside baked position
+        this.transform.set(point);
 
-      if (this.box.containsPoint(this.transform.point)) {
         // reset
         for (var i = 0; i < this.planes.length; i += 1) {
           this.planes[i].culled = false;
@@ -1327,309 +1138,7 @@ var Transformer = function () {
 exports.Transformer = Transformer;
 
 /***/ }),
-/* 11 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.Player = undefined;
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _general = __webpack_require__(1);
-
-var Maths = _interopRequireWildcard(_general);
-
-var _collider = __webpack_require__(2);
-
-var _conf = __webpack_require__(0);
-
-var _io = __webpack_require__(12);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Player = function () {
-  function Player(domElement) {
-    _classCallCheck(this, Player);
-
-    // player handler
-
-    this.domElement = domElement;
-    this.config = _conf.Config.sandbox.player;
-
-    // physical props
-
-    this.config.adjust = _conf.Config.sandbox.adjust;
-    this.config.physics = _conf.Config.sandbox.physics;
-    this.minPitch = this.config.rotation.minPitch;
-    this.maxPitch = this.config.rotation.maxPitch;
-    this.position = new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z);
-    this.rotation = {
-      pitch: this.config.rotation.pitch,
-      yaw: this.config.rotation.yaw,
-      roll: this.config.rotation.roll
-    };
-    this.motion = new THREE.Vector3(0, 0, 0);
-    this.offset = {
-      rotation: {
-        pitch: 0,
-        yaw: 0,
-        roll: 0
-      }
-    };
-    this.target = {
-      position: new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z),
-      rotation: {
-        pitch: this.config.rotation.pitch,
-        yaw: this.config.rotation.yaw,
-        roll: this.config.rotation.roll
-      },
-      motion: new THREE.Vector3(0, 0, 0),
-      offset: {
-        rotation: {
-          pitch: 0,
-          yaw: 0,
-          roll: 0
-        }
-      }
-    };
-    this.falling = false;
-    this.fallTimer = 0;
-
-    // world
-
-    this.collider = new _collider.Collider(this.target.position, this.motion);
-    this.object = new THREE.Group();
-    this.light = new THREE.PointLight(0xffffff, 0.1);
-    this.light.position.y = 1;
-    this.object.add(this.light);
-    this.camera = new THREE.PerspectiveCamera(_conf.Config.sandbox.camera.fov, _conf.Config.sandbox.camera.aspect, _conf.Config.sandbox.camera.near, _conf.Config.sandbox.camera.far);
-    this.camera.up = new THREE.Vector3(0, 1, 0);
-
-    // set up
-
-    this.events();
-    this.resizeCamera();
-  }
-
-  _createClass(Player, [{
-    key: 'update',
-    value: function update(delta, objects) {
-      // apply input, compute physics, move
-
-      this.input(delta);
-      this.collider.move(delta, objects);
-      this.move();
-    }
-  }, {
-    key: 'input',
-    value: function input(delta) {
-      // handle directional input
-
-      if (this.keyboard.keys.left || this.keyboard.keys.right) {
-        // pan left/ right
-
-        var dir = (this.keyboard.keys.left ? 1 : 0) + (this.keyboard.keys.right ? -1 : 0);
-        this.target.rotation.yaw += this.config.speed.rotation * delta * dir;
-      }
-
-      if (this.keyboard.keys.up || this.keyboard.keys.down) {
-        // move forward/ back
-
-        var speed = this.config.physics.noclip ? this.config.speed.noclip * (1 - Math.abs(Math.sin(this.target.rotation.pitch))) : this.config.speed.normal;
-        var _dir = (this.keyboard.keys.up ? 1 : 0) + (this.keyboard.keys.down ? -1 : 0);
-        var yaw = this.rotation.yaw + this.offset.rotation.yaw;
-        var dx = Math.sin(yaw) * speed * _dir;
-        var dz = Math.cos(yaw) * speed * _dir;
-        this.target.motion.x = dx;
-        this.target.motion.z = dz;
-      } else {
-        // stop moving
-
-        this.target.motion.x = 0;
-        this.target.motion.z = 0;
-      }
-
-      // handle jump key
-
-      if (this.keyboard.keys.jump) {
-        if (this.motion.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
-          // jump
-
-          this.motion.y = this.config.speed.jump;
-
-          // prevent double jump
-
-          this.fallTimer = this.config.speed.fallTimerThreshold;
-        }
-
-        // release key
-
-        this.keyboard.releaseKey('jump');
-      }
-
-      // compute falling
-
-      this.falling = this.motion.y != 0;
-      this.fallTimer = this.falling ? this.fallTimer + delta : 0;
-
-      // toggle noclip
-
-      if (this.keyboard.keys.x) {
-        this.keyboard.releaseKey('x');
-        this.config.physics.noclip = this.config.physics.noclip == false;
-      }
-
-      // handle noclip
-
-      if (this.config.physics.noclip) {
-        if (this.keyboard.keys.up || this.keyboard.keys.down) {
-          var _dir2 = (this.keyboard.keys.up ? 1 : 0) + (this.keyboard.keys.down ? -1 : 0);
-          var pitch = this.target.rotation.pitch;
-          this.target.motion.y = Math.sin(pitch) * this.config.speed.noclip * _dir2;
-        } else {
-          this.target.motion.y = 0;
-        }
-
-        this.falling = false;
-        this.motion.y = this.target.motion.y;
-      }
-
-      // reduce input if falling
-
-      if (!this.falling) {
-        this.motion.x = this.target.motion.x;
-        this.motion.z = this.target.motion.z;
-      } else {
-        this.motion.x += (this.target.motion.x - this.motion.x) * this.config.adjust.slow;
-        this.motion.z += (this.target.motion.z - this.motion.z) * this.config.adjust.slow;
-      }
-    }
-  }, {
-    key: 'move',
-    value: function move() {
-      // move
-
-      this.position.x += (this.target.position.x - this.position.x) * this.config.adjust.veryFast;
-      this.position.y += (this.target.position.y - this.position.y) * this.config.adjust.veryFast;
-      this.position.z += (this.target.position.z - this.position.z) * this.config.adjust.veryFast;
-
-      // rotate
-
-      this.rotation.yaw += Maths.minAngleDifference(this.rotation.yaw, this.target.rotation.yaw) * this.config.adjust.fast;
-      this.offset.rotation.yaw += (this.target.offset.rotation.yaw - this.offset.rotation.yaw) * this.config.adjust.normal;
-      this.rotation.yaw += this.rotation.yaw < 0 ? Maths.twoPi : this.rotation.yaw > Maths.twoPi ? -Maths.twoPi : 0;
-      this.rotation.pitch += (this.target.rotation.pitch - this.rotation.pitch) * this.config.adjust.normal;
-      this.offset.rotation.pitch += (this.target.offset.rotation.pitch - this.offset.rotation.pitch) * this.config.adjust.normal;
-      this.rotation.roll += (this.target.rotation.roll - this.rotation.roll) * this.config.adjust.fast;
-
-      // set camera from position/ rotation
-
-      var pitch = this.rotation.pitch + this.offset.rotation.pitch;
-      var yaw = this.rotation.yaw + this.offset.rotation.yaw;
-      var height = this.position.y + this.config.height;
-      var offxz = 1 - Math.abs(Math.sin(pitch));
-      var offy = 1;
-
-      // adjust camera roll for direction
-
-      this.camera.up.z = -Math.sin(this.rotation.yaw) * this.rotation.roll;
-      this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
-
-      // set position
-
-      this.camera.position.set(this.position.x - Math.sin(yaw) * offxz / 4, height - Math.sin(pitch) * offy / 4, this.position.z - Math.cos(yaw) * offxz / 4);
-
-      // look at target
-
-      this.camera.lookAt(new THREE.Vector3(this.position.x + Math.sin(yaw) * offxz, height + Math.sin(pitch) * offy, this.position.z + Math.cos(yaw) * offxz));
-
-      // move scene object
-
-      this.object.position.set(this.position.x, this.position.y, this.position.z);
-    }
-  }, {
-    key: 'resizeCamera',
-    value: function resizeCamera() {
-      // resize camera
-
-      var bound = this.domElement.getBoundingClientRect();
-      var w = bound.width;
-      var h = bound.height;
-      this.camera.aspect = w / h;
-      this.camera.updateProjectionMatrix();
-    }
-  }, {
-    key: 'events',
-    value: function events() {
-      var _this = this;
-
-      // hook up doc events
-      this.mouse = new _io.Mouse(this.domElement);
-      this.onMouseDown = function (e) {
-        // mouse down
-
-        if (!_this.mouse.isLocked()) {
-          _this.mouse.start(e, _this.rotation.pitch, _this.rotation.yaw);
-        }
-      };
-      this.onMouseMove = function (e) {
-        // mouse moved
-
-        if (_this.mouse.isActive() && !(_this.keyboard.keys.left || _this.keyboard.keys.right)) {
-          _this.mouse.move(e);
-
-          // set targets from delta
-
-          _this.target.rotation.yaw = _this.mouse.getYaw();
-          _this.target.rotation.pitch = _this.mouse.getPitch(_this.minPitch, _this.maxPitch);
-        }
-      };
-      this.onMouseUp = function (e) {
-        // mouse up
-
-        _this.mouse.stop();
-      };
-      this.domElement.addEventListener('mousedown', this.onMouseDown, false);
-      this.domElement.addEventListener('mousemove', this.onMouseMove, false);
-      this.domElement.addEventListener('mouseup', this.onMouseUp, false);
-      this.domElement.addEventListener('mouseleave', this.onMouseUp, false);
-
-      // mobile TODO make robust
-      this.onMobileDown = function (e) {
-        _this.onMouseDown(e.touches[0]);
-      };
-      this.onMobileMove = function (e) {
-        _this.onMouseMove(e.touches[0]);
-      };
-      this.onMobileUp = function (e) {
-        _this.onMouseUp(e.touches[0]);
-      };
-      this.domElement.addEventListener('touchstart', this.onMobileDown, false);
-      this.domElement.addEventListener('touchmove', this.onMobileMove, false);
-      this.domElement.addEventListener('touchend', this.onMobileUp, false);
-
-      // keyboard
-      this.keyboard = new _io.Keyboard();
-      document.addEventListener('keydown', this.keyboard.onKeyDown, false);
-      document.addEventListener('keyup', this.keyboard.onKeyUp, false);
-    }
-  }]);
-
-  return Player;
-}();
-
-;
-
-exports.Player = Player;
-
-/***/ }),
+/* 11 */,
 /* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1963,7 +1472,9 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _conf = __webpack_require__(0);
 
-var _quadrants = __webpack_require__(17);
+var _mesh = __webpack_require__(8);
+
+var _map = __webpack_require__(23);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -1973,29 +1484,38 @@ var System = function () {
 
     // collider mesh system
 
-    this.quadrants = new _quadrants.Quadrants();
-    this.meshes = [];
     this.isColliderSystem = true;
+    this.map = new _map.Map();
+    this.meshes = [];
   }
 
   _createClass(System, [{
     key: 'add',
     value: function add() {
-      // add mesh to quadrants
+      // add mesh to system
 
-      for (var i = 0; i < arguments.length; i += 1) {
+      for (var i = 0, len = arguments.length; i < len; ++i) {
         var mesh = arguments[i];
 
         if (mesh.isColliderMesh) {
-          if (mesh.planes.length <= _conf.Config.system.maxPlanesPerMesh) {
-            this.quadrants.add(mesh);
-            this.meshes.push(mesh.object);
-          } else {
-            console.warn('Warning: Mesh not included - plane count exceeds maximum (%s).', _conf.Config.system.maxPlanesPerMesh);
-          }
+          this.appendMesh(mesh);
         } else {
-          throw 'Error: Input must be Collider.Mesh';
+          if (mesh.geometry && mesh.geometry.isBufferGeometry) {
+            this.appendMesh(new _mesh.Mesh(mesh));
+          } else {
+            throw 'Error: Mesh must be THREE.Mesh or Collider.Mesh';
+          }
         }
+      }
+    }
+  }, {
+    key: 'appendMesh',
+    value: function appendMesh(mesh) {
+      if (mesh.planes.length <= _conf.Config.system.maxPlanesPerMesh) {
+        this.map.add(mesh);
+        this.meshes.push(mesh.object);
+      } else {
+        console.warn('Warning: Mesh discluded. Plane count exceeds maximum (%s).', _conf.Config.system.maxPlanesPerMesh);
       }
     }
   }, {
@@ -2004,9 +1524,9 @@ var System = function () {
       // check for collision at point
 
       var collision = false;
-      var meshes = this.quadrants.getQuadrantMeshes(point);
+      var meshes = this.map.getMeshes(point);
 
-      for (var i = 0; i < meshes.length; i += 1) {
+      for (var i = 0, len = meshes.length; i < len; ++i) {
         if (meshes[i].getCollision(point)) {
           collision = true;
           break;
@@ -2021,9 +1541,9 @@ var System = function () {
       // get all meshes which collide with point
 
       var collisions = [];
-      var meshes = this.quadrants.getQuadrantMeshes(point);
+      var meshes = this.map.getMeshes(point);
 
-      for (var i = 0; i < meshes.length; i += 1) {
+      for (var i = 0, len = meshes.length; i < len; ++i) {
         if (meshes[i].getCollision(point)) {
           collisions.push(meshes[i]);
         }
@@ -2034,33 +1554,26 @@ var System = function () {
   }, {
     key: 'getCeilingPlane',
     value: function getCeilingPlane(point) {
-      // get ceiling and corresponding plane *above* point
+      // get ceiling and plane above point
 
       var ceiling = null;
-      var meshes = this.quadrants.getQuadrantMeshes(point);
+      var meshes = this.map.getMeshes(point);
 
-      for (var i = 0; i < meshes.length; i += 1) {
+      for (var i = 0, len = meshes.length; i < len; ++i) {
         if (meshes[i].getCollision(point)) {
           var result = meshes[i].getCeilingPlane(point);
 
-          if (result != null) {
-            if (ceiling === null || result.y > ceiling.y) {
-              ceiling = {
-                y: result.y,
-                plane: result.plane
-              };
-            }
+          if (result && (!ceiling || result.y > ceiling.y)) {
+            ceiling = { y: result.y, plane: result.plane };
           }
         }
       }
 
-      return ceiling === null ? null : ceiling;
+      return ceiling;
     }
   }, {
     key: 'getMeshes',
     value: function getMeshes() {
-      // return three meshes
-
       return this.meshes;
     }
   }]);
@@ -2071,7 +1584,10 @@ var System = function () {
 exports.System = System;
 
 /***/ }),
-/* 17 */
+/* 17 */,
+/* 18 */,
+/* 19 */,
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2080,97 +1596,165 @@ exports.System = System;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Quadrants = undefined;
+exports.Collider = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _conf = __webpack_require__(0);
 
+var _general = __webpack_require__(1);
+
+var Maths = _interopRequireWildcard(_general);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Quadrants = function () {
-  function Quadrants() {
-    _classCallCheck(this, Quadrants);
+var Collider = function () {
+  function Collider(position, motion) {
+    _classCallCheck(this, Collider);
 
-    // index meshes into quadrants
-
-    this.q = [];
+    this.position = position;
+    this.motion = motion;
+    this.config = _conf.Physics;
   }
 
-  _createClass(Quadrants, [{
-    key: 'positionToQuadrant',
-    value: function positionToQuadrant(point) {
-      // convert point to quadrant keys
-
-      var keys = {
-        x: Math.floor(point.x / _conf.Config.quadrants.size.x),
-        y: Math.floor(point.y / _conf.Config.quadrants.size.y),
-        z: Math.floor(point.z / _conf.Config.quadrants.size.z)
-      };
-
-      return keys;
-    }
-  }, {
-    key: 'add',
-    value: function add(mesh) {
-      // add a mesh to quadrant/s
-
-      var min = this.positionToQuadrant(mesh.min);
-      var max = this.positionToQuadrant(mesh.max);
-
-      for (var x = min.x; x <= max.x; x += 1) {
-        for (var y = min.y; y <= max.y; y += 1) {
-          for (var z = min.z; z <= max.z; z += 1) {
-            this.addToQuadrant(x, y, z, mesh);
-          }
+  _createClass(Collider, [{
+    key: 'setPhysics',
+    value: function setPhysics(params) {
+      for (var key in params) {
+        if (params.hasOwnProperty(key) && this.config.hasOwnProperty(key)) {
+          this.config[key] = params[key];
         }
       }
     }
   }, {
-    key: 'addToQuadrant',
-    value: function addToQuadrant(x, y, z, mesh) {
-      // if quadrant does not exist, create it
-
-      if (!this.q[x]) {
-        this.q[x] = [];
-      }
-
-      if (!this.q[x][y]) {
-        this.q[x][y] = [];
-      }
-
-      if (!this.q[x][y][z]) {
-        this.q[x][y][z] = [];
-      }
-
-      // add mesh to quadrant
-
-      this.q[x][y][z].push(mesh);
+    key: 'applyPhysics',
+    value: function applyPhysics(delta) {
+      this.falling = this.motion.y < 0;
+      this.motion.y = Math.max(this.motion.y - this.config.gravity * delta, -this.config.maxVelocity);
     }
   }, {
-    key: 'getQuadrantMeshes',
-    value: function getQuadrantMeshes(point) {
-      // get quadrant for point
+    key: 'move',
+    value: function move(delta, system) {
+      // move collider against the system
+      var p = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
+      this.applyPhysics(delta);
+      var collisions = system.getCollisionMeshes(p);
 
-      var pq = this.positionToQuadrant(point);
-
-      if (this.q[pq.x] && this.q[pq.x][pq.y] && this.q[pq.x][pq.y][pq.z]) {
-        return this.q[pq.x][pq.y][pq.z];
-      } else {
-        return [];
+      // interact with slopes, walls
+      if (collisions.length > 0) {
+        if (this.stepUpSlopes(p, collisions)) {
+          collisions = system.getCollisionMeshes(p);
+        }
+        if (this.extrudeFromWalls(p, collisions, system)) {
+          this.stepUpSlopes(p, system.getCollisionMeshes(p));
+        }
+      } else if (this.motion.y < 0 && !this.falling) {
+        this.stepDownSlope(p, system.getCeilingPlane(new THREE.Vector3(p.x, p.y - this.config.snapDown, p.z)));
       }
+
+      // global floor
+      if (p.y < this.config.floor) {
+        this.motion.y = 0;
+        p.y = this.config.floor;
+      }
+
+      // set position
+      this.position.x = p.x;
+      this.position.y = p.y;
+      this.position.z = p.z;
+    }
+  }, {
+    key: 'extrudeFromWalls',
+    value: function extrudeFromWalls(p, meshes, system) {
+      // extrude position from obstructions
+      var isExtruded = false;
+      var firstObstruction = false;
+
+      for (var i = 0; i < meshes.length; i += 1) {
+        var ceiling = meshes[i].getCeilingPlane(p);
+        if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || ceiling.y - this.position.y > this.config.snapUp)) {
+          firstObstruction = meshes[i];
+          break;
+        }
+      }
+
+      // extrude from obstruction
+      if (firstObstruction) {
+        var intersectPlane = firstObstruction.getIntersectPlane2D(this.position, p);
+        var extrude = new THREE.Vector3(p.x, p.y, p.z);
+
+        if (intersectPlane != null) {
+          p.x = intersectPlane.intersect.x;
+          p.z = intersectPlane.intersect.z;
+          var hits = 0;
+          meshes = system.getCollisionMeshes(p);
+
+          for (var _i = 0; _i < meshes.length; _i += 1) {
+            var _ceiling = meshes[_i].getCeilingPlane(p);
+            // ignore if climbable
+            if (_ceiling != null && (_ceiling.plane.normal.y < this.config.minSlope || _ceiling.y - this.position.y > this.config.snapUp)) {
+              hits += 1;
+            }
+          }
+
+          // stop motion if cornered
+          if (hits > 1) {
+            p.x = this.position.x;
+            p.z = this.position.z;
+          } else {
+            isExtruded = true;
+          }
+        } else {
+          p.x = this.position.x;
+          p.z = this.position.z;
+        }
+      }
+
+      return isExtruded;
+    }
+  }, {
+    key: 'stepUpSlopes',
+    value: function stepUpSlopes(position, meshes) {
+      var steppedUp = false;
+
+      for (var i = 0, len = meshes.length; i < len; ++i) {
+        var ceiling = meshes[i].getCeilingPlane(position);
+        // climb up slopes
+        if (ceiling != null && ceiling.plane.normal.y >= this.config.minSlope && ceiling.y - this.position.y <= this.config.snapUp) {
+          if (ceiling.y >= position.y) {
+            steppedUp = true;
+            position.y = ceiling.y;
+            this.motion.y = 0;
+          }
+        }
+      }
+
+      return steppedUp;
+    }
+  }, {
+    key: 'stepDownSlope',
+    value: function stepDownSlope(position, ceilingPlane) {
+      var steppedDown = false;
+
+      if (ceilingPlane != null && ceilingPlane.plane.normal.y >= this.config.minSlope) {
+        position.y = ceilingPlane.y;
+        this.motion.y = 0;
+        steppedDown = true;
+      }
+
+      return steppedDown;
     }
   }]);
 
-  return Quadrants;
+  return Collider;
 }();
 
-;
-
-exports.Quadrants = Quadrants;
+exports.Collider = Collider;
 
 /***/ }),
-/* 18 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2180,20 +1764,32 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _loader = __webpack_require__(19);
+var _collider = __webpack_require__(20);
 
-Object.keys(_loader).forEach(function (key) {
+Object.keys(_collider).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
   Object.defineProperty(exports, key, {
     enumerable: true,
     get: function get() {
-      return _loader[key];
+      return _collider[key];
+    }
+  });
+});
+
+var _player = __webpack_require__(22);
+
+Object.keys(_player).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _player[key];
     }
   });
 });
 
 /***/ }),
-/* 19 */
+/* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2202,7 +1798,310 @@ Object.keys(_loader).forEach(function (key) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Loader = undefined;
+exports.Player = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _general = __webpack_require__(1);
+
+var Maths = _interopRequireWildcard(_general);
+
+var _collider = __webpack_require__(20);
+
+var _conf = __webpack_require__(0);
+
+var _io = __webpack_require__(12);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Player = function () {
+  function Player(domElement) {
+    _classCallCheck(this, Player);
+
+    // player handler
+
+    this.domElement = domElement;
+    this.config = _conf.Config.sandbox.player;
+
+    // physical props
+
+    this.config.adjust = _conf.Config.sandbox.adjust;
+    this.config.physics = _conf.Config.sandbox.physics;
+    this.minPitch = this.config.rotation.minPitch;
+    this.maxPitch = this.config.rotation.maxPitch;
+    this.position = new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z);
+    this.rotation = {
+      pitch: this.config.rotation.pitch,
+      yaw: this.config.rotation.yaw,
+      roll: this.config.rotation.roll
+    };
+    this.motion = new THREE.Vector3(0, 0, 0);
+    this.offset = {
+      rotation: {
+        pitch: 0,
+        yaw: 0,
+        roll: 0
+      }
+    };
+    this.target = {
+      position: new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z),
+      rotation: {
+        pitch: this.config.rotation.pitch,
+        yaw: this.config.rotation.yaw,
+        roll: this.config.rotation.roll
+      },
+      motion: new THREE.Vector3(0, 0, 0),
+      offset: {
+        rotation: {
+          pitch: 0,
+          yaw: 0,
+          roll: 0
+        }
+      }
+    };
+    this.falling = false;
+    this.fallTimer = 0;
+
+    // world
+
+    this.collider = new _collider.Collider(this.target.position, this.motion);
+    this.object = new THREE.Group();
+    this.light = new THREE.PointLight(0xffffff, 0.1);
+    this.light.position.y = 1;
+    this.object.add(this.light);
+    this.camera = new THREE.PerspectiveCamera(_conf.Config.sandbox.camera.fov, _conf.Config.sandbox.camera.aspect, _conf.Config.sandbox.camera.near, _conf.Config.sandbox.camera.far);
+    this.camera.up = new THREE.Vector3(0, 1, 0);
+
+    // set up
+
+    this.events();
+    this.resizeCamera();
+  }
+
+  _createClass(Player, [{
+    key: 'update',
+    value: function update(delta, objects) {
+      // apply input, compute physics, move
+
+      this.input(delta);
+      this.collider.move(delta, objects);
+      this.move();
+    }
+  }, {
+    key: 'input',
+    value: function input(delta) {
+      // handle directional input
+
+      if (this.keyboard.keys.left || this.keyboard.keys.right) {
+        // pan left/ right
+
+        var dir = (this.keyboard.keys.left ? 1 : 0) + (this.keyboard.keys.right ? -1 : 0);
+        this.target.rotation.yaw += this.config.speed.rotation * delta * dir;
+      }
+
+      if (this.keyboard.keys.up || this.keyboard.keys.down) {
+        // move forward/ back
+
+        var speed = this.config.physics.noclip ? this.config.speed.noclip * (1 - Math.abs(Math.sin(this.target.rotation.pitch))) : this.config.speed.normal;
+        var _dir = (this.keyboard.keys.up ? 1 : 0) + (this.keyboard.keys.down ? -1 : 0);
+        var yaw = this.rotation.yaw + this.offset.rotation.yaw;
+        var dx = Math.sin(yaw) * speed * _dir;
+        var dz = Math.cos(yaw) * speed * _dir;
+        this.target.motion.x = dx;
+        this.target.motion.z = dz;
+      } else {
+        // stop moving
+
+        this.target.motion.x = 0;
+        this.target.motion.z = 0;
+      }
+
+      // handle jump key
+
+      if (this.keyboard.keys.jump) {
+        if (this.motion.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
+          // jump
+
+          this.motion.y = this.config.speed.jump;
+
+          // prevent double jump
+
+          this.fallTimer = this.config.speed.fallTimerThreshold;
+        }
+
+        // release key
+
+        this.keyboard.releaseKey('jump');
+      }
+
+      // compute falling
+
+      this.falling = this.motion.y != 0;
+      this.fallTimer = this.falling ? this.fallTimer + delta : 0;
+
+      // toggle noclip
+
+      if (this.keyboard.keys.x) {
+        this.keyboard.releaseKey('x');
+        this.config.physics.noclip = this.config.physics.noclip == false;
+      }
+
+      // handle noclip
+
+      if (this.config.physics.noclip) {
+        if (this.keyboard.keys.up || this.keyboard.keys.down) {
+          var _dir2 = (this.keyboard.keys.up ? 1 : 0) + (this.keyboard.keys.down ? -1 : 0);
+          var pitch = this.target.rotation.pitch;
+          this.target.motion.y = Math.sin(pitch) * this.config.speed.noclip * _dir2;
+        } else {
+          this.target.motion.y = 0;
+        }
+
+        this.falling = false;
+        this.motion.y = this.target.motion.y;
+      }
+
+      // reduce input if falling
+
+      if (!this.falling) {
+        this.motion.x = this.target.motion.x;
+        this.motion.z = this.target.motion.z;
+      } else {
+        this.motion.x += (this.target.motion.x - this.motion.x) * this.config.adjust.slow;
+        this.motion.z += (this.target.motion.z - this.motion.z) * this.config.adjust.slow;
+      }
+    }
+  }, {
+    key: 'move',
+    value: function move() {
+      // move
+
+      this.position.x += (this.target.position.x - this.position.x) * this.config.adjust.veryFast;
+      this.position.y += (this.target.position.y - this.position.y) * this.config.adjust.veryFast;
+      this.position.z += (this.target.position.z - this.position.z) * this.config.adjust.veryFast;
+
+      // rotate
+
+      this.rotation.yaw += Maths.minAngleDifference(this.rotation.yaw, this.target.rotation.yaw) * this.config.adjust.fast;
+      this.offset.rotation.yaw += (this.target.offset.rotation.yaw - this.offset.rotation.yaw) * this.config.adjust.normal;
+      this.rotation.yaw += this.rotation.yaw < 0 ? Maths.twoPi : this.rotation.yaw > Maths.twoPi ? -Maths.twoPi : 0;
+      this.rotation.pitch += (this.target.rotation.pitch - this.rotation.pitch) * this.config.adjust.normal;
+      this.offset.rotation.pitch += (this.target.offset.rotation.pitch - this.offset.rotation.pitch) * this.config.adjust.normal;
+      this.rotation.roll += (this.target.rotation.roll - this.rotation.roll) * this.config.adjust.fast;
+
+      // set camera from position/ rotation
+
+      var pitch = this.rotation.pitch + this.offset.rotation.pitch;
+      var yaw = this.rotation.yaw + this.offset.rotation.yaw;
+      var height = this.position.y + this.config.height;
+      var offxz = 1 - Math.abs(Math.sin(pitch));
+      var offy = 1;
+
+      // adjust camera roll for direction
+
+      this.camera.up.z = -Math.sin(this.rotation.yaw) * this.rotation.roll;
+      this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
+
+      // set position
+
+      this.camera.position.set(this.position.x - Math.sin(yaw) * offxz / 4, height - Math.sin(pitch) * offy / 4, this.position.z - Math.cos(yaw) * offxz / 4);
+
+      // look at target
+
+      this.camera.lookAt(new THREE.Vector3(this.position.x + Math.sin(yaw) * offxz, height + Math.sin(pitch) * offy, this.position.z + Math.cos(yaw) * offxz));
+
+      // move scene object
+
+      this.object.position.set(this.position.x, this.position.y, this.position.z);
+    }
+  }, {
+    key: 'resizeCamera',
+    value: function resizeCamera() {
+      // resize camera
+
+      var bound = this.domElement.getBoundingClientRect();
+      var w = bound.width;
+      var h = bound.height;
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+    }
+  }, {
+    key: 'events',
+    value: function events() {
+      var _this = this;
+
+      // hook up doc events
+      this.mouse = new _io.Mouse(this.domElement);
+      this.onMouseDown = function (e) {
+        // mouse down
+
+        if (!_this.mouse.isLocked()) {
+          _this.mouse.start(e, _this.rotation.pitch, _this.rotation.yaw);
+        }
+      };
+      this.onMouseMove = function (e) {
+        // mouse moved
+
+        if (_this.mouse.isActive() && !(_this.keyboard.keys.left || _this.keyboard.keys.right)) {
+          _this.mouse.move(e);
+
+          // set targets from delta
+
+          _this.target.rotation.yaw = _this.mouse.getYaw();
+          _this.target.rotation.pitch = _this.mouse.getPitch(_this.minPitch, _this.maxPitch);
+        }
+      };
+      this.onMouseUp = function (e) {
+        // mouse up
+
+        _this.mouse.stop();
+      };
+      this.domElement.addEventListener('mousedown', this.onMouseDown, false);
+      this.domElement.addEventListener('mousemove', this.onMouseMove, false);
+      this.domElement.addEventListener('mouseup', this.onMouseUp, false);
+      this.domElement.addEventListener('mouseleave', this.onMouseUp, false);
+
+      // mobile TODO make robust
+      this.onMobileDown = function (e) {
+        _this.onMouseDown(e.touches[0]);
+      };
+      this.onMobileMove = function (e) {
+        _this.onMouseMove(e.touches[0]);
+      };
+      this.onMobileUp = function (e) {
+        _this.onMouseUp(e.touches[0]);
+      };
+      this.domElement.addEventListener('touchstart', this.onMobileDown, false);
+      this.domElement.addEventListener('touchmove', this.onMobileMove, false);
+      this.domElement.addEventListener('touchend', this.onMobileUp, false);
+
+      // keyboard
+      this.keyboard = new _io.Keyboard();
+      document.addEventListener('keydown', this.keyboard.onKeyDown, false);
+      document.addEventListener('keyup', this.keyboard.onKeyUp, false);
+    }
+  }]);
+
+  return Player;
+}();
+
+;
+
+exports.Player = Player;
+
+/***/ }),
+/* 23 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.Map = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -2210,135 +2109,58 @@ var _conf = __webpack_require__(0);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Loader = function () {
-  function Loader(basePath) {
-    _classCallCheck(this, Loader);
+var Map = function () {
+  function Map() {
+    _classCallCheck(this, Map);
 
-    this.basePath = basePath;
-    this.FBXLoader = new THREE.FBXLoader();
+    // nearby mesh caching for faster searches
 
-    // default envmap
-
-    this.envTextureCube = new THREE.CubeTextureLoader().load([this.basePath + 'envmap/horizontal.jpg', // +x
-    this.basePath + 'envmap/horizontal.jpg', // -x
-    this.basePath + 'envmap/posy.jpg', this.basePath + 'envmap/negy.jpg', this.basePath + 'envmap/horizontal.jpg', // +z
-    this.basePath + 'envmap/horizontal.jpg'] // -z
-    );
-    //this.envTextureCube.format = THREE.RGBFormat;
-    //this.envTextureCube.mapping = THREE.CubeReflectionMapping;
+    this.origin = new THREE.Vector3();
+    this.radius = 10;
+    this.threshold = this.radius - 1;
+    this.meshes = [];
+    this.nearby = [];
   }
 
-  _createClass(Loader, [{
-    key: 'loadFBX',
-    value: function loadFBX(filename) {
-      var self = this;
-
-      return new Promise(function (resolve, reject) {
-        try {
-          self.FBXLoader.load(self.basePath + filename, function (object) {
-            var meshes = [];
-
-            // get meshes (ignore lights, etc)
-            for (var i = 0; i < object.children.length; i += 1) {
-              if (object.children[i].type == 'Mesh') {
-                meshes.push(object.children[i]);
-              } else if (object.children[i].type == 'Group') {
-                for (var j = 0; j < object.children[i].children.length; j += 1) {
-                  if (object.children[i].children[j].type == 'Mesh') {
-                    meshes.push(object.children[i].children[j]);
-                  }
-                }
-              }
-            }
-
-            // set defualts (env map, normal scale etc)
-            for (var _i = 0; _i < meshes.length; _i += 1) {
-              var mat = meshes[_i].material;
-
-              mat.envMap = self.envTextureCube;
-              mat.envMapIntensity = 0.25; //mat.metalness;
-              mat.bumpScale = 0.01;
-              mat.normalScale = new THREE.Vector2(0.1, 0.1);
-            }
-
-            resolve(meshes);
-          });
-        } catch (error) {
-          reject(error);
-        }
-      });
+  _createClass(Map, [{
+    key: 'add',
+    value: function add(mesh) {
+      this.meshes.push(mesh);
+      this.cacheNearbyMeshes();
     }
   }, {
-    key: 'process',
-    value: function process(obj, materials) {
-      for (var i = 0; i < obj.children.length; i += 1) {
-        var child = obj.children[i];
-        var meta = materials.materialsInfo[child.material.name];
+    key: 'getMeshes',
+    value: function getMeshes(point) {
+      // get meshes near point
 
-        // set material
-        child.material = materials.materials[child.material.name];
+      if (this.origin.distanceTo(point) >= this.threshold) {
+        this.origin.copy(point);
+        this.cacheNearbyMeshes();
+      }
 
-        console.log(meta, child.material);
+      return this.nearby;
+    }
+  }, {
+    key: 'cacheNearbyMeshes',
+    value: function cacheNearbyMeshes() {
+      // cache meshes close to origin
 
-        // load lightmaps
-        if (meta.map_ka) {
-          var uvs = child.geometry.attributes.uv.array;
-          var src = meta.map_ka;
-          var tex = new THREE.TextureLoader().load(self.basePath + src);
+      this.nearby = [];
 
-          child.material.lightMap = tex;
-          child.material.lightMapIntensity = _conf.Config.Loader.lightMapIntensity;
-          child.geometry.addAttribute('uv2', new THREE.BufferAttribute(uvs, 2));
-        }
-
-        // make glass translucent
-        if (child.material.map) {
-          // if textured, set full colour
-          child.material.color = new THREE.Color(0xffffff);
-
-          // set transparent for .png
-          if (child.material.map.image.src.indexOf('.png') !== -1) {
-            child.material.transparent = true;
-            child.material.side = THREE.DoubleSide;
-          }
-
-          // for glass
-          if (child.material.map.image.src.indexOf('glass') != -1) {
-            child.material.transparent = true;
-            child.material.opacity = _conf.Config.Loader.glassOpacity;
-          }
-        } else {
-          // no texture, set colour
-          //child.material.emissive = child.material.color;
+      for (var i = 0, len = this.meshes.length; i < len; ++i) {
+        if (this.meshes[i].box.distanceToPoint(this.origin) <= this.radius) {
+          this.nearby.push(this.meshes[i]);
         }
       }
     }
-  }, {
-    key: 'loadOBJ',
-    value: function loadOBJ(filename) {
-      var self = this;
-
-      return new Promise(function (resolve, reject) {
-        try {
-          self.materialLoader.load(filename + '.mtl', function (materials) {
-            materials.preload();
-            //self.objectLoader.setMaterials(materials);
-            self.objectLoader.load(filename + '.obj', function (obj) {
-              self.process(obj, materials);
-              resolve(obj);
-            });
-          });
-        } catch (error) {
-          reject(error);
-        }
-      });
-    }
   }]);
 
-  return Loader;
+  return Map;
 }();
 
-exports.Loader = Loader;
+;
+
+exports.Map = Map;
 
 /***/ })
 /******/ ]);

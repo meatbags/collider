@@ -10,7 +10,7 @@ class Collider {
 
   setPhysics(params) {
     for (var key in params) {
-      if (params.hasOwnProperty(key) && this.confighasOwnProperty(key)) {
+      if (params.hasOwnProperty(key) && this.config.hasOwnProperty(key)) {
         this.config[key] = params[key];
       }
     }

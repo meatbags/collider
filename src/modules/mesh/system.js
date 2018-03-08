@@ -1,41 +1,50 @@
 import { Config } from '../conf';
-import { Quadrants } from './quadrants';
+import { Mesh } from './mesh';
+import { Map } from './map';
 
 class System {
   constructor() {
     // collider mesh system
 
-    this.quadrants = new Quadrants();
-    this.meshes = [];
     this.isColliderSystem = true;
+    this.map = new Map();
+    this.meshes = [];
   }
 
   add() {
-    // add mesh to quadrants
+    // add mesh to system
 
-    for (let i=0; i<arguments.length; i+=1) {
+    for (var i=0, len=arguments.length; i<len; ++i) {
       const mesh = arguments[i];
 
       if (mesh.isColliderMesh) {
-        if (mesh.planes.length <= Config.system.maxPlanesPerMesh) {
-          this.quadrants.add(mesh);
-          this.meshes.push(mesh.object);
-        } else {
-          console.warn('Warning: Mesh not included - plane count exceeds maximum (%s).', Config.system.maxPlanesPerMesh);
-        }
+        this.appendMesh(mesh);
       } else {
-        throw('Error: Input must be Collider.Mesh');
+        if (mesh.geometry && mesh.geometry.isBufferGeometry) {
+          this.appendMesh(new Mesh(mesh));
+        } else {
+          throw('Error: Mesh must be THREE.Mesh or Collider.Mesh');
+        }
       }
+    }
+  }
+
+  appendMesh(mesh) {
+    if (mesh.planes.length <= Config.system.maxPlanesPerMesh) {
+      this.map.add(mesh);
+      this.meshes.push(mesh.object);
+    } else {
+      console.warn('Warning: Mesh discluded. Plane count exceeds maximum (%s).', Config.system.maxPlanesPerMesh);
     }
   }
 
   getCollision(point) {
     // check for collision at point
 
-    let collision = false;
-    const meshes = this.quadrants.getQuadrantMeshes(point);
+    var collision = false;
+    const meshes = this.map.getMeshes(point);
 
-    for (let i=0; i<meshes.length; i+=1) {
+    for (var i=0, len=meshes.length; i<len; ++i) {
       if (meshes[i].getCollision(point)) {
         collision = true;
         break;
@@ -48,10 +57,10 @@ class System {
   getCollisionMeshes(point) {
     // get all meshes which collide with point
 
-    let collisions = [];
-    const meshes = this.quadrants.getQuadrantMeshes(point);
+    const collisions = [];
+    const meshes = this.map.getMeshes(point);
 
-    for (let i=0; i<meshes.length; i+=1) {
+    for (var i=0, len=meshes.length; i<len; ++i) {
       if (meshes[i].getCollision(point)) {
         collisions.push(meshes[i]);
       }
@@ -61,32 +70,25 @@ class System {
   }
 
   getCeilingPlane(point) {
-    // get ceiling and corresponding plane *above* point
+    // get ceiling and plane above point
 
-    let ceiling = null;
-    const meshes = this.quadrants.getQuadrantMeshes(point);
+    var ceiling = null;
+    const meshes = this.map.getMeshes(point);
 
-    for (let i=0; i<meshes.length; i+=1) {
+    for (var i=0, len=meshes.length; i<len; ++i) {
       if (meshes[i].getCollision(point)) {
-        let result = meshes[i].getCeilingPlane(point);
+        const result = meshes[i].getCeilingPlane(point);
 
-        if (result != null) {
-          if (ceiling === null || result.y > ceiling.y) {
-            ceiling = {
-              y: result.y,
-              plane: result.plane
-            }
-          }
+        if (result && (!ceiling || result.y > ceiling.y)) {
+          ceiling = {y: result.y, plane: result.plane};
         }
       }
     }
 
-    return ((ceiling === null) ? null : ceiling);
+    return ceiling;
   }
 
   getMeshes() {
-    // return three meshes
-
     return this.meshes;
   }
 }

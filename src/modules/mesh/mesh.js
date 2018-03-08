@@ -20,7 +20,7 @@ class Mesh {
       this.generatePlanes();
       this.conformPlanes();
     } else {
-      throw('Error: Input is not THREE.BufferGeometry');
+      throw('Error: THREE.BufferGeometry not found');
     }
   }
 
@@ -100,21 +100,22 @@ class Mesh {
   setBoxFromPlanes() {
     const array = [];
 
-    for (let i=0; i<this.planes.length; i+=1) {
+    for (var i=0, len=this.planes.length; i<len; ++i) {
       const p = this.planes[i];
-
       array.push(p.p1);
       array.push(p.p2);
       array.push(p.p3);
     }
 
     this.box.setFromPoints(array);
+    this.box.translate(this.transform.position);
   }
 
   getCollision(point) {
-    this.transform.set(point);
+    if (this.box.containsPoint(point)) {
+      // transform point to put inside baked position
+      this.transform.set(point)
 
-    if (this.box.containsPoint(this.transform.point)) {
       // reset
       for (let i=0; i<this.planes.length; i+=1) {
         this.planes[i].culled = false;

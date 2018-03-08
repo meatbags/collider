@@ -1,2 +1,2 @@
 export * from './modules/mesh';
-export * from './modules/file';
+export * from './modules/collider';
