@@ -17,8 +17,7 @@ class Plane {
   }
 
   generatePlane() {
-    // regenerate plane
-
+    // generate plane data
     this.e1 = {};
     this.e2 = {};
     this.e3 = {};
@@ -29,8 +28,7 @@ class Plane {
     this.e2.vec = Maths.subtractVector(this.p3, this.p2);
     this.e3.vec = Maths.subtractVector(this.p1, this.p3);
 
-    // get 2D component & normal
-
+    // 2D component & 2D normal
     this.e1.vec2 = new THREE.Vector2(this.e1.vec.x, this.e1.vec.z);
     this.e2.vec2 = new THREE.Vector2(this.e2.vec.x, this.e2.vec.z);
     this.e3.vec2 = new THREE.Vector2(this.e3.vec.x, this.e3.vec.z);
@@ -38,13 +36,11 @@ class Plane {
     this.e2.norm2 = new THREE.Vector2(-this.e2.vec.z, this.e2.vec.x);
     this.e3.norm2 = new THREE.Vector2(-this.e3.vec.z, this.e3.vec.x);
 
-    // get normal
-
+    // normal
     this.normal = Maths.normalise(Maths.crossProduct(this.e3.vec, this.e1.vec));
     this.normalXZ = new THREE.Vector3(this.normal.x, 0, this.normal.z);
 
     // reverse naughty normals
-
     if (
       Maths.dotProduct(this.normal, this.n1) < 0 &&
       Maths.dotProduct(this.normal, this.n2) < 0 &&
@@ -53,8 +49,7 @@ class Plane {
       this.normal = Maths.reverseVector(this.normal);
     }
 
-    // get position
-
+    // position
     this.position = new THREE.Vector3(
       (this.p1.x + this.p2.x + this.p3.x) / 3,
       (this.p1.y + this.p2.y + this.p3.y) / 3,
@@ -62,65 +57,22 @@ class Plane {
     );
 
     // cache D for solving plane
-
     this.D = -(this.normal.x * this.position.x) - (this.normal.y * this.position.y) - (this.normal.z * this.position.z);
 
-    // create bounding box
-
+    // bounding box
     this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
   }
 
-  isPointAbove(point) {
-    // is point above plane
-
-    const vec = Maths.subtractVector(point, this.position);
-    const dot = Maths.dotProduct(vec, this.normal);
-    const res = (dot > 0);
-
-    return res;
-  }
-
-  isPointBelow(point) {
-    // is point below plane
-
-    const vec = Maths.subtractVector(point, this.position);
-    const dot = Maths.dotProduct(vec, this.normal);
-    const res = (dot < 0);
-
-    return res;
-  }
-
-  isPointAboveOrEqual(point) {
-    // is point above plane or on surface
-
-    const vec = Maths.subtractVector(point, this.position);
-    const dot = Maths.dotProduct(vec, this.normal);
-    const res = (dot >= -Config.plane.dotBuffer);
-
-    return res;
-  }
-
-  isPointBelowOrEqual(point) {
-    // is point below plane or on surface
-
-    const vec = Maths.subtractVector(point, this.position);
-    const dot = Maths.dotProduct(vec, this.normal);
-    const res = (dot <= Config.plane.dotBuffer);
-
-    return res;
-  }
-
-  isPointOnSurface(point) {
-    const vec = Maths.subtractVector(point, this.position);
-    const dot = Maths.dotProduct(vec, this.normal);
-    const res = (dot <= Config.plane.dotBuffer && dot >= -Config.plane.dotBuffer);
-
-    return res;
+  getY(x, z) {
+    // solve plane
+    if (this.normal.y != 0) {
+      return (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
+    } else {
+      return null;
+    }
   }
 
   isPlaneAbove(plane) {
-    // check if whole plane is above
-
     return (
       this.isPointAboveOrEqual(plane.p1) &&
       this.isPointAboveOrEqual(plane.p2) &&
@@ -128,8 +80,14 @@ class Plane {
     );
   }
 
-  containsPoint(point) {
-    return this.box.containsPoint(point);
+  isPointAboveOrEqual(point) {
+    // is point above or on surface
+    return (Maths.dotProduct(Maths.subtractVector(point, this.position), this.normal) >= -Config.plane.dotBuffer);
+  }
+
+  isPointBelowOrEqual(point) {
+    // is point below or on surface
+    return (Maths.dotProduct(Maths.subtractVector(point, this.position), this.normal) <= Config.plane.dotBuffer);
   }
 
   containsBox(box) {
@@ -142,7 +100,6 @@ class Plane {
 
   containsPoint2D(point) {
     // is x, z inside bounding box
-
     return (
       this.box.min.x <= point.x &&
       this.box.max.x >= point.x &&
@@ -151,16 +108,13 @@ class Plane {
     );
   }
 
-  containsPointPrecise2D(point) {
-    if (
+  projectedTriangleContainsPoint2D(point) {
+    // is point inside projected triangle
+    return (
       Maths.dotProduct2({x: point.x - this.e1.centre.x, y: point.z - this.e1.centre.z}, this.e1.norm2) < Config.plane.dotBuffer &&
       Maths.dotProduct2({x: point.x - this.e2.centre.x, y: point.z - this.e2.centre.z}, this.e2.norm2) < Config.plane.dotBuffer &&
       Maths.dotProduct2({x: point.x - this.e3.centre.x, y: point.z - this.e3.centre.z}, this.e3.norm2) < Config.plane.dotBuffer
-    ) {
-      return true;
-    }
-
-    return false;
+    );
   }
 
   distanceToPlane(point) {
@@ -169,6 +123,15 @@ class Plane {
         this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D
       )
     );
+  }
+
+  getProjected(point) {
+    // project point onto plane
+
+    const vec = Maths.subtractVector(point, this.p1);
+    const dist = Maths.dotProduct(this.normal, vec);
+    const proj = Maths.subtractVector(point, Maths.scaleVector(this.normal, dist));
+    return proj;
   }
 
   getIntersect(p1, p2) {
@@ -196,7 +159,7 @@ class Plane {
     const point = new THREE.Vector3(x, y, z);
 
     // return intersect if point is inside verts & line
-    if (this.containsPoint(point)) {
+    if (this.box.containsPoint(point)) {
       const box = new THREE.Box3().setFromPoints([p2, p1]).expandByScalar(0.05);
 
       if (box.containsPoint(point)) {
@@ -236,15 +199,6 @@ class Plane {
         point.y,
         point.z - ((this.normal.z * numPart) / denom)
       );
-    }
-  }
-
-  getY(x, z) {
-    // solve plane for x, z
-    if (this.normal.y != 0) {
-      return (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
-    } else {
-      return null;
     }
   }
 

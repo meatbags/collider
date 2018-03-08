@@ -34,13 +34,7 @@ class Transformer {
     return transformed;
   }
 
-  reverseY(y) {
-    const newY = y + this.position.y;
-
-    return newY;
-  }
-
-  reverse(point) {
+  getReverseTransformedPoint(point) {
     const transformed = {
       x: point.x + this.position.x,
       y: point.y + this.position.y,
@@ -50,8 +44,14 @@ class Transformer {
     return transformed;
   }
 
+  getReverseTransformedY(y) {
+    const newY = y + this.position.y;
+
+    return newY;
+  }
+
   bakeRotation(plane) {
-    for (let i=this.rotationOrder.length-1; i>-1; i-=1) {
+    for (let i=this.rotationOrder.length-1, end=-1; i>end; --i) {
       if (this.rotationOrder[i] == 'X') {
         plane.p1.applyAxisAngle(this.axis.x, this.rotation.x);
         plane.p2.applyAxisAngle(this.axis.x, this.rotation.x);

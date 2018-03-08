@@ -1,6 +1,6 @@
 import * as Maths from '../maths/general';
 import { Collider } from './collider';
-import { Config } from '../conf';
+import { Config, Physics } from '../conf';
 import { Mouse, Keyboard } from '../io';
 
 class Player {
@@ -13,7 +13,7 @@ class Player {
     // physical props
 
     this.config.adjust = Config.sandbox.adjust;
-    this.config.physics = Config.sandbox.physics;
+    this.config.physics = Physics;
     this.minPitch = this.config.rotation.minPitch;
     this.maxPitch = this.config.rotation.maxPitch;
     this.position = new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z);

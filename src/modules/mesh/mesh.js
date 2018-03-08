@@ -68,7 +68,7 @@ class Mesh {
   }
 
   conformPlanes() {
-    let conformed = false;
+    var conformed = false;
 
     // conform scale
     if (!this.transform.default.scale) {
@@ -87,7 +87,7 @@ class Mesh {
     }
 
     if (conformed) {
-      // get new plane data
+      // regenerate plane attributes
       for (let i=0; i<this.planes.length; i+=1) {
         this.planes[i].generatePlane();
       }
@@ -154,8 +154,7 @@ class Mesh {
     for (let i=0; i<this.planes.length; i+=1) {
       // check general box, then precise, then for ceiling
       if (this.planes[i].containsPoint2D(this.transform.point)) {
-
-        if (this.planes[i].containsPointPrecise2D(this.transform.point) &&
+        if (this.planes[i].projectedTriangleContainsPoint2D(this.transform.point) &&
           this.planes[i].isPointBelowOrEqual(this.transform.point)){
           let planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
 
@@ -170,7 +169,7 @@ class Mesh {
     }
 
     return ((ceiling == null) ? null : {
-      y: this.transform.reverseY(ceiling.y),
+      y: this.transform.getReverseTransformedY(ceiling.y),
       plane: ceiling.plane
     });
   }
@@ -200,7 +199,7 @@ class Mesh {
     }
 
     return ((intersectPlane == null) ? null : {
-      intersect: this.transform.reverse(intersectPlane.intersect),
+      intersect: this.transform.getReverseTransformedPoint(intersectPlane.intersect),
       plane: intersectPlane.plane,
       distance: intersectPlane.distance
     });
@@ -233,10 +232,18 @@ class Mesh {
     }
 
     return ((intersectPlane == null) ? null : {
-      intersect: this.transform.reverse(intersectPlane.intersect),
+      intersect: this.transform.getReverseTransformedPoint(intersectPlane.intersect),
       plane: intersectPlane.plane,
       distance: intersectPlane.distance
     });
+  }
+
+  getProjected(point, plane) {
+    // get point projected onto plane
+    
+    const p = this.transform.getTransformedPoint(point);
+    const proj = plane.getProjected(p);
+    return this.transform.getReverseTransformedPoint(proj);
   }
 }
 

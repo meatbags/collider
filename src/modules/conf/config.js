@@ -14,15 +14,6 @@ const Config = {
     collisionThreshold: 0.5
   },
   sandbox: {
-    physics: {
-      gravity: 20,
-      maxVelocity: 50,
-      floor: -0.5,
-      snapUp: 0.5,
-      snapDown: 0.5,
-      minSlope: Math.PI / 5,
-      noclip: false,
-    },
     player: {
       height: 2,
       position: {

@@ -129,6 +129,12 @@ var subtractVector = function subtractVector(a, b) {
   return c;
 };
 
+var mulVector = function mulVector(a, b) {
+  var v = new THREE.Vector3(a.x * b.x, a.y * b.y, a.z * b.z);
+
+  return v;
+};
+
 var normalise = function normalise(a) {
   var mag = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 
@@ -213,23 +219,24 @@ var dotProduct2 = function dotProduct2(a, b) {
   return a.x * b.x + a.y * b.y;
 };
 
+exports.addVector = addVector;
 exports.copyVector = copyVector;
-exports.isVectorEqual = isVectorEqual;
-exports.pitchBetween = pitchBetween;
-exports.scaleByVector = scaleByVector;
-exports.twoPi = twoPi;
+exports.crossProduct = crossProduct;
 exports.distanceBetween = distanceBetween;
 exports.distanceBetween2D = distanceBetween2D;
-exports.minAngleDifference = minAngleDifference;
 exports.dotProduct = dotProduct;
 exports.dotProduct2 = dotProduct2;
-exports.addVector = addVector;
-exports.subtractVector = subtractVector;
-exports.scaleVector = scaleVector;
-exports.crossProduct = crossProduct;
-exports.reverseVector = reverseVector;
+exports.isVectorEqual = isVectorEqual;
+exports.minAngleDifference = minAngleDifference;
+exports.mulVector = mulVector;
 exports.normalise = normalise;
 exports.normalise2 = normalise2;
+exports.pitchBetween = pitchBetween;
+exports.reverseVector = reverseVector;
+exports.subtractVector = subtractVector;
+exports.scaleVector = scaleVector;
+exports.scaleByVector = scaleByVector;
+exports.twoPi = twoPi;
 
 /***/ }),
 /* 2 */,
@@ -351,15 +358,6 @@ var Config = {
     collisionThreshold: 0.5
   },
   sandbox: {
-    physics: {
-      gravity: 20,
-      maxVelocity: 50,
-      floor: -0.5,
-      snapUp: 0.5,
-      snapDown: 0.5,
-      minSlope: Math.PI / 5,
-      noclip: false
-    },
     player: {
       height: 2,
       position: {
@@ -415,11 +413,11 @@ Object.defineProperty(exports, "__esModule", {
 // physical properties
 
 var Physics = {
-  gravity: 20,
+  gravity: 18,
   maxVelocity: 50,
   friction: 0.5,
   floor: 0,
-  snapUp: 1,
+  snapUp: 0.75,
   snapDown: 0.5,
   minSlope: Math.PI / 5,
   noclip: false
@@ -525,7 +523,7 @@ var Mesh = function () {
       }
 
       if (conformed) {
-        // get new plane data
+        // regenerate plane attributes
         for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
           this.planes[_i3].generatePlane();
         }
@@ -595,8 +593,7 @@ var Mesh = function () {
       for (var i = 0; i < this.planes.length; i += 1) {
         // check general box, then precise, then for ceiling
         if (this.planes[i].containsPoint2D(this.transform.point)) {
-
-          if (this.planes[i].containsPointPrecise2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
+          if (this.planes[i].projectedTriangleContainsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
             var planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
 
             if (planeCeiling != null && planeCeiling >= this.transform.point.y && (ceiling == null || planeCeiling > ceiling.y)) {
@@ -610,7 +607,7 @@ var Mesh = function () {
       }
 
       return ceiling == null ? null : {
-        y: this.transform.reverseY(ceiling.y),
+        y: this.transform.getReverseTransformedY(ceiling.y),
         plane: ceiling.plane
       };
     }
@@ -641,7 +638,7 @@ var Mesh = function () {
       }
 
       return intersectPlane == null ? null : {
-        intersect: this.transform.reverse(intersectPlane.intersect),
+        intersect: this.transform.getReverseTransformedPoint(intersectPlane.intersect),
         plane: intersectPlane.plane,
         distance: intersectPlane.distance
       };
@@ -675,10 +672,19 @@ var Mesh = function () {
       }
 
       return intersectPlane == null ? null : {
-        intersect: this.transform.reverse(intersectPlane.intersect),
+        intersect: this.transform.getReverseTransformedPoint(intersectPlane.intersect),
         plane: intersectPlane.plane,
         distance: intersectPlane.distance
       };
+    }
+  }, {
+    key: 'getProjected',
+    value: function getProjected(point, plane) {
+      // get point projected onto plane
+
+      var p = this.transform.getTransformedPoint(point);
+      var proj = plane.getProjected(p);
+      return this.transform.getReverseTransformedPoint(proj);
     }
   }]);
 
@@ -731,8 +737,7 @@ var Plane = function () {
   _createClass(Plane, [{
     key: 'generatePlane',
     value: function generatePlane() {
-      // regenerate plane
-
+      // generate plane data
       this.e1 = {};
       this.e2 = {};
       this.e3 = {};
@@ -743,8 +748,7 @@ var Plane = function () {
       this.e2.vec = Maths.subtractVector(this.p3, this.p2);
       this.e3.vec = Maths.subtractVector(this.p1, this.p3);
 
-      // get 2D component & normal
-
+      // 2D component & 2D normal
       this.e1.vec2 = new THREE.Vector2(this.e1.vec.x, this.e1.vec.z);
       this.e2.vec2 = new THREE.Vector2(this.e2.vec.x, this.e2.vec.z);
       this.e3.vec2 = new THREE.Vector2(this.e3.vec.x, this.e3.vec.z);
@@ -752,93 +756,50 @@ var Plane = function () {
       this.e2.norm2 = new THREE.Vector2(-this.e2.vec.z, this.e2.vec.x);
       this.e3.norm2 = new THREE.Vector2(-this.e3.vec.z, this.e3.vec.x);
 
-      // get normal
-
+      // normal
       this.normal = Maths.normalise(Maths.crossProduct(this.e3.vec, this.e1.vec));
       this.normalXZ = new THREE.Vector3(this.normal.x, 0, this.normal.z);
 
       // reverse naughty normals
-
       if (Maths.dotProduct(this.normal, this.n1) < 0 && Maths.dotProduct(this.normal, this.n2) < 0 && Maths.dotProduct(this.normal, this.n3) < 0) {
         this.normal = Maths.reverseVector(this.normal);
       }
 
-      // get position
-
+      // position
       this.position = new THREE.Vector3((this.p1.x + this.p2.x + this.p3.x) / 3, (this.p1.y + this.p2.y + this.p3.y) / 3, (this.p1.z + this.p2.z + this.p3.z) / 3);
 
       // cache D for solving plane
-
       this.D = -(this.normal.x * this.position.x) - this.normal.y * this.position.y - this.normal.z * this.position.z;
 
-      // create bounding box
-
+      // bounding box
       this.box = new THREE.Box3().setFromPoints([this.p1, this.p2, this.p3]);
     }
   }, {
-    key: 'isPointAbove',
-    value: function isPointAbove(point) {
-      // is point above plane
-
-      var vec = Maths.subtractVector(point, this.position);
-      var dot = Maths.dotProduct(vec, this.normal);
-      var res = dot > 0;
-
-      return res;
-    }
-  }, {
-    key: 'isPointBelow',
-    value: function isPointBelow(point) {
-      // is point below plane
-
-      var vec = Maths.subtractVector(point, this.position);
-      var dot = Maths.dotProduct(vec, this.normal);
-      var res = dot < 0;
-
-      return res;
-    }
-  }, {
-    key: 'isPointAboveOrEqual',
-    value: function isPointAboveOrEqual(point) {
-      // is point above plane or on surface
-
-      var vec = Maths.subtractVector(point, this.position);
-      var dot = Maths.dotProduct(vec, this.normal);
-      var res = dot >= -_conf.Config.plane.dotBuffer;
-
-      return res;
-    }
-  }, {
-    key: 'isPointBelowOrEqual',
-    value: function isPointBelowOrEqual(point) {
-      // is point below plane or on surface
-
-      var vec = Maths.subtractVector(point, this.position);
-      var dot = Maths.dotProduct(vec, this.normal);
-      var res = dot <= _conf.Config.plane.dotBuffer;
-
-      return res;
-    }
-  }, {
-    key: 'isPointOnSurface',
-    value: function isPointOnSurface(point) {
-      var vec = Maths.subtractVector(point, this.position);
-      var dot = Maths.dotProduct(vec, this.normal);
-      var res = dot <= _conf.Config.plane.dotBuffer && dot >= -_conf.Config.plane.dotBuffer;
-
-      return res;
+    key: 'getY',
+    value: function getY(x, z) {
+      // solve plane
+      if (this.normal.y != 0) {
+        return (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
+      } else {
+        return null;
+      }
     }
   }, {
     key: 'isPlaneAbove',
     value: function isPlaneAbove(plane) {
-      // check if whole plane is above
-
       return this.isPointAboveOrEqual(plane.p1) && this.isPointAboveOrEqual(plane.p2) && this.isPointAboveOrEqual(plane.p3);
     }
   }, {
-    key: 'containsPoint',
-    value: function containsPoint(point) {
-      return this.box.containsPoint(point);
+    key: 'isPointAboveOrEqual',
+    value: function isPointAboveOrEqual(point) {
+      // is point above or on surface
+      return Maths.dotProduct(Maths.subtractVector(point, this.position), this.normal) >= -_conf.Config.plane.dotBuffer;
+    }
+  }, {
+    key: 'isPointBelowOrEqual',
+    value: function isPointBelowOrEqual(point) {
+      // is point below or on surface
+      return Maths.dotProduct(Maths.subtractVector(point, this.position), this.normal) <= _conf.Config.plane.dotBuffer;
     }
   }, {
     key: 'containsBox',
@@ -854,22 +815,28 @@ var Plane = function () {
     key: 'containsPoint2D',
     value: function containsPoint2D(point) {
       // is x, z inside bounding box
-
       return this.box.min.x <= point.x && this.box.max.x >= point.x && this.box.min.z <= point.z && this.box.max.z >= point.z;
     }
   }, {
-    key: 'containsPointPrecise2D',
-    value: function containsPointPrecise2D(point) {
-      if (Maths.dotProduct2({ x: point.x - this.e1.centre.x, y: point.z - this.e1.centre.z }, this.e1.norm2) < _conf.Config.plane.dotBuffer && Maths.dotProduct2({ x: point.x - this.e2.centre.x, y: point.z - this.e2.centre.z }, this.e2.norm2) < _conf.Config.plane.dotBuffer && Maths.dotProduct2({ x: point.x - this.e3.centre.x, y: point.z - this.e3.centre.z }, this.e3.norm2) < _conf.Config.plane.dotBuffer) {
-        return true;
-      }
-
-      return false;
+    key: 'projectedTriangleContainsPoint2D',
+    value: function projectedTriangleContainsPoint2D(point) {
+      // is point inside projected triangle
+      return Maths.dotProduct2({ x: point.x - this.e1.centre.x, y: point.z - this.e1.centre.z }, this.e1.norm2) < _conf.Config.plane.dotBuffer && Maths.dotProduct2({ x: point.x - this.e2.centre.x, y: point.z - this.e2.centre.z }, this.e2.norm2) < _conf.Config.plane.dotBuffer && Maths.dotProduct2({ x: point.x - this.e3.centre.x, y: point.z - this.e3.centre.z }, this.e3.norm2) < _conf.Config.plane.dotBuffer;
     }
   }, {
     key: 'distanceToPlane',
     value: function distanceToPlane(point) {
       return Math.abs(this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D);
+    }
+  }, {
+    key: 'getProjected',
+    value: function getProjected(point) {
+      // project point onto plane
+
+      var vec = Maths.subtractVector(point, this.p1);
+      var dist = Maths.dotProduct(this.normal, vec);
+      var proj = Maths.subtractVector(point, Maths.scaleVector(this.normal, dist));
+      return proj;
     }
   }, {
     key: 'getIntersect',
@@ -898,7 +865,7 @@ var Plane = function () {
       var point = new THREE.Vector3(x, y, z);
 
       // return intersect if point is inside verts & line
-      if (this.containsPoint(point)) {
+      if (this.box.containsPoint(point)) {
         var box = new THREE.Box3().setFromPoints([p2, p1]).expandByScalar(0.05);
 
         if (box.containsPoint(point)) {
@@ -936,16 +903,6 @@ var Plane = function () {
         return null;
       } else {
         return new THREE.Vector3(point.x - this.normal.x * numPart / denom, point.y, point.z - this.normal.z * numPart / denom);
-      }
-    }
-  }, {
-    key: 'getY',
-    value: function getY(x, z) {
-      // solve plane for x, z
-      if (this.normal.y != 0) {
-        return (this.normal.x * x + this.normal.z * z + this.D) / -this.normal.y;
-      } else {
-        return null;
       }
     }
   }, {
@@ -1024,15 +981,8 @@ var Transformer = function () {
       return transformed;
     }
   }, {
-    key: 'reverseY',
-    value: function reverseY(y) {
-      var newY = y + this.position.y;
-
-      return newY;
-    }
-  }, {
-    key: 'reverse',
-    value: function reverse(point) {
+    key: 'getReverseTransformedPoint',
+    value: function getReverseTransformedPoint(point) {
       var transformed = {
         x: point.x + this.position.x,
         y: point.y + this.position.y,
@@ -1042,9 +992,16 @@ var Transformer = function () {
       return transformed;
     }
   }, {
+    key: 'getReverseTransformedY',
+    value: function getReverseTransformedY(y) {
+      var newY = y + this.position.y;
+
+      return newY;
+    }
+  }, {
     key: 'bakeRotation',
     value: function bakeRotation(plane) {
-      for (var i = this.rotationOrder.length - 1; i > -1; i -= 1) {
+      for (var i = this.rotationOrder.length - 1, end = -1; i > end; --i) {
         if (this.rotationOrder[i] == 'X') {
           plane.p1.applyAxisAngle(this.axis.x, this.rotation.x);
           plane.p2.applyAxisAngle(this.axis.x, this.rotation.x);
@@ -1603,7 +1560,7 @@ var Collider = function () {
         if (this.stepUpSlopes(p, collisions)) {
           collisions = system.getCollisionMeshes(p);
         }
-        if (this.extrudeFromWalls(p, collisions, system)) {
+        if (this.extrudeFrom(p, collisions, system)) {
           this.stepUpSlopes(p, system.getCollisionMeshes(p));
         }
       } else if (this.motion.y < 0 && !this.falling) {
@@ -1622,8 +1579,23 @@ var Collider = function () {
       this.position.z = p.z;
     }
   }, {
-    key: 'extrudeFromWalls',
-    value: function extrudeFromWalls(p, meshes, system) {
+    key: 'getValidCollisions',
+    value: function getValidCollisions(p, meshes) {
+      // get n collisions with meshes that can't be climbed
+      var hits = 0;
+
+      for (var i = 0, len = meshes.length; i < len; ++i) {
+        var ceiling = meshes[i].getCeilingPlane(p);
+        if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || ceiling.y - this.position.y > this.config.snapUp)) {
+          hits++;
+        }
+      }
+
+      return hits;
+    }
+  }, {
+    key: 'extrudeFrom',
+    value: function extrudeFrom(p, meshes, system) {
       // extrude position from obstructions
       var isExtruded = false;
       var mesh = false;
@@ -1641,28 +1613,41 @@ var Collider = function () {
         var intersectPlane = mesh.getIntersectPlane2D(this.position, p);
 
         if (intersectPlane != null) {
-          // project p onto the intersected plane
-          // check if p intersects other meshes
+          var intersect = intersectPlane.intersect;
+          var plane = intersectPlane.plane;
 
-          p.x = intersectPlane.intersect.x;
-          p.z = intersectPlane.intersect.z;
-          var hits = 0;
-          meshes = system.getCollisionMeshes(p);
+          if (plane.normal.y < -0.5) {
+            // project in 3D, if other mesh collisions, try 2D
+            // NOTE: needs refinement
 
-          for (var _i = 0; _i < meshes.length; _i += 1) {
-            var _ceiling = meshes[_i].getCeilingPlane(p);
-            // ignore if climbable
-            if (_ceiling != null && (_ceiling.plane.normal.y < this.config.minSlope || _ceiling.y - this.position.y > this.config.snapUp)) {
-              hits += 1;
+            var proj = mesh.getProjected(p, plane);
+            var hits = this.getValidCollisions(proj, system.getCollisionMeshes(proj));
+
+            // stop motion if cornered
+            if (hits > 1) {
+              p.x = this.position.x;
+              p.z = this.position.z;
+            } else {
+              p.x = proj.x;
+              p.y = proj.y;
+              p.z = proj.z;
+              // reduce jump motion
+              this.motion.y = this.motion.y > 0 ? this.motion.y * 0.75 : this.motion.y;
+              //this.motion.y = Math.min(-0.01, this.motion.y);
+              isExtruded = true;
             }
-          }
-
-          // stop motion if cornered
-          if (hits > 1) {
-            p.x = this.position.x;
-            p.z = this.position.z;
           } else {
-            isExtruded = true;
+            p.x = intersect.x;
+            p.z = intersect.z;
+            var _hits = this.getValidCollisions(p, system.getCollisionMeshes(p));
+
+            // stop motion if cornered
+            if (_hits > 1) {
+              p.x = this.position.x;
+              p.z = this.position.z;
+            } else {
+              isExtruded = true;
+            }
           }
         } else {
           p.x = this.position.x;
@@ -1786,7 +1771,7 @@ var Player = function () {
     // physical props
 
     this.config.adjust = _conf.Config.sandbox.adjust;
-    this.config.physics = _conf.Config.sandbox.physics;
+    this.config.physics = _conf.Physics;
     this.minPitch = this.config.rotation.minPitch;
     this.maxPitch = this.config.rotation.maxPitch;
     this.position = new THREE.Vector3(this.config.position.x, this.config.position.y, this.config.position.z);
@@ -2074,7 +2059,7 @@ var Map = function () {
     // nearby mesh caching for faster searches
 
     this.origin = new THREE.Vector3();
-    this.radius = 15;
+    this.radius = 10;
     this.threshold = this.radius - 1;
     this.meshes = [];
     this.nearby = [];

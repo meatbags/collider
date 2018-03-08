@@ -30,6 +30,16 @@ const subtractVector = function(a, b) {
   return c;
 };
 
+const mulVector = function(a, b) {
+  const v = new THREE.Vector3(
+    a.x * b.x,
+    a.y * b.y,
+    a.z * b.z
+  );
+
+  return v;
+};
+
 const normalise = function(a){
   const mag = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
 
@@ -133,4 +143,23 @@ const dotProduct2 = function(a, b) {
   return a.x * b.x + a.y * b.y;
 };
 
-export { copyVector, isVectorEqual, pitchBetween, scaleByVector, twoPi, distanceBetween, distanceBetween2D, minAngleDifference, dotProduct, dotProduct2, addVector, subtractVector, scaleVector, crossProduct, reverseVector, normalise, normalise2 };
+export {
+  addVector,
+  copyVector,
+  crossProduct,
+  distanceBetween,
+  distanceBetween2D,
+  dotProduct,
+  dotProduct2,
+  isVectorEqual,
+  minAngleDifference,
+  mulVector,
+  normalise,
+  normalise2,
+  pitchBetween,
+  reverseVector,
+  subtractVector,
+  scaleVector,
+  scaleByVector,
+  twoPi
+};

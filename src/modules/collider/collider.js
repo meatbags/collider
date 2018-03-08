@@ -32,7 +32,7 @@ class Collider {
       if (this.stepUpSlopes(p, collisions)) {
         collisions = system.getCollisionMeshes(p);
       }
-      if (this.extrudeFromWalls(p, collisions, system)) {
+      if (this.extrudeFrom(p, collisions, system)) {
         this.stepUpSlopes(p, system.getCollisionMeshes(p));
       }
     } else if (this.motion.y < 0 && !this.falling) {
@@ -51,7 +51,21 @@ class Collider {
     this.position.z = p.z;
   }
 
-  extrudeFromWalls(p, meshes, system) {
+  getValidCollisions(p, meshes) {
+    // get n collisions with meshes that can't be climbed
+    var hits = 0;
+
+    for (var i=0, len=meshes.length; i<len; ++i) {
+      const ceiling = meshes[i].getCeilingPlane(p);
+      if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || (ceiling.y - this.position.y) > this.config.snapUp)) {
+        hits++;
+      }
+    }
+
+    return hits;
+  }
+
+  extrudeFrom(p, meshes, system) {
     // extrude position from obstructions
     var isExtruded = false;
     var mesh = false;
@@ -69,28 +83,41 @@ class Collider {
       const intersectPlane = mesh.getIntersectPlane2D(this.position, p);
 
       if (intersectPlane != null) {
-        // project p onto the intersected plane
-        // check if p intersects other meshes
+        const intersect = intersectPlane.intersect;
+        const plane = intersectPlane.plane;
 
-        p.x = intersectPlane.intersect.x;
-        p.z = intersectPlane.intersect.z;
-        let hits = 0;
-        meshes = system.getCollisionMeshes(p);
+        if (plane.normal.y < -0.5) {
+          // project in 3D, if other mesh collisions, try 2D
+          // NOTE: needs refinement
 
-        for (let i=0; i<meshes.length; i+=1) {
-          const ceiling = meshes[i].getCeilingPlane(p);
-          // ignore if climbable
-          if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || (ceiling.y - this.position.y) > this.config.snapUp)) {
-            hits += 1;
+          const proj = mesh.getProjected(p, plane);
+          const hits = this.getValidCollisions(proj, system.getCollisionMeshes(proj));
+
+          // stop motion if cornered
+          if (hits > 1) {
+            p.x = this.position.x;
+            p.z = this.position.z;
+          } else {
+            p.x = proj.x;
+            p.y = proj.y;
+            p.z = proj.z;
+            // reduce jump motion
+            this.motion.y = (this.motion.y > 0) ? this.motion.y * 0.75 : this.motion.y;
+            //this.motion.y = Math.min(-0.01, this.motion.y);
+            isExtruded = true;
           }
-        }
-
-        // stop motion if cornered
-        if (hits > 1) {
-          p.x = this.position.x;
-          p.z = this.position.z;
         } else {
-          isExtruded = true;
+          p.x = intersect.x;
+          p.z = intersect.z;
+          const hits = this.getValidCollisions(p, system.getCollisionMeshes(p));
+
+          // stop motion if cornered
+          if (hits > 1) {
+            p.x = this.position.x;
+            p.z = this.position.z;
+          } else {
+            isExtruded = true;
+          }
         }
       } else {
         p.x = this.position.x;
