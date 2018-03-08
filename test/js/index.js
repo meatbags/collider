@@ -54,32 +54,22 @@ const App = {
     App.scene.add(floor);
     App.colliderSystem.add(new Collider.Mesh(floor));
 
-    let angle = 0;
-    let height = -1;
-    let len = 40;
     const rand = (v) => { return Math.random() * v - v / 2; };
 
-    for (var i=0; i<1000; i++) {
-      angle += Math.PI / 70;
-      height += 0.5;
-      const L = len + rand(2);
-      const x = Math.sin(angle) * L + rand(20);
-      const y = height + rand(2)
-      const z = Math.cos(angle) * L + rand(20);
+    for (var i=0; i<200; i++) {
+      const x = rand(80);
+      const y = rand(2)
+      const z = rand(80);
       const s = 5 + 2 * Math.random();
       const h = 3 + Math.random() * 5;
       const box = new THREE.Mesh(new THREE.BoxBufferGeometry(s, h, s), new THREE.MeshPhysicalMaterial({roughness: 1}));
       box.position.set(x, y, z);
-      const rx = Math.random() * Math.PI / 4 - Math.PI / 8;
-      const ry = Math.random() * Math.PI / 4 - Math.PI / 8;
-      const rz = Math.random() * Math.PI / 4 - Math.PI / 8;
+      const rx = rand(Math.PI / 3);
+      const ry = rand(Math.PI / 3);
+      const rz = rand(Math.PI / 3);
       box.rotation.set(rx, ry, rz);
-      if (Math.abs(box.position.x) < 2) {
-        box.position.x += 4;
-      }
-      if (Math.abs(box.position.z) < 2) {
-        box.position.z += 4;
-      }
+      box.position.x += (Math.abs(box.position.x) < 5) ? 10 : 0;
+      box.position.z += (Math.abs(box.position.z) < 5) ? 10 : 0;
       App.scene.add(box);
       App.colliderSystem.add(new Collider.Mesh(box));
     }
@@ -96,7 +86,6 @@ const App = {
   },
 
   update: function(delta) {
-    //App.age += delta;
     App.player.update(delta, App.colliderSystem);
   },
 

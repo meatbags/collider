@@ -18,7 +18,7 @@ const Config = {
       gravity: 20,
       maxVelocity: 50,
       floor: -0.5,
-      snapUp: 1,
+      snapUp: 0.5,
       snapDown: 0.5,
       minSlope: Math.PI / 5,
       noclip: false,

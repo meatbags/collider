@@ -355,7 +355,7 @@ var Config = {
       gravity: 20,
       maxVelocity: 50,
       floor: -0.5,
-      snapUp: 1,
+      snapUp: 0.5,
       snapDown: 0.5,
       minSlope: Math.PI / 5,
       noclip: false
@@ -457,21 +457,21 @@ var Mesh = function () {
 
     // collision mesh
 
-    this.isColliderMesh = true;
-
-    if (object.geometry.isBufferGeometry) {
-      this.object = object;
-      this.geometry = object.geometry;
-      this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
-      this.min = this.box.min;
-      this.max = this.box.max;
-      this.planes = [];
-      this.transform = new _transformer.Transformer(object);
-      this.generatePlanes();
-      this.conformPlanes();
-    } else {
+    if (!object.geometry.isBufferGeometry) {
       throw 'Error: THREE.BufferGeometry not found';
     }
+
+    this.id = object.uuid;
+    this.isColliderMesh = true;
+    this.object = object;
+    this.geometry = object.geometry;
+    this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
+    this.min = this.box.min;
+    this.max = this.box.max;
+    this.planes = [];
+    this.transform = new _transformer.Transformer(object);
+    this.generatePlanes();
+    this.conformPlanes();
   }
 
   _createClass(Mesh, [{
@@ -552,21 +552,23 @@ var Mesh = function () {
   }, {
     key: 'getCollision',
     value: function getCollision(point) {
-      if (this.box.containsPoint(point)) {
+      if (!this.box.containsPoint(point)) {
+        return false;
+      } else {
         // transform point to put inside baked position
         this.transform.set(point);
 
         // reset
-        for (var i = 0; i < this.planes.length; i += 1) {
+        for (var i = 0, len = this.planes.length; i < len; ++i) {
           this.planes[i].culled = false;
         }
 
         // first pass - cull faces
-        for (var _i4 = 0; _i4 < this.planes.length; _i4 += 1) {
-          if (!this.planes[_i4].culled && this.planes[_i4].isPointBelowOrEqual(this.transform.point)) {
+        for (var i = 0, len = this.planes.length; i < len; ++i) {
+          if (!this.planes[i].culled && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
             // cull planes above plane
-            for (var j = 0; j < this.planes.length; j += 1) {
-              if (!this.planes[j].culled && j != _i4 && this.planes[_i4].isPlaneAbove(this.planes[j])) {
+            for (var j = 0, jlen = this.planes.length; j < jlen; ++j) {
+              if (!this.planes[j].culled && j != i && this.planes[i].isPlaneAbove(this.planes[j])) {
                 this.planes[j].culled = true;
               }
             }
@@ -574,60 +576,14 @@ var Mesh = function () {
         }
 
         // second pass - get result
-        for (var _i5 = 0; _i5 < this.planes.length; _i5 += 1) {
-          if (!this.planes[_i5].culled && !this.planes[_i5].isPointBelowOrEqual(this.transform.point)) {
+        for (var i = 0, len = this.planes.length; i < len; ++i) {
+          if (!this.planes[i].culled && !this.planes[i].isPointBelowOrEqual(this.transform.point)) {
             return false;
           }
         }
 
         return true;
-      } else {
-        return false;
       }
-    }
-  }, {
-    key: 'getCollision2D',
-    value: function getCollision2D(point) {
-      this.transform.set(point);
-
-      return this.transform.point.x >= this.min.x && this.transform.point.x <= this.max.x && this.transform.point.z >= this.min.z && this.transform.point.z <= this.max.z;
-    }
-  }, {
-    key: 'getCeiling2D',
-    value: function getCeiling2D(point) {
-      this.transform.set(point);
-      var y = null;
-
-      for (var i = 0; i < this.planes.length; i += 1) {
-        if (this.planes[i].containsPoint2D(this.transform.point)) {
-          var planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
-
-          if (y === null || planeCeiling > y) {
-            y = planeCeiling;
-          }
-        }
-      }
-
-      return y == null ? null : this.transform.reverseY(y);
-    }
-  }, {
-    key: 'getCeiling',
-    value: function getCeiling(point) {
-      // get ceiling *above* point
-      this.transform.set(point);
-      var y = null;
-
-      for (var i = 0; i < this.planes.length; i += 1) {
-        if (this.planes[i].containsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
-          var planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
-
-          if (planeCeiling >= this.transform.point.y && (y === null || planeCeiling < y)) {
-            y = planeCeiling;
-          }
-        }
-      }
-
-      return y == null ? null : this.transform.reverseY(y);
     }
   }, {
     key: 'getCeilingPlane',
@@ -1670,22 +1626,24 @@ var Collider = function () {
     value: function extrudeFromWalls(p, meshes, system) {
       // extrude position from obstructions
       var isExtruded = false;
-      var firstObstruction = false;
+      var mesh = false;
 
-      for (var i = 0; i < meshes.length; i += 1) {
+      for (var i = 0, len = meshes.length; i < len; ++i) {
         var ceiling = meshes[i].getCeilingPlane(p);
         if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || ceiling.y - this.position.y > this.config.snapUp)) {
-          firstObstruction = meshes[i];
+          mesh = meshes[i];
           break;
         }
       }
 
-      // extrude from obstruction
-      if (firstObstruction) {
-        var intersectPlane = firstObstruction.getIntersectPlane2D(this.position, p);
-        var extrude = new THREE.Vector3(p.x, p.y, p.z);
+      // extrude from mesh
+      if (mesh) {
+        var intersectPlane = mesh.getIntersectPlane2D(this.position, p);
 
         if (intersectPlane != null) {
+          // project p onto the intersected plane
+          // check if p intersects other meshes
+
           p.x = intersectPlane.intersect.x;
           p.z = intersectPlane.intersect.z;
           var hits = 0;
@@ -2116,7 +2074,7 @@ var Map = function () {
     // nearby mesh caching for faster searches
 
     this.origin = new THREE.Vector3();
-    this.radius = 10;
+    this.radius = 15;
     this.threshold = this.radius - 1;
     this.meshes = [];
     this.nearby = [];

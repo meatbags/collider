@@ -53,23 +53,25 @@ class Collider {
 
   extrudeFromWalls(p, meshes, system) {
     // extrude position from obstructions
-    let isExtruded = false;
-    let firstObstruction = false;
+    var isExtruded = false;
+    var mesh = false;
 
-    for (let i=0; i<meshes.length; i+=1) {
+    for (let i=0, len=meshes.length; i<len; ++i) {
       const ceiling = meshes[i].getCeilingPlane(p);
       if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || (ceiling.y - this.position.y) > this.config.snapUp)){
-        firstObstruction = meshes[i];
+        mesh = meshes[i];
         break;
       }
     }
 
-    // extrude from obstruction
-    if (firstObstruction) {
-      const intersectPlane = firstObstruction.getIntersectPlane2D(this.position, p);
-      const extrude = new THREE.Vector3(p.x, p.y, p.z);
+    // extrude from mesh
+    if (mesh) {
+      const intersectPlane = mesh.getIntersectPlane2D(this.position, p);
 
       if (intersectPlane != null) {
+        // project p onto the intersected plane
+        // check if p intersects other meshes
+
         p.x = intersectPlane.intersect.x;
         p.z = intersectPlane.intersect.z;
         let hits = 0;

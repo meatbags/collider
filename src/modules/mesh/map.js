@@ -5,7 +5,7 @@ class Map {
     // nearby mesh caching for faster searches
 
     this.origin = new THREE.Vector3();
-    this.radius = 10;
+    this.radius = 15;
     this.threshold = this.radius - 1;
     this.meshes = [];
     this.nearby = [];
@@ -29,7 +29,7 @@ class Map {
 
   cacheNearbyMeshes() {
     // cache meshes close to origin
-    
+
     this.nearby = [];
 
     for (var i=0, len=this.meshes.length; i<len; ++i) {

@@ -7,21 +7,21 @@ class Mesh {
   constructor(object) {
     // collision mesh
 
-    this.isColliderMesh = true;
-
-    if (object.geometry.isBufferGeometry) {
-      this.object = object;
-      this.geometry = object.geometry;
-      this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
-      this.min = this.box.min;
-      this.max = this.box.max;
-      this.planes = [];
-      this.transform = new Transformer(object);
-      this.generatePlanes();
-      this.conformPlanes();
-    } else {
+    if (!object.geometry.isBufferGeometry) {
       throw('Error: THREE.BufferGeometry not found');
     }
+
+    this.id = object.uuid;
+    this.isColliderMesh = true;
+    this.object = object;
+    this.geometry = object.geometry;
+    this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
+    this.min = this.box.min;
+    this.max = this.box.max;
+    this.planes = [];
+    this.transform = new Transformer(object);
+    this.generatePlanes();
+    this.conformPlanes();
   }
 
   generatePlanes() {
@@ -112,20 +112,22 @@ class Mesh {
   }
 
   getCollision(point) {
-    if (this.box.containsPoint(point)) {
+    if (!this.box.containsPoint(point)) {
+      return false;
+    } else {
       // transform point to put inside baked position
       this.transform.set(point)
 
       // reset
-      for (let i=0; i<this.planes.length; i+=1) {
+      for (var i=0, len=this.planes.length; i<len; ++i) {
         this.planes[i].culled = false;
       }
 
       // first pass - cull faces
-      for (let i=0; i<this.planes.length; i+=1) {
+      for (var i=0, len=this.planes.length; i<len; ++i) {
         if (!this.planes[i].culled && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
           // cull planes above plane
-          for (let j=0; j<this.planes.length; j+=1) {
+          for (var j=0, jlen=this.planes.length; j<jlen; ++j) {
             if (!this.planes[j].culled && j != i && this.planes[i].isPlaneAbove(this.planes[j])) {
               this.planes[j].culled = true;
             }
@@ -134,60 +136,14 @@ class Mesh {
       }
 
       // second pass - get result
-      for (let i=0; i<this.planes.length; i+=1) {
+      for (var i=0, len=this.planes.length; i<len; ++i) {
         if (!this.planes[i].culled && !this.planes[i].isPointBelowOrEqual(this.transform.point)) {
           return false;
         }
       }
 
       return true;
-    } else {
-      return false;
     }
-  }
-
-  getCollision2D(point) {
-    this.transform.set(point)
-
-    return (
-      this.transform.point.x >= this.min.x && this.transform.point.x <= this.max.x &&
-      this.transform.point.z >= this.min.z && this.transform.point.z <= this.max.z
-    );
-  }
-
-  getCeiling2D(point) {
-    this.transform.set(point)
-    let y = null;
-
-    for (let i=0; i<this.planes.length; i+=1) {
-      if (this.planes[i].containsPoint2D(this.transform.point)) {
-        let planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
-
-        if (y === null || planeCeiling > y) {
-          y = planeCeiling;
-        }
-      }
-    }
-
-    return ((y == null) ? null : this.transform.reverseY(y));
-  }
-
-  getCeiling(point) {
-    // get ceiling *above* point
-    this.transform.set(point)
-    let y = null;
-
-    for (let i=0; i<this.planes.length; i+=1) {
-      if (this.planes[i].containsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
-        let planeCeiling = plane.getY(this.transform.point.x, this.transform.point.z);
-
-        if (planeCeiling >= this.transform.point.y && (y === null || planeCeiling < y)) {
-          y = planeCeiling;
-        }
-      }
-    }
-
-    return ((y == null) ? null : this.transform.reverseY(y));
   }
 
   getCeilingPlane(point) {
