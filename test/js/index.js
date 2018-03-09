@@ -55,11 +55,14 @@ const App = {
     App.colliderSystem.add(new Collider.Mesh(floor));
 
     const rand = (v) => { return Math.random() * v - v / 2; };
+    var angle = 0;
+    var len = 40;
 
-    for (var i=0; i<200; i++) {
-      const x = rand(80);
-      const y = rand(2)
-      const z = rand(80);
+    for (var i=0; i<1000; i++) {
+      angle += 0.03;
+      const x = Math.sin(angle) * len + rand(5);
+      const y = i * 0.3 + rand(2);
+      const z = Math.cos(angle) * len + rand(10);
       const s = 5 + 2 * Math.random();
       const h = 3 + Math.random() * 5;
       const box = new THREE.Mesh(new THREE.BoxBufferGeometry(s, h, s), new THREE.MeshPhysicalMaterial({roughness: 1}));
@@ -68,8 +71,8 @@ const App = {
       const ry = rand(Math.PI / 3);
       const rz = rand(Math.PI / 3);
       box.rotation.set(rx, ry, rz);
-      box.position.x += (Math.abs(box.position.x) < 5) ? 10 : 0;
-      box.position.z += (Math.abs(box.position.z) < 5) ? 10 : 0;
+      //box.position.x += (Math.abs(box.position.x) < 5) ? 10 : 0;
+      //box.position.z += (Math.abs(box.position.z) < 5) ? 10 : 0;
       App.scene.add(box);
       App.colliderSystem.add(new Collider.Mesh(box));
     }

@@ -43,7 +43,7 @@
 	Object.assign( THREE.FBXLoader.prototype, {
 		load: function ( url, onLoad, onProgress, onError ) {
 			var self = this;
-			var resourceDirectory = THREE.Loader.prototype.extractUrlBase( url );
+			var resourceDirectory = THREE.LoaderUtils.extractUrlBase(url);//THREE.Loader.prototype.extractUrlBase( url );
 			var loader = new THREE.FileLoader( this.manager );
 			loader.setResponseType( 'arraybuffer' );
 			loader.load( url, function ( buffer ) {
@@ -439,6 +439,7 @@
 
 			switch (type) {
 				// Maya PBR material exports
+				//case 'Maya|base_color':
 				case 'Maya|TEX_color_map':
 					var prop = 'Maya|use_color_map';
 					if (properties[prop] && properties[prop].value == 1) {
@@ -2832,9 +2833,7 @@
 
 			// a top node
 			if ( this.currentIndent === 0 ) {
-
 				this.allNodes.add( nodeName, node );
-
 			} else { // a subnode
 
 				// if the subnode already exists, append it
@@ -2843,105 +2842,73 @@
 					var tmp = currentNode.subNodes[ nodeName ];
 
 					if ( this.isFlattenNode( currentNode.subNodes[ nodeName ] ) ) {
-
 						if ( attrs.id === '' ) {
-
 							currentNode.subNodes[ nodeName ] = [];
 							currentNode.subNodes[ nodeName ].push( tmp );
-
 						} else {
-
 							currentNode.subNodes[ nodeName ] = {};
 							currentNode.subNodes[ nodeName ][ tmp.id ] = tmp;
-
 						}
-
 					}
 
 					if ( attrs.id === '' ) {
-
 						currentNode.subNodes[ nodeName ].push( node );
-
 					} else {
-
 						currentNode.subNodes[ nodeName ][ attrs.id ] = node;
-
 					}
-
 				} else if ( typeof attrs.id === 'number' || attrs.id.match( /^\d+$/ ) ) {
-
 					currentNode.subNodes[ nodeName ] = {};
 					currentNode.subNodes[ nodeName ][ attrs.id ] = node;
-
 				} else {
-
 					currentNode.subNodes[ nodeName ] = node;
-
 				}
-
 			}
 
 
 			// for this	↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 			// NodeAttribute: 1001463072, "NodeAttribute::", "LimbNode" {
 			if ( nodeAttrs ) {
-
 				node.id = attrs.id;
 				node.attrName = attrs.name;
 				node.attrType = attrs.type;
-
 			}
 
 			this.pushStack( node );
-
 		},
 
 		parseNodeAttr: function ( attrs ) {
-
 			var id = attrs[ 0 ];
 
 			if ( attrs[ 0 ] !== '' ) {
-
 				id = parseInt( attrs[ 0 ] );
 
 				if ( isNaN( id ) ) {
-
 					id = attrs[ 0 ];
-
 				}
-
 			}
 
 			var name = '', type = '';
 
 			if ( attrs.length > 1 ) {
-
 				name = attrs[ 1 ].replace( /^(\w+)::/, '' );
 				type = attrs[ 2 ];
-
 			}
 
 			return { id: id, name: name, type: type };
-
 		},
 
 		parseNodeProperty: function ( line, propName, propValue ) {
-
 			var currentNode = this.getCurrentNode();
 			var parentName = currentNode.name;
 
 			// special case where the parent node is something like "Properties70"
 			// these children nodes must treated carefully
 			if ( parentName !== undefined ) {
-
 				var propMatch = parentName.match( /Properties(\d)+/ );
 				if ( propMatch ) {
-
 					this.parseNodeSpecialProperty( line, propName, propValue );
 					return;
-
 				}
-
 			}
 
 			// Connections
@@ -2950,91 +2917,63 @@
 				var connProps = propValue.split( ',' ).slice( 1 );
 				var from = parseInt( connProps[ 0 ] );
 				var to = parseInt( connProps[ 1 ] );
-
 				var rest = propValue.split( ',' ).slice( 3 );
 
 				rest = rest.map( function ( elem ) {
-
 					return elem.trim().replace( /^"/, '' );
-
-				} );
+				});
 
 				propName = 'connections';
 				propValue = [ from, to ];
 				append( propValue, rest );
 
 				if ( currentNode.properties[ propName ] === undefined ) {
-
 					currentNode.properties[ propName ] = [];
-
 				}
-
 			}
 
 			// Node
 			if ( propName === 'Node' ) {
-
 				var id = parseInt( propValue );
 				currentNode.properties.id = id;
 				currentNode.id = id;
-
 			}
 
 			// already exists in properties, then append this
 			if ( propName in currentNode.properties ) {
-
 				if ( Array.isArray( currentNode.properties[ propName ] ) ) {
-
 					currentNode.properties[ propName ].push( propValue );
-
 				} else {
-
 					currentNode.properties[ propName ] += propValue;
-
 				}
-
 			} else {
-
 				if ( Array.isArray( currentNode.properties[ propName ] ) ) {
-
 					currentNode.properties[ propName ].push( propValue );
-
 				} else {
-
 					currentNode.properties[ propName ] = propValue;
-
 				}
-
 			}
 
 			this.setCurrentProp( currentNode.properties, propName );
 
 			// convert string to array, unless it ends in ',' in which case more will be added to it
 			if ( propName === 'a' && propValue.slice( - 1 ) !== ',' ) {
-
 				currentNode.properties.a = parseNumberArray( propValue );
-
 			}
-
 		},
 
 		parseNodePropertyContinued: function ( line ) {
-
 			this.currentProp[ this.currentPropName ] += line;
 
 			// if the line doesn't end in ',' we have reached the end of the property value
 			// so convert the string to an array
 			if ( line.slice( - 1 ) !== ',' ) {
-
 				var currentNode = this.getCurrentNode();
 				currentNode.properties.a = parseNumberArray( currentNode.properties.a );
-
 			}
-
 		},
 
 		parseNodeSpecialProperty: function ( line, propName, propValue ) {
-
 			// split this
 			// P: "Lcl Scaling", "Lcl Scaling", "", "A",1,1,1
 			// into array like below
@@ -3042,9 +2981,7 @@
 			var props = propValue.split( '",' );
 
 			for ( var i = 0, l = props.length; i < l; i ++ ) {
-
 				props[ i ] = props[ i ].trim().replace( /^\"/, '' ).replace( /\s/, '_' );
-
 			}
 
 			var innerPropName = props[ 0 ];
@@ -3055,20 +2992,17 @@
 
 			// cast value to its type
 			switch ( innerPropType1 ) {
-
 				case 'int':
 				case 'enum':
 				case 'bool':
 				case 'ULongLong':
 					innerPropValue = parseInt( innerPropValue );
 					break;
-
 				case 'double':
 				case 'Number':
 				case 'FieldOfView':
 					innerPropValue = parseFloat( innerPropValue );
 					break;
-
 				case 'ColorRGB':
 				case 'Vector3D':
 				case 'Lcl_Translation':
@@ -3076,35 +3010,25 @@
 				case 'Lcl_Scaling':
 					innerPropValue = parseNumberArray( innerPropValue );
 					break;
-
 			}
 
 			// CAUTION: these props must append to parent's parent
 			this.getPrevNode().properties[ innerPropName ] = {
-
 				'type': innerPropType1,
 				'type2': innerPropType2,
 				'flag': innerPropFlag,
 				'value': innerPropValue
-
 			};
-
 			this.setCurrentProp( this.getPrevNode().properties, innerPropName );
-
 		},
 
 		nodeEnd: function () {
-
 			this.popStack();
-
 		},
 
 		isFlattenNode: function ( node ) {
-
 			return ( 'subNodes' in node && 'properties' in node ) ? true : false;
-
 		}
-
 	} );
 
 	// Parse an FBX file in Binary format
@@ -3116,7 +3040,7 @@
 			reader.skip( 23 ); // skip magic 23 bytes
 			var version = reader.getUint32();
 
-			console.log( 'THREE.FBXLoader: FBX binary version: ' + version );
+			//console.log( 'THREE.FBXLoader: FBX binary version: ' + version );
 			var allNodes = new FBXTree();
 			var count = 0;
 
@@ -3130,7 +3054,6 @@
 					console.log(err);
 				}
 			}
-
 
 			return allNodes;
 		},
@@ -3147,19 +3070,13 @@
 			// - 120bytes: zero
 			// - 16bytes: magic
 			if ( reader.size() % 16 === 0 ) {
-
 				return ( ( reader.getOffset() + 160 + 16 ) & ~ 0xf ) >= reader.size();
-
 			} else {
-
 				return reader.getOffset() + 160 + 16 >= reader.size();
-
 			}
-
 		},
 
 		parseNode: function ( reader, version ) {
-
 			// The first three data sizes depends on version.
 			var endOffset = ( version >= 7500 ) ? reader.getUint64() : reader.getUint32();
 			var numProperties = ( version >= 7500 ) ? reader.getUint64() : reader.getUint32();
@@ -3176,9 +3093,7 @@
 			var propertyList = [];
 
 			for ( var i = 0; i < numProperties; i ++ ) {
-
 				propertyList.push( this.parseProperty( reader ) );
-
 			}
 
 			// Regards the first three elements in propertyList as id, attrName, and attrType
@@ -3409,71 +3324,51 @@
 				case 'f':
 				case 'i':
 				case 'l':
-
 					var arrayLength = reader.getUint32();
 					var encoding = reader.getUint32(); // 0: non-compressed, 1: compressed
 					var compressedLength = reader.getUint32();
 
 					if ( encoding === 0 ) {
-
 						switch ( type ) {
-
 							case 'b':
 							case 'c':
 								return reader.getBooleanArray( arrayLength );
-
 							case 'd':
 								return reader.getFloat64Array( arrayLength );
-
 							case 'f':
 								return reader.getFloat32Array( arrayLength );
-
 							case 'i':
 								return reader.getInt32Array( arrayLength );
-
 							case 'l':
 								return reader.getInt64Array( arrayLength );
-
 						}
-
 					}
 
 					if ( window.Zlib === undefined ) {
-
 						throw new Error( 'THREE.FBXLoader: External library Inflate.min.js required, obtain or import from https://github.com/imaya/zlib.js' );
-
 					}
 
 					var inflate = new Zlib.Inflate( new Uint8Array( reader.getArrayBuffer( compressedLength ) ) ); // eslint-disable-line no-undef
 					var reader2 = new BinaryReader( inflate.decompress().buffer );
 
 					switch ( type ) {
-
 						case 'b':
 						case 'c':
 							return reader2.getBooleanArray( arrayLength );
-
 						case 'd':
 							return reader2.getFloat64Array( arrayLength );
-
 						case 'f':
 							return reader2.getFloat32Array( arrayLength );
-
 						case 'i':
 							return reader2.getInt32Array( arrayLength );
-
 						case 'l':
 							return reader2.getInt64Array( arrayLength );
-
 					}
 
 				default:
 					throw new Error( 'THREE.FBXLoader: Unknown property type ' + type );
-
 			}
-
 		}
-
 	} );
 
 

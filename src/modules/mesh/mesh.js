@@ -147,22 +147,19 @@ class Mesh {
   }
 
   getCeilingPlane(point) {
-    // get ceiling and plane *above* point
+    // get ceiling, plane above a given point
     this.transform.set(point);
-    let ceiling = null;
+    var ceiling = null;
 
-    for (let i=0; i<this.planes.length; i+=1) {
+    for (let i=0, len=this.planes.length; i<len; i+=1) {
       // check general box, then precise, then for ceiling
       if (this.planes[i].containsPoint2D(this.transform.point)) {
         if (this.planes[i].projectedTriangleContainsPoint2D(this.transform.point) &&
           this.planes[i].isPointBelowOrEqual(this.transform.point)){
-          let planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
+          var planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
 
           if (planeCeiling != null && planeCeiling >= this.transform.point.y && (ceiling == null || planeCeiling > ceiling.y)) {
-            ceiling = {
-              y: planeCeiling,
-              plane: this.planes[i]
-            }
+            ceiling = {y: planeCeiling, plane: this.planes[i]};
           }
         }
       }
@@ -240,7 +237,7 @@ class Mesh {
 
   getProjected(point, plane) {
     // get point projected onto plane
-    
+
     const p = this.transform.getTransformedPoint(point);
     const proj = plane.getProjected(p);
     return this.transform.getReverseTransformedPoint(proj);

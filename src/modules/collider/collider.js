@@ -45,10 +45,8 @@ class Collider {
       p.y = this.config.floor;
     }
 
-    // set position
-    this.position.x = p.x;
-    this.position.y = p.y;
-    this.position.z = p.z;
+    // set final position
+    this.position.copy(p);
   }
 
   getValidCollisions(p, meshes) {
@@ -61,7 +59,7 @@ class Collider {
         hits++;
       }
     }
-
+    
     return hits;
   }
 

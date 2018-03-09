@@ -6,12 +6,10 @@ import { Mouse, Keyboard } from '../io';
 class Player {
   constructor(domElement) {
     // player handler
-
     this.domElement = domElement;
     this.config = Config.sandbox.player;
 
     // physical props
-
     this.config.adjust = Config.sandbox.adjust;
     this.config.physics = Physics;
     this.minPitch = this.config.rotation.minPitch;
@@ -50,7 +48,6 @@ class Player {
     this.fallTimer = 0;
 
     // world
-
     this.collider = new Collider(this.target.position, this.motion);
     this.object = new THREE.Group();
     this.light = new THREE.PointLight(0xffffff, 0.1);
@@ -60,14 +57,12 @@ class Player {
     this.camera.up = new THREE.Vector3(0, 1, 0);
 
     // set up
-
     this.events();
     this.resizeCamera();
   }
 
   update(delta, objects) {
     // apply input, compute physics, move
-
     this.input(delta);
     this.collider.move(delta, objects);
     this.move();
@@ -75,17 +70,12 @@ class Player {
 
   input(delta) {
     // handle directional input
-
     if (this.keyboard.keys.left || this.keyboard.keys.right) {
-      // pan left/ right
-
       const dir = ((this.keyboard.keys.left) ? 1 : 0) + ((this.keyboard.keys.right) ? -1 : 0);
       this.target.rotation.yaw += this.config.speed.rotation * delta * dir;
     }
 
     if (this.keyboard.keys.up || this.keyboard.keys.down) {
-      // move forward/ back
-
       const speed = (this.config.physics.noclip)
         ? this.config.speed.noclip * (1 - Math.abs(Math.sin(this.target.rotation.pitch)))
         : this.config.speed.normal;
@@ -103,36 +93,27 @@ class Player {
     }
 
     // handle jump key
-
     if (this.keyboard.keys.jump) {
       if (this.motion.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
         // jump
-
         this.motion.y = this.config.speed.jump;
 
         // prevent double jump
-
         this.fallTimer = this.config.speed.fallTimerThreshold;
       }
 
-      // release key
-
+      // force release
       this.keyboard.releaseKey('jump');
     }
-
-    // compute falling
 
     this.falling = (this.motion.y != 0);
     this.fallTimer = (this.falling) ? this.fallTimer + delta : 0;
 
-    // toggle noclip
-
+    // noclip
     if (this.keyboard.keys.x) {
       this.keyboard.releaseKey('x');
       this.config.physics.noclip = (this.config.physics.noclip == false);
     }
-
-    // handle noclip
 
     if (this.config.physics.noclip) {
       if (this.keyboard.keys.up || this.keyboard.keys.down) {
@@ -147,8 +128,7 @@ class Player {
       this.motion.y = this.target.motion.y;
     }
 
-    // reduce input if falling
-
+    // reduce speed if falling
     if (!this.falling) {
       this.motion.x = this.target.motion.x;
       this.motion.z = this.target.motion.z;
@@ -166,7 +146,6 @@ class Player {
     this.position.z += (this.target.position.z - this.position.z) * this.config.adjust.veryFast;
 
     // rotate
-
     this.rotation.yaw += Maths.minAngleDifference(this.rotation.yaw, this.target.rotation.yaw) * this.config.adjust.fast;
     this.offset.rotation.yaw += (this.target.offset.rotation.yaw - this.offset.rotation.yaw) * this.config.adjust.normal;
     this.rotation.yaw += (this.rotation.yaw < 0) ? Maths.twoPi : ((this.rotation.yaw > Maths.twoPi) ? -Maths.twoPi : 0);
@@ -175,7 +154,6 @@ class Player {
     this.rotation.roll += (this.target.rotation.roll - this.rotation.roll) * this.config.adjust.fast;
 
     // set camera from position/ rotation
-
     const pitch = this.rotation.pitch + this.offset.rotation.pitch;
     const yaw = this.rotation.yaw + this.offset.rotation.yaw;
     const height = this.position.y + this.config.height;
@@ -183,12 +161,10 @@ class Player {
     const offy = 1;
 
     // adjust camera roll for direction
-
     this.camera.up.z = -Math.sin(this.rotation.yaw) * this.rotation.roll;
     this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
 
     // set position
-
     this.camera.position.set(
       this.position.x - Math.sin(yaw) * offxz / 4,
       height - Math.sin(pitch) * offy / 4,
@@ -196,7 +172,6 @@ class Player {
     );
 
     // look at target
-
     this.camera.lookAt(new THREE.Vector3(
       this.position.x + Math.sin(yaw) * offxz,
       height + Math.sin(pitch) * offy,
@@ -204,13 +179,11 @@ class Player {
     ));
 
     // move scene object
-
     this.object.position.set(this.position.x, this.position.y, this.position.z);
   }
 
   resizeCamera() {
     // resize camera
-
     const bound = this.domElement.getBoundingClientRect();
     const w = bound.width;
     const h = bound.height;
@@ -223,26 +196,22 @@ class Player {
     this.mouse = new Mouse(this.domElement);
     this.onMouseDown = (e) => {
       // mouse down
-
       if (!this.mouse.isLocked()) {
         this.mouse.start(e, this.rotation.pitch, this.rotation.yaw);
       }
     };
     this.onMouseMove = (e) => {
       // mouse moved
-
       if (this.mouse.isActive() && !(this.keyboard.keys.left || this.keyboard.keys.right)) {
         this.mouse.move(e);
 
         // set targets from delta
-
         this.target.rotation.yaw = this.mouse.getYaw();
         this.target.rotation.pitch = this.mouse.getPitch(this.minPitch, this.maxPitch);
       }
     };
     this.onMouseUp = (e) => {
       // mouse up
-
       this.mouse.stop();
     };
     this.domElement.addEventListener('mousedown', this.onMouseDown, false);
@@ -250,7 +219,7 @@ class Player {
     this.domElement.addEventListener('mouseup', this.onMouseUp, false);
     this.domElement.addEventListener('mouseleave', this.onMouseUp, false);
 
-    // mobile TODO make robust
+    // mobile ?
     this.onMobileDown = (e) => { this.onMouseDown(e.touches[0]); };
     this.onMobileMove = (e) => { this.onMouseMove(e.touches[0]); };
     this.onMobileUp = (e) => { this.onMouseUp(e.touches[0]); };
