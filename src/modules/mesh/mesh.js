@@ -26,7 +26,6 @@ class Mesh {
 
   generatePlanes() {
     // create planes from buffer geometry attribute
-
     const verts = this.geometry.attributes.position.array;
     const norms = this.geometry.attributes.normal.array;
 
@@ -68,6 +67,8 @@ class Mesh {
   }
 
   conformPlanes() {
+    // NOTE: translation is handled during collision check
+    // TODO: bake all translations
     var conformed = false;
 
     // conform scale
@@ -91,10 +92,10 @@ class Mesh {
       for (let i=0; i<this.planes.length; i+=1) {
         this.planes[i].generatePlane();
       }
-
-      // set new collision box
-      this.setBoxFromPlanes();
     }
+
+    // reset collision box
+    this.setBoxFromPlanes();
   }
 
   setBoxFromPlanes() {

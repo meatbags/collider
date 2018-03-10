@@ -61,7 +61,7 @@ var Collider =
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 4);
+/******/ 	return __webpack_require__(__webpack_require__.s = 5);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -75,7 +75,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _config = __webpack_require__(6);
+var _config = __webpack_require__(7);
 
 Object.keys(_config).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -87,7 +87,7 @@ Object.keys(_config).forEach(function (key) {
   });
 });
 
-var _physics = __webpack_require__(7);
+var _physics = __webpack_require__(8);
 
 Object.keys(_physics).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -164,15 +164,11 @@ var reverseVector = function reverseVector(a) {
 };
 
 var distanceBetween = function distanceBetween(a, b) {
-  var d = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2) + Math.pow(b.z - a.z, 2));
-
-  return d;
+  return Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2) + Math.pow(b.z - a.z, 2));
 };
 
 var distanceBetween2D = function distanceBetween2D(a, b) {
-  var dist = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.z - a.z, 2));
-
-  return dist;
+  return Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.z - a.z, 2));
 };
 
 var pitchBetween = function pitchBetween(a, b) {
@@ -239,194 +235,7 @@ exports.scaleByVector = scaleByVector;
 exports.twoPi = twoPi;
 
 /***/ }),
-/* 2 */,
-/* 3 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _general = __webpack_require__(1);
-
-Object.keys(_general).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _general[key];
-    }
-  });
-});
-
-/***/ }),
-/* 4 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _mesh = __webpack_require__(5);
-
-Object.keys(_mesh).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _mesh[key];
-    }
-  });
-});
-
-var _collider = __webpack_require__(21);
-
-Object.keys(_collider).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _collider[key];
-    }
-  });
-});
-
-/***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _mesh = __webpack_require__(8);
-
-Object.keys(_mesh).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _mesh[key];
-    }
-  });
-});
-
-var _system = __webpack_require__(16);
-
-Object.keys(_system).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _system[key];
-    }
-  });
-});
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-var Config = {
-  system: {
-    maxPlanesPerMesh: 250
-  },
-  quadrants: {
-    size: {
-      x: 100,
-      y: 100,
-      z: 100
-    }
-  },
-  plane: {
-    dotBuffer: 0.001,
-    collisionThreshold: 0.5
-  },
-  sandbox: {
-    player: {
-      height: 2,
-      position: {
-        x: 0,
-        y: 0,
-        z: 0
-      },
-      rotation: {
-        pitch: 0,
-        yaw: Math.PI,
-        roll: 0,
-        maxPitch: Math.PI * 0.3,
-        minPitch: Math.PI * -0.3
-      },
-      speed: {
-        normal: 8,
-        slowed: 4,
-        noclip: 30,
-        rotation: Math.PI * 0.75,
-        jump: 10,
-        fallTimerThreshold: 0.2
-      }
-    },
-    camera: {
-      fov: 75,
-      aspect: 1,
-      near: 0.1,
-      far: 1000
-    },
-    adjust: {
-      verySlow: 0.01,
-      slow: 0.025,
-      normal: 0.05,
-      fast: 0.09,
-      rapid: 0.12,
-      veryFast: 0.2
-    }
-  }
-};
-
-exports.Config = Config;
-
-/***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-// physical properties
-
-var Physics = {
-  gravity: 18,
-  maxVelocity: 50,
-  friction: 0.5,
-  floor: 0,
-  snapUp: 0.75,
-  snapDown: 0.5,
-  minSlope: Math.PI / 5,
-  noclip: false
-};
-
-exports.Physics = Physics;
-
-/***/ }),
-/* 8 */
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -476,7 +285,6 @@ var Mesh = function () {
     key: 'generatePlanes',
     value: function generatePlanes() {
       // create planes from buffer geometry attribute
-
       var verts = this.geometry.attributes.position.array;
       var norms = this.geometry.attributes.normal.array;
 
@@ -504,6 +312,8 @@ var Mesh = function () {
   }, {
     key: 'conformPlanes',
     value: function conformPlanes() {
+      // NOTE: translation is handled during collision check
+      // TODO: bake all translations
       var conformed = false;
 
       // conform scale
@@ -527,10 +337,10 @@ var Mesh = function () {
         for (var _i3 = 0; _i3 < this.planes.length; _i3 += 1) {
           this.planes[_i3].generatePlane();
         }
-
-        // set new collision box
-        this.setBoxFromPlanes();
       }
+
+      // reset collision box
+      this.setBoxFromPlanes();
     }
   }, {
     key: 'setBoxFromPlanes',
@@ -586,21 +396,18 @@ var Mesh = function () {
   }, {
     key: 'getCeilingPlane',
     value: function getCeilingPlane(point) {
-      // get ceiling and plane *above* point
+      // get ceiling, plane above a given point
       this.transform.set(point);
       var ceiling = null;
 
-      for (var i = 0; i < this.planes.length; i += 1) {
+      for (var i = 0, len = this.planes.length; i < len; i += 1) {
         // check general box, then precise, then for ceiling
         if (this.planes[i].containsPoint2D(this.transform.point)) {
           if (this.planes[i].projectedTriangleContainsPoint2D(this.transform.point) && this.planes[i].isPointBelowOrEqual(this.transform.point)) {
             var planeCeiling = this.planes[i].getY(this.transform.point.x, this.transform.point.z);
 
             if (planeCeiling != null && planeCeiling >= this.transform.point.y && (ceiling == null || planeCeiling > ceiling.y)) {
-              ceiling = {
-                y: planeCeiling,
-                plane: this.planes[i]
-              };
+              ceiling = { y: planeCeiling, plane: this.planes[i] };
             }
           }
         }
@@ -692,6 +499,387 @@ var Mesh = function () {
 }();
 
 exports.Mesh = Mesh;
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _general = __webpack_require__(1);
+
+Object.keys(_general).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _general[key];
+    }
+  });
+});
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.Collider = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _conf = __webpack_require__(0);
+
+var _general = __webpack_require__(1);
+
+var Maths = _interopRequireWildcard(_general);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Collider = function () {
+  function Collider(position, motion) {
+    _classCallCheck(this, Collider);
+
+    this.position = position;
+    this.motion = motion;
+    this.config = _conf.Physics;
+  }
+
+  _createClass(Collider, [{
+    key: 'setPhysics',
+    value: function setPhysics(params) {
+      for (var key in params) {
+        if (params.hasOwnProperty(key) && this.config.hasOwnProperty(key)) {
+          this.config[key] = params[key];
+        }
+      }
+    }
+  }, {
+    key: 'applyPhysics',
+    value: function applyPhysics(delta) {
+      this.falling = this.motion.y < 0;
+      this.motion.y = Math.max(this.motion.y - this.config.gravity * delta, -this.config.maxVelocity);
+    }
+  }, {
+    key: 'move',
+    value: function move(delta, system) {
+      // move collider against the system
+      var p = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
+      this.applyPhysics(delta);
+      var collisions = system.getCollisionMeshes(p);
+
+      // interact with slopes, walls
+      if (collisions.length > 0) {
+        if (this.stepUpSlopes(p, collisions)) {
+          collisions = system.getCollisionMeshes(p);
+        }
+        if (this.extrudeFrom(p, collisions, system)) {
+          this.stepUpSlopes(p, system.getCollisionMeshes(p));
+        }
+      } else if (this.motion.y < 0 && !this.falling) {
+        this.stepDownSlope(p, system.getCeilingPlane(new THREE.Vector3(p.x, p.y - this.config.snapDown, p.z)));
+      }
+
+      // global floor
+      if (p.y < this.config.floor) {
+        this.motion.y = 0;
+        p.y = this.config.floor;
+      }
+
+      // set final position
+      this.position.copy(p);
+    }
+  }, {
+    key: 'getValidCollisions',
+    value: function getValidCollisions(p, meshes) {
+      // get n collisions with meshes that can't be climbed
+      var hits = 0;
+
+      for (var i = 0, len = meshes.length; i < len; ++i) {
+        var ceiling = meshes[i].getCeilingPlane(p);
+        if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || ceiling.y - this.position.y > this.config.snapUp)) {
+          hits++;
+        }
+      }
+
+      return hits;
+    }
+  }, {
+    key: 'extrudeFrom',
+    value: function extrudeFrom(p, meshes, system) {
+      // extrude position from obstructions
+      var isExtruded = false;
+      var mesh = false;
+
+      for (var i = 0, len = meshes.length; i < len; ++i) {
+        var ceiling = meshes[i].getCeilingPlane(p);
+        if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || ceiling.y - this.position.y > this.config.snapUp)) {
+          mesh = meshes[i];
+          break;
+        }
+      }
+
+      // extrude from mesh
+      if (mesh) {
+        var intersectPlane = mesh.getIntersectPlane2D(this.position, p);
+
+        if (intersectPlane != null) {
+          var intersect = intersectPlane.intersect;
+          var plane = intersectPlane.plane;
+
+          if (plane.normal.y < -0.5) {
+            // project in 3D, if other mesh collisions, try 2D
+            // NOTE: needs refinement
+
+            var proj = mesh.getProjected(p, plane);
+            var hits = this.getValidCollisions(proj, system.getCollisionMeshes(proj));
+
+            // stop motion if cornered
+            if (hits > 1) {
+              p.x = this.position.x;
+              p.z = this.position.z;
+            } else {
+              p.x = proj.x;
+              p.y = proj.y;
+              p.z = proj.z;
+              // reduce jump motion
+              this.motion.y = this.motion.y > 0 ? this.motion.y * 0.75 : this.motion.y;
+              //this.motion.y = Math.min(-0.01, this.motion.y);
+              isExtruded = true;
+            }
+          } else {
+            p.x = intersect.x;
+            p.z = intersect.z;
+            var _hits = this.getValidCollisions(p, system.getCollisionMeshes(p));
+
+            // stop motion if cornered
+            if (_hits > 1) {
+              p.x = this.position.x;
+              p.z = this.position.z;
+            } else {
+              isExtruded = true;
+            }
+          }
+        } else {
+          p.x = this.position.x;
+          p.z = this.position.z;
+        }
+      }
+
+      return isExtruded;
+    }
+  }, {
+    key: 'stepUpSlopes',
+    value: function stepUpSlopes(position, meshes) {
+      var steppedUp = false;
+
+      for (var i = 0, len = meshes.length; i < len; ++i) {
+        var ceiling = meshes[i].getCeilingPlane(position);
+        // climb up slopes
+        if (ceiling != null && ceiling.plane.normal.y >= this.config.minSlope && ceiling.y - this.position.y <= this.config.snapUp) {
+          if (ceiling.y >= position.y) {
+            steppedUp = true;
+            position.y = ceiling.y;
+            this.motion.y = 0;
+          }
+        }
+      }
+
+      return steppedUp;
+    }
+  }, {
+    key: 'stepDownSlope',
+    value: function stepDownSlope(position, ceilingPlane) {
+      var steppedDown = false;
+
+      if (ceilingPlane != null && ceilingPlane.plane.normal.y >= this.config.minSlope) {
+        position.y = ceilingPlane.y;
+        this.motion.y = 0;
+        steppedDown = true;
+      }
+
+      return steppedDown;
+    }
+  }]);
+
+  return Collider;
+}();
+
+exports.Collider = Collider;
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _mesh = __webpack_require__(6);
+
+Object.keys(_mesh).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _mesh[key];
+    }
+  });
+});
+
+var _collider = __webpack_require__(13);
+
+Object.keys(_collider).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _collider[key];
+    }
+  });
+});
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _mesh = __webpack_require__(2);
+
+Object.keys(_mesh).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _mesh[key];
+    }
+  });
+});
+
+var _system = __webpack_require__(11);
+
+Object.keys(_system).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _system[key];
+    }
+  });
+});
+
+/***/ }),
+/* 7 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var Config = {
+  system: {
+    maxPlanesPerMesh: 250
+  },
+  quadrants: {
+    size: {
+      x: 100,
+      y: 100,
+      z: 100
+    }
+  },
+  plane: {
+    dotBuffer: 0.001,
+    collisionThreshold: 0.5
+  },
+  sandbox: {
+    player: {
+      height: 2,
+      position: {
+        x: 0,
+        y: 0,
+        z: 0
+      },
+      rotation: {
+        pitch: 0,
+        yaw: Math.PI,
+        roll: 0,
+        maxPitch: Math.PI * 0.3,
+        minPitch: Math.PI * -0.3
+      },
+      speed: {
+        normal: 8,
+        slowed: 4,
+        noclip: 30,
+        rotation: Math.PI * 0.75,
+        jump: 10,
+        fallTimerThreshold: 0.2
+      }
+    },
+    camera: {
+      fov: 75,
+      aspect: 1,
+      near: 0.1,
+      far: 1000
+    },
+    adjust: {
+      verySlow: 0.01,
+      slow: 0.025,
+      normal: 0.05,
+      fast: 0.09,
+      rapid: 0.12,
+      veryFast: 0.2
+    }
+  }
+};
+
+exports.Config = Config;
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+// physical properties
+
+var Physics = {
+  gravity: 18,
+  maxVelocity: 50,
+  friction: 0.5,
+  floor: 0,
+  snapUp: 0.75,
+  snapDown: 0.5,
+  minSlope: Math.PI / 5,
+  noclip: false
+};
+
+exports.Physics = Physics;
 
 /***/ }),
 /* 9 */
@@ -1051,326 +1239,7 @@ var Transformer = function () {
 exports.Transformer = Transformer;
 
 /***/ }),
-/* 11 */,
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _keyboard = __webpack_require__(13);
-
-Object.keys(_keyboard).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _keyboard[key];
-    }
-  });
-});
-
-var _logger = __webpack_require__(14);
-
-Object.keys(_logger).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _logger[key];
-    }
-  });
-});
-
-var _mouse = __webpack_require__(15);
-
-Object.keys(_mouse).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _mouse[key];
-    }
-  });
-});
-
-/***/ }),
-/* 13 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Keyboard = function () {
-  function Keyboard() {
-    _classCallCheck(this, Keyboard);
-
-    // keyboard handler
-
-    this.keys = {};
-    this._events();
-  }
-
-  _createClass(Keyboard, [{
-    key: "_events",
-    value: function _events() {
-      var _this = this;
-
-      // hook events
-
-      this.onKeyDown = function (e) {
-        // key press
-
-        switch (e.keyCode) {
-          case 38:case 87:
-            _this.keys.up = true;
-            break;
-          case 37:case 65:
-            _this.keys.left = true;
-            break;
-          case 40:case 83:
-            _this.keys.down = true;
-            break;
-          case 39:case 68:
-            _this.keys.right = true;
-            break;
-          case 32:
-            _this.keys.jump = true;
-            break;
-          case 88:
-            _this.keys.x = true;
-          default:
-            break;
-        }
-      };
-      this.onKeyUp = function (e) {
-        // key release
-
-        switch (e.keyCode) {
-          case 38:case 87:
-            _this.keys.up = false;
-            break;
-          case 37:case 65:
-            _this.keys.left = false;
-            break;
-          case 40:case 83:
-            _this.keys.down = false;
-            break;
-          case 39:case 68:
-            _this.keys.right = false;
-            break;
-          default:
-            break;
-        }
-      };
-      this.pressKey = function (key) {
-        // simulate key press
-
-        _this.keys[key] = true;
-      };
-      this.releaseKey = function (key) {
-        // simulate key release
-
-        _this.keys[key] = false;
-      };
-    }
-  }]);
-
-  return Keyboard;
-}();
-
-exports.Keyboard = Keyboard;
-
-/***/ }),
-/* 14 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Logger = function () {
-  function Logger() {
-    _classCallCheck(this, Logger);
-
-    this.cvs = document.createElement('canvas');
-    this.ctx = this.cvs.getContext('2d');
-    this.disabled = false;
-    document.body.appendChild(this.cvs);
-    this.setStyle();
-  }
-
-  _createClass(Logger, [{
-    key: 'setStyle',
-    value: function setStyle() {
-      this.cvs.style.position = 'fixed';
-      this.cvs.width = window.innerWidth;
-      this.cvs.style.pointerEvents = 'none';
-      this.cvs.height = 400;
-      this.cvs.style.zIndex = 10;
-      this.cvs.style.top = 0;
-      this.cvs.style.left = 0;
-    }
-  }, {
-    key: 'clear',
-    value: function clear() {
-      this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
-    }
-  }, {
-    key: 'format',
-    value: function format(value) {
-      return Math.floor(value * 10) / 10;
-    }
-  }, {
-    key: 'formatVector',
-    value: function formatVector(vec) {
-      return this.format(vec.x) + ', ' + this.format(vec.y) + ', ' + this.format(vec.z);
-    }
-  }, {
-    key: 'disable',
-    value: function disable() {
-      this.disabled = true;
-    }
-  }, {
-    key: 'print',
-    value: function print() {
-      if (!this.disabled) {
-        this.clear();
-
-        for (var i = 0; i < arguments.length; i += 1) {
-          this.ctx.fillText(arguments[i], 20, 20 + i * 20);
-        }
-      }
-    }
-  }]);
-
-  return Logger;
-}();
-
-exports.Logger = Logger;
-
-/***/ }),
-/* 15 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Mouse = function () {
-  function Mouse(domElement) {
-    _classCallCheck(this, Mouse);
-
-    // mouse handler
-
-    this.domElement = domElement;
-    this.x = 0;
-    this.y = 0;
-    this.origin = new THREE.Vector2(0, 0);
-    this.delta = new THREE.Vector2(0, 0);
-    this.rotation = { pitch: 0, yaw: 0, roll: 0 };
-    this.locked = false;
-    this.active = false;
-  }
-
-  _createClass(Mouse, [{
-    key: "start",
-    value: function start(e, pitch, yaw) {
-      // set mouse position [-1, 1]
-
-      this.active = true;
-      var bound = this.domElement.getBoundingClientRect();
-      this.origin.x = (e.clientX - bound.x) / bound.width * 2 - 1;
-      this.origin.y = (e.clientY - bound.y) / bound.height * 2 - 1;
-      this.rotation.pitch = pitch;
-      this.rotation.yaw = yaw;
-    }
-  }, {
-    key: "move",
-    value: function move(e) {
-      // move mouse
-
-      var bound = this.domElement.getBoundingClientRect();
-      this.x = (e.clientX - bound.x) / bound.width * 2 - 1;
-      this.y = (e.clientY - bound.y) / bound.height * 2 - 1;
-      this.delta.x = this.x - this.origin.x;
-      this.delta.y = this.y - this.origin.y;
-    }
-  }, {
-    key: "stop",
-    value: function stop() {
-      // flag off
-
-      this.active = false;
-    }
-  }, {
-    key: "getPitch",
-    value: function getPitch(min, max) {
-      // get clamped pitch
-
-      var pitch = Math.max(min, Math.min(max, this.rotation.pitch + this.delta.y));
-
-      if (pitch == min || pitch == max) {
-        // reset start
-
-        this.origin.y = this.y;
-        this.rotation.pitch = pitch;
-      }
-
-      return pitch;
-    }
-  }, {
-    key: "getYaw",
-    value: function getYaw() {
-      // get yaw
-
-      return this.rotation.yaw + this.delta.x;
-    }
-  }, {
-    key: "isActive",
-    value: function isActive() {
-      return this.active;
-    }
-  }, {
-    key: "isLocked",
-    value: function isLocked() {
-      return this.locked;
-    }
-  }]);
-
-  return Mouse;
-}();
-
-exports.Mouse = Mouse;
-
-/***/ }),
-/* 16 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1385,9 +1254,9 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _conf = __webpack_require__(0);
 
-var _mesh = __webpack_require__(8);
+var _mesh = __webpack_require__(2);
 
-var _map = __webpack_require__(23);
+var _map = __webpack_require__(12);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -1497,10 +1366,7 @@ var System = function () {
 exports.System = System;
 
 /***/ }),
-/* 17 */,
-/* 18 */,
-/* 19 */,
-/* 20 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1509,195 +1375,65 @@ exports.System = System;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Collider = undefined;
+exports.Map = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _conf = __webpack_require__(0);
 
-var _general = __webpack_require__(1);
-
-var Maths = _interopRequireWildcard(_general);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Collider = function () {
-  function Collider(position, motion) {
-    _classCallCheck(this, Collider);
+var Map = function () {
+  function Map() {
+    _classCallCheck(this, Map);
 
-    this.position = position;
-    this.motion = motion;
-    this.config = _conf.Physics;
+    // cache nearby meshes for faster lookups
+    this.origin = new THREE.Vector3();
+    this.radius = 10;
+    this.threshold = this.radius - 1;
+    this.meshes = [];
+    this.nearby = [];
   }
 
-  _createClass(Collider, [{
-    key: 'setPhysics',
-    value: function setPhysics(params) {
-      for (var key in params) {
-        if (params.hasOwnProperty(key) && this.config.hasOwnProperty(key)) {
-          this.config[key] = params[key];
-        }
-      }
+  _createClass(Map, [{
+    key: 'add',
+    value: function add(mesh) {
+      this.meshes.push(mesh);
+      this.cacheNearbyMeshes();
     }
   }, {
-    key: 'applyPhysics',
-    value: function applyPhysics(delta) {
-      this.falling = this.motion.y < 0;
-      this.motion.y = Math.max(this.motion.y - this.config.gravity * delta, -this.config.maxVelocity);
+    key: 'getMeshes',
+    value: function getMeshes(point) {
+      // get meshes near point
+      if (this.origin.distanceTo(point) >= this.threshold) {
+        this.origin.copy(point);
+        this.cacheNearbyMeshes();
+      }
+      return this.nearby;
     }
   }, {
-    key: 'move',
-    value: function move(delta, system) {
-      // move collider against the system
-      var p = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
-      this.applyPhysics(delta);
-      var collisions = system.getCollisionMeshes(p);
-
-      // interact with slopes, walls
-      if (collisions.length > 0) {
-        if (this.stepUpSlopes(p, collisions)) {
-          collisions = system.getCollisionMeshes(p);
-        }
-        if (this.extrudeFrom(p, collisions, system)) {
-          this.stepUpSlopes(p, system.getCollisionMeshes(p));
-        }
-      } else if (this.motion.y < 0 && !this.falling) {
-        this.stepDownSlope(p, system.getCeilingPlane(new THREE.Vector3(p.x, p.y - this.config.snapDown, p.z)));
-      }
-
-      // global floor
-      if (p.y < this.config.floor) {
-        this.motion.y = 0;
-        p.y = this.config.floor;
-      }
-
-      // set position
-      this.position.x = p.x;
-      this.position.y = p.y;
-      this.position.z = p.z;
-    }
-  }, {
-    key: 'getValidCollisions',
-    value: function getValidCollisions(p, meshes) {
-      // get n collisions with meshes that can't be climbed
-      var hits = 0;
-
-      for (var i = 0, len = meshes.length; i < len; ++i) {
-        var ceiling = meshes[i].getCeilingPlane(p);
-        if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || ceiling.y - this.position.y > this.config.snapUp)) {
-          hits++;
+    key: 'cacheNearbyMeshes',
+    value: function cacheNearbyMeshes() {
+      // cache meshes close to origin
+      this.nearby = [];
+      for (var i = 0, len = this.meshes.length; i < len; ++i) {
+        var d = this.meshes[i].box.distanceToPoint(this.origin);
+        if (this.meshes[i].box.distanceToPoint(this.origin) <= this.radius) {
+          this.nearby.push(this.meshes[i]);
         }
       }
-
-      return hits;
-    }
-  }, {
-    key: 'extrudeFrom',
-    value: function extrudeFrom(p, meshes, system) {
-      // extrude position from obstructions
-      var isExtruded = false;
-      var mesh = false;
-
-      for (var i = 0, len = meshes.length; i < len; ++i) {
-        var ceiling = meshes[i].getCeilingPlane(p);
-        if (ceiling != null && (ceiling.plane.normal.y < this.config.minSlope || ceiling.y - this.position.y > this.config.snapUp)) {
-          mesh = meshes[i];
-          break;
-        }
-      }
-
-      // extrude from mesh
-      if (mesh) {
-        var intersectPlane = mesh.getIntersectPlane2D(this.position, p);
-
-        if (intersectPlane != null) {
-          var intersect = intersectPlane.intersect;
-          var plane = intersectPlane.plane;
-
-          if (plane.normal.y < -0.5) {
-            // project in 3D, if other mesh collisions, try 2D
-            // NOTE: needs refinement
-
-            var proj = mesh.getProjected(p, plane);
-            var hits = this.getValidCollisions(proj, system.getCollisionMeshes(proj));
-
-            // stop motion if cornered
-            if (hits > 1) {
-              p.x = this.position.x;
-              p.z = this.position.z;
-            } else {
-              p.x = proj.x;
-              p.y = proj.y;
-              p.z = proj.z;
-              // reduce jump motion
-              this.motion.y = this.motion.y > 0 ? this.motion.y * 0.75 : this.motion.y;
-              //this.motion.y = Math.min(-0.01, this.motion.y);
-              isExtruded = true;
-            }
-          } else {
-            p.x = intersect.x;
-            p.z = intersect.z;
-            var _hits = this.getValidCollisions(p, system.getCollisionMeshes(p));
-
-            // stop motion if cornered
-            if (_hits > 1) {
-              p.x = this.position.x;
-              p.z = this.position.z;
-            } else {
-              isExtruded = true;
-            }
-          }
-        } else {
-          p.x = this.position.x;
-          p.z = this.position.z;
-        }
-      }
-
-      return isExtruded;
-    }
-  }, {
-    key: 'stepUpSlopes',
-    value: function stepUpSlopes(position, meshes) {
-      var steppedUp = false;
-
-      for (var i = 0, len = meshes.length; i < len; ++i) {
-        var ceiling = meshes[i].getCeilingPlane(position);
-        // climb up slopes
-        if (ceiling != null && ceiling.plane.normal.y >= this.config.minSlope && ceiling.y - this.position.y <= this.config.snapUp) {
-          if (ceiling.y >= position.y) {
-            steppedUp = true;
-            position.y = ceiling.y;
-            this.motion.y = 0;
-          }
-        }
-      }
-
-      return steppedUp;
-    }
-  }, {
-    key: 'stepDownSlope',
-    value: function stepDownSlope(position, ceilingPlane) {
-      var steppedDown = false;
-
-      if (ceilingPlane != null && ceilingPlane.plane.normal.y >= this.config.minSlope) {
-        position.y = ceilingPlane.y;
-        this.motion.y = 0;
-        steppedDown = true;
-      }
-
-      return steppedDown;
     }
   }]);
 
-  return Collider;
+  return Map;
 }();
 
-exports.Collider = Collider;
+;
+
+exports.Map = Map;
 
 /***/ }),
-/* 21 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1707,7 +1443,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _collider = __webpack_require__(20);
+var _collider = __webpack_require__(4);
 
 Object.keys(_collider).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1719,7 +1455,7 @@ Object.keys(_collider).forEach(function (key) {
   });
 });
 
-var _player = __webpack_require__(22);
+var _player = __webpack_require__(14);
 
 Object.keys(_player).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1732,7 +1468,7 @@ Object.keys(_player).forEach(function (key) {
 });
 
 /***/ }),
-/* 22 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1749,11 +1485,11 @@ var _general = __webpack_require__(1);
 
 var Maths = _interopRequireWildcard(_general);
 
-var _collider = __webpack_require__(20);
+var _collider = __webpack_require__(4);
 
 var _conf = __webpack_require__(0);
 
-var _io = __webpack_require__(12);
+var _io = __webpack_require__(15);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -1764,12 +1500,10 @@ var Player = function () {
     _classCallCheck(this, Player);
 
     // player handler
-
     this.domElement = domElement;
     this.config = _conf.Config.sandbox.player;
 
     // physical props
-
     this.config.adjust = _conf.Config.sandbox.adjust;
     this.config.physics = _conf.Physics;
     this.minPitch = this.config.rotation.minPitch;
@@ -1808,7 +1542,6 @@ var Player = function () {
     this.fallTimer = 0;
 
     // world
-
     this.collider = new _collider.Collider(this.target.position, this.motion);
     this.object = new THREE.Group();
     this.light = new THREE.PointLight(0xffffff, 0.1);
@@ -1818,7 +1551,6 @@ var Player = function () {
     this.camera.up = new THREE.Vector3(0, 1, 0);
 
     // set up
-
     this.events();
     this.resizeCamera();
   }
@@ -1827,7 +1559,6 @@ var Player = function () {
     key: 'update',
     value: function update(delta, objects) {
       // apply input, compute physics, move
-
       this.input(delta);
       this.collider.move(delta, objects);
       this.move();
@@ -1836,17 +1567,12 @@ var Player = function () {
     key: 'input',
     value: function input(delta) {
       // handle directional input
-
       if (this.keyboard.keys.left || this.keyboard.keys.right) {
-        // pan left/ right
-
         var dir = (this.keyboard.keys.left ? 1 : 0) + (this.keyboard.keys.right ? -1 : 0);
         this.target.rotation.yaw += this.config.speed.rotation * delta * dir;
       }
 
       if (this.keyboard.keys.up || this.keyboard.keys.down) {
-        // move forward/ back
-
         var speed = this.config.physics.noclip ? this.config.speed.noclip * (1 - Math.abs(Math.sin(this.target.rotation.pitch))) : this.config.speed.normal;
         var _dir = (this.keyboard.keys.up ? 1 : 0) + (this.keyboard.keys.down ? -1 : 0);
         var yaw = this.rotation.yaw + this.offset.rotation.yaw;
@@ -1862,36 +1588,27 @@ var Player = function () {
       }
 
       // handle jump key
-
       if (this.keyboard.keys.jump) {
         if (this.motion.y == 0 || this.fallTimer < this.config.speed.fallTimerThreshold) {
           // jump
-
           this.motion.y = this.config.speed.jump;
 
           // prevent double jump
-
           this.fallTimer = this.config.speed.fallTimerThreshold;
         }
 
-        // release key
-
+        // force release
         this.keyboard.releaseKey('jump');
       }
-
-      // compute falling
 
       this.falling = this.motion.y != 0;
       this.fallTimer = this.falling ? this.fallTimer + delta : 0;
 
-      // toggle noclip
-
+      // noclip
       if (this.keyboard.keys.x) {
         this.keyboard.releaseKey('x');
         this.config.physics.noclip = this.config.physics.noclip == false;
       }
-
-      // handle noclip
 
       if (this.config.physics.noclip) {
         if (this.keyboard.keys.up || this.keyboard.keys.down) {
@@ -1906,8 +1623,7 @@ var Player = function () {
         this.motion.y = this.target.motion.y;
       }
 
-      // reduce input if falling
-
+      // reduce speed if falling
       if (!this.falling) {
         this.motion.x = this.target.motion.x;
         this.motion.z = this.target.motion.z;
@@ -1926,7 +1642,6 @@ var Player = function () {
       this.position.z += (this.target.position.z - this.position.z) * this.config.adjust.veryFast;
 
       // rotate
-
       this.rotation.yaw += Maths.minAngleDifference(this.rotation.yaw, this.target.rotation.yaw) * this.config.adjust.fast;
       this.offset.rotation.yaw += (this.target.offset.rotation.yaw - this.offset.rotation.yaw) * this.config.adjust.normal;
       this.rotation.yaw += this.rotation.yaw < 0 ? Maths.twoPi : this.rotation.yaw > Maths.twoPi ? -Maths.twoPi : 0;
@@ -1935,7 +1650,6 @@ var Player = function () {
       this.rotation.roll += (this.target.rotation.roll - this.rotation.roll) * this.config.adjust.fast;
 
       // set camera from position/ rotation
-
       var pitch = this.rotation.pitch + this.offset.rotation.pitch;
       var yaw = this.rotation.yaw + this.offset.rotation.yaw;
       var height = this.position.y + this.config.height;
@@ -1943,27 +1657,22 @@ var Player = function () {
       var offy = 1;
 
       // adjust camera roll for direction
-
       this.camera.up.z = -Math.sin(this.rotation.yaw) * this.rotation.roll;
       this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
 
       // set position
-
       this.camera.position.set(this.position.x - Math.sin(yaw) * offxz / 4, height - Math.sin(pitch) * offy / 4, this.position.z - Math.cos(yaw) * offxz / 4);
 
       // look at target
-
       this.camera.lookAt(new THREE.Vector3(this.position.x + Math.sin(yaw) * offxz, height + Math.sin(pitch) * offy, this.position.z + Math.cos(yaw) * offxz));
 
       // move scene object
-
       this.object.position.set(this.position.x, this.position.y, this.position.z);
     }
   }, {
     key: 'resizeCamera',
     value: function resizeCamera() {
       // resize camera
-
       var bound = this.domElement.getBoundingClientRect();
       var w = bound.width;
       var h = bound.height;
@@ -1979,26 +1688,22 @@ var Player = function () {
       this.mouse = new _io.Mouse(this.domElement);
       this.onMouseDown = function (e) {
         // mouse down
-
         if (!_this.mouse.isLocked()) {
           _this.mouse.start(e, _this.rotation.pitch, _this.rotation.yaw);
         }
       };
       this.onMouseMove = function (e) {
         // mouse moved
-
         if (_this.mouse.isActive() && !(_this.keyboard.keys.left || _this.keyboard.keys.right)) {
           _this.mouse.move(e);
 
           // set targets from delta
-
           _this.target.rotation.yaw = _this.mouse.getYaw();
           _this.target.rotation.pitch = _this.mouse.getPitch(_this.minPitch, _this.maxPitch);
         }
       };
       this.onMouseUp = function (e) {
         // mouse up
-
         _this.mouse.stop();
       };
       this.domElement.addEventListener('mousedown', this.onMouseDown, false);
@@ -2006,7 +1711,7 @@ var Player = function () {
       this.domElement.addEventListener('mouseup', this.onMouseUp, false);
       this.domElement.addEventListener('mouseleave', this.onMouseUp, false);
 
-      // mobile TODO make robust
+      // mobile ?
       this.onMobileDown = function (e) {
         _this.onMouseDown(e.touches[0]);
       };
@@ -2035,7 +1740,7 @@ var Player = function () {
 exports.Player = Player;
 
 /***/ }),
-/* 23 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -2044,66 +1749,313 @@ exports.Player = Player;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Map = undefined;
+
+var _keyboard = __webpack_require__(16);
+
+Object.keys(_keyboard).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _keyboard[key];
+    }
+  });
+});
+
+var _logger = __webpack_require__(17);
+
+Object.keys(_logger).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _logger[key];
+    }
+  });
+});
+
+var _mouse = __webpack_require__(18);
+
+Object.keys(_mouse).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _mouse[key];
+    }
+  });
+});
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _conf = __webpack_require__(0);
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Keyboard = function () {
+  function Keyboard() {
+    _classCallCheck(this, Keyboard);
+
+    // keyboard handler
+
+    this.keys = {};
+    this._events();
+  }
+
+  _createClass(Keyboard, [{
+    key: "_events",
+    value: function _events() {
+      var _this = this;
+
+      // hook events
+
+      this.onKeyDown = function (e) {
+        // key press
+
+        switch (e.keyCode) {
+          case 38:case 87:
+            _this.keys.up = true;
+            break;
+          case 37:case 65:
+            _this.keys.left = true;
+            break;
+          case 40:case 83:
+            _this.keys.down = true;
+            break;
+          case 39:case 68:
+            _this.keys.right = true;
+            break;
+          case 32:
+            _this.keys.jump = true;
+            break;
+          case 88:
+            _this.keys.x = true;
+          default:
+            break;
+        }
+      };
+      this.onKeyUp = function (e) {
+        // key release
+
+        switch (e.keyCode) {
+          case 38:case 87:
+            _this.keys.up = false;
+            break;
+          case 37:case 65:
+            _this.keys.left = false;
+            break;
+          case 40:case 83:
+            _this.keys.down = false;
+            break;
+          case 39:case 68:
+            _this.keys.right = false;
+            break;
+          default:
+            break;
+        }
+      };
+      this.pressKey = function (key) {
+        // simulate key press
+
+        _this.keys[key] = true;
+      };
+      this.releaseKey = function (key) {
+        // simulate key release
+
+        _this.keys[key] = false;
+      };
+    }
+  }]);
+
+  return Keyboard;
+}();
+
+exports.Keyboard = Keyboard;
+
+/***/ }),
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Map = function () {
-  function Map() {
-    _classCallCheck(this, Map);
+var Logger = function () {
+  function Logger() {
+    _classCallCheck(this, Logger);
 
-    // nearby mesh caching for faster searches
-
-    this.origin = new THREE.Vector3();
-    this.radius = 10;
-    this.threshold = this.radius - 1;
-    this.meshes = [];
-    this.nearby = [];
+    this.cvs = document.createElement('canvas');
+    this.ctx = this.cvs.getContext('2d');
+    this.disabled = false;
+    document.body.appendChild(this.cvs);
+    this.setStyle();
   }
 
-  _createClass(Map, [{
-    key: 'add',
-    value: function add(mesh) {
-      this.meshes.push(mesh);
-      this.cacheNearbyMeshes();
+  _createClass(Logger, [{
+    key: 'setStyle',
+    value: function setStyle() {
+      this.cvs.style.position = 'fixed';
+      this.cvs.width = window.innerWidth;
+      this.cvs.style.pointerEvents = 'none';
+      this.cvs.height = 400;
+      this.cvs.style.zIndex = 10;
+      this.cvs.style.top = 0;
+      this.cvs.style.left = 0;
     }
   }, {
-    key: 'getMeshes',
-    value: function getMeshes(point) {
-      // get meshes near point
-
-      if (this.origin.distanceTo(point) >= this.threshold) {
-        this.origin.copy(point);
-        this.cacheNearbyMeshes();
-      }
-
-      return this.nearby;
+    key: 'clear',
+    value: function clear() {
+      this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height);
     }
   }, {
-    key: 'cacheNearbyMeshes',
-    value: function cacheNearbyMeshes() {
-      // cache meshes close to origin
+    key: 'format',
+    value: function format(value) {
+      return Math.floor(value * 10) / 10;
+    }
+  }, {
+    key: 'formatVector',
+    value: function formatVector(vec) {
+      return this.format(vec.x) + ', ' + this.format(vec.y) + ', ' + this.format(vec.z);
+    }
+  }, {
+    key: 'disable',
+    value: function disable() {
+      this.disabled = true;
+    }
+  }, {
+    key: 'print',
+    value: function print() {
+      if (!this.disabled) {
+        this.clear();
 
-      this.nearby = [];
-
-      for (var i = 0, len = this.meshes.length; i < len; ++i) {
-        if (this.meshes[i].box.distanceToPoint(this.origin) <= this.radius) {
-          this.nearby.push(this.meshes[i]);
+        for (var i = 0; i < arguments.length; i += 1) {
+          this.ctx.fillText(arguments[i], 20, 20 + i * 20);
         }
       }
     }
   }]);
 
-  return Map;
+  return Logger;
 }();
 
-;
+exports.Logger = Logger;
 
-exports.Map = Map;
+/***/ }),
+/* 18 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Mouse = function () {
+  function Mouse(domElement) {
+    _classCallCheck(this, Mouse);
+
+    // mouse handler
+
+    this.domElement = domElement;
+    this.x = 0;
+    this.y = 0;
+    this.origin = new THREE.Vector2(0, 0);
+    this.delta = new THREE.Vector2(0, 0);
+    this.rotation = { pitch: 0, yaw: 0, roll: 0 };
+    this.locked = false;
+    this.active = false;
+  }
+
+  _createClass(Mouse, [{
+    key: "start",
+    value: function start(e, pitch, yaw) {
+      // set mouse position [-1, 1]
+
+      this.active = true;
+      var bound = this.domElement.getBoundingClientRect();
+      this.origin.x = (e.clientX - bound.x) / bound.width * 2 - 1;
+      this.origin.y = (e.clientY - bound.y) / bound.height * 2 - 1;
+      this.rotation.pitch = pitch;
+      this.rotation.yaw = yaw;
+    }
+  }, {
+    key: "move",
+    value: function move(e) {
+      // move mouse
+
+      var bound = this.domElement.getBoundingClientRect();
+      this.x = (e.clientX - bound.x) / bound.width * 2 - 1;
+      this.y = (e.clientY - bound.y) / bound.height * 2 - 1;
+      this.delta.x = this.x - this.origin.x;
+      this.delta.y = this.y - this.origin.y;
+    }
+  }, {
+    key: "stop",
+    value: function stop() {
+      // flag off
+
+      this.active = false;
+    }
+  }, {
+    key: "getPitch",
+    value: function getPitch(min, max) {
+      // get clamped pitch
+
+      var pitch = Math.max(min, Math.min(max, this.rotation.pitch + this.delta.y));
+
+      if (pitch == min || pitch == max) {
+        // reset start
+
+        this.origin.y = this.y;
+        this.rotation.pitch = pitch;
+      }
+
+      return pitch;
+    }
+  }, {
+    key: "getYaw",
+    value: function getYaw() {
+      // get yaw
+
+      return this.rotation.yaw + this.delta.x;
+    }
+  }, {
+    key: "isActive",
+    value: function isActive() {
+      return this.active;
+    }
+  }, {
+    key: "isLocked",
+    value: function isLocked() {
+      return this.locked;
+    }
+  }]);
+
+  return Mouse;
+}();
+
+exports.Mouse = Mouse;
 
 /***/ })
 /******/ ]);
