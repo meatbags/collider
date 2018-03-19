@@ -50,6 +50,10 @@ class Transformer {
     return newY;
   }
 
+  getPosition() {
+    return this.position;
+  }
+
   bakeRotation(plane) {
     for (let i=this.rotationOrder.length-1, end=-1; i>end; --i) {
       if (this.rotationOrder[i] == 'X') {

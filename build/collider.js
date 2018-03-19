@@ -118,9 +118,11 @@ var copyVector = function copyVector(vec) {
 };
 
 var addVector = function addVector(a, b) {
-  var c = new THREE.Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
+  return new THREE.Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
+};
 
-  return c;
+var averageVectors = function averageVectors(a, b) {
+  return new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
 };
 
 var subtractVector = function subtractVector(a, b) {
@@ -216,6 +218,7 @@ var dotProduct2 = function dotProduct2(a, b) {
 };
 
 exports.addVector = addVector;
+exports.averageVectors = averageVectors;
 exports.copyVector = copyVector;
 exports.crossProduct = crossProduct;
 exports.distanceBetween = distanceBetween;
@@ -252,6 +255,8 @@ var _conf = __webpack_require__(0);
 
 var _plane = __webpack_require__(9);
 
+var _box = __webpack_require__(19);
+
 var _transformer = __webpack_require__(10);
 
 var _maths = __webpack_require__(3);
@@ -272,9 +277,7 @@ var Mesh = function () {
     this.isColliderMesh = true;
     this.object = object;
     this.geometry = object.geometry;
-    this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
-    this.min = this.box.min;
-    this.max = this.box.max;
+    this.box = new _box.Box(object);
     this.planes = [];
     this.transform = new _transformer.Transformer(object);
     this.generatePlanes();
@@ -355,7 +358,12 @@ var Mesh = function () {
       }
 
       this.box.setFromPoints(array);
-      this.box.translate(this.transform.position);
+      this.updateBoxPosition();
+    }
+  }, {
+    key: 'updateBoxPosition',
+    value: function updateBoxPosition() {
+      this.box.setPosition(this.transform.getPosition());
     }
   }, {
     key: 'getCollision',
@@ -1187,6 +1195,11 @@ var Transformer = function () {
       return newY;
     }
   }, {
+    key: 'getPosition',
+    value: function getPosition() {
+      return this.position;
+    }
+  }, {
     key: 'bakeRotation',
     value: function bakeRotation(plane) {
       for (var i = this.rotationOrder.length - 1, end = -1; i > end; --i) {
@@ -1381,6 +1394,8 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _conf = __webpack_require__(0);
 
+var _box = __webpack_require__(19);
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Map = function () {
@@ -1417,6 +1432,7 @@ var Map = function () {
       // cache meshes close to origin
       this.nearby = [];
       for (var i = 0, len = this.meshes.length; i < len; ++i) {
+        this.meshes[i].updateBoxPosition();
         var d = this.meshes[i].box.distanceToPoint(this.origin);
         if (this.meshes[i].box.distanceToPoint(this.origin) <= this.radius) {
           this.nearby.push(this.meshes[i]);
@@ -2056,6 +2072,59 @@ var Mouse = function () {
 }();
 
 exports.Mouse = Mouse;
+
+/***/ }),
+/* 19 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.Box = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _maths = __webpack_require__(3);
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Box = function (_THREE$Box) {
+  _inherits(Box, _THREE$Box);
+
+  function Box(object) {
+    _classCallCheck(this, Box);
+
+    var _this = _possibleConstructorReturn(this, (Box.__proto__ || Object.getPrototypeOf(Box)).call(this));
+    // THREE.Box3 + functions
+
+
+    _this.setFromBufferAttribute(object.geometry.attributes.position);
+    _this.position = new THREE.Vector3();
+    return _this;
+  }
+
+  _createClass(Box, [{
+    key: 'setPosition',
+    value: function setPosition(p) {
+      // update position if not set
+      if (!(0, _maths.isVectorEqual)(this.position, p)) {
+        this.translate((0, _maths.subtractVector)(p, this.position));
+        this.position = p.clone();
+      }
+    }
+  }]);
+
+  return Box;
+}(THREE.Box3);
+
+exports.Box = Box;
 
 /***/ })
 /******/ ]);

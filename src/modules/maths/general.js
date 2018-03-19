@@ -11,13 +11,19 @@ const copyVector = function(vec) {
 };
 
 const addVector = function(a, b) {
-  const c = new THREE.Vector3(
+  return new THREE.Vector3(
     a.x + b.x,
     a.y + b.y,
     a.z + b.z
   );
+};
 
-  return c;
+const averageVectors = function(a, b) {
+  return new THREE.Vector3(
+    (a.x + b.x) / 2,
+    (a.y + b.y) / 2,
+    (a.z + b.z) / 2
+  );
 };
 
 const subtractVector = function(a, b) {
@@ -141,6 +147,7 @@ const dotProduct2 = function(a, b) {
 
 export {
   addVector,
+  averageVectors,
   copyVector,
   crossProduct,
   distanceBetween,

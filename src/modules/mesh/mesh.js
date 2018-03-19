@@ -1,5 +1,6 @@
 import { Config } from '../conf';
 import { Plane } from './plane';
+import { Box } from './box';
 import { Transformer } from './transformer';
 import { subtractVector, dotProduct, normalise, distanceBetween } from '../maths';
 
@@ -15,9 +16,7 @@ class Mesh {
     this.isColliderMesh = true;
     this.object = object;
     this.geometry = object.geometry;
-    this.box = new THREE.Box3().setFromBufferAttribute(object.geometry.attributes.position);
-    this.min = this.box.min;
-    this.max = this.box.max;
+    this.box = new Box(object);
     this.planes = [];
     this.transform = new Transformer(object);
     this.generatePlanes();
@@ -109,7 +108,11 @@ class Mesh {
     }
 
     this.box.setFromPoints(array);
-    this.box.translate(this.transform.position);
+    this.updateBoxPosition();
+  }
+
+  updateBoxPosition() {
+    this.box.setPosition(this.transform.getPosition());
   }
 
   getCollision(point) {
