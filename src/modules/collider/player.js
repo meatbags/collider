@@ -7,6 +7,7 @@ class Player {
   constructor(domElement) {
     // player handler
     this.domElement = domElement;
+    this.isMobile = Config.isMobile;
     this.config = Config.sandbox.player;
 
     // physical props
@@ -140,7 +141,6 @@ class Player {
 
   move() {
     // move
-
     this.position.x += (this.target.position.x - this.position.x) * this.config.adjust.veryFast;
     this.position.y += (this.target.position.y - this.position.y) * this.config.adjust.veryFast;
     this.position.z += (this.target.position.z - this.position.z) * this.config.adjust.veryFast;
@@ -166,9 +166,9 @@ class Player {
 
     // set position
     this.camera.position.set(
-      this.position.x - Math.sin(yaw) * offxz / 4,
-      height - Math.sin(pitch) * offy / 4,
-      this.position.z - Math.cos(yaw) * offxz / 4
+      this.position.x - Math.sin(yaw) * offxz * 0.25,
+      height - Math.sin(pitch) * offy * 0.25,
+      this.position.z - Math.cos(yaw) * offxz * 0.25
     );
 
     // look at target
@@ -214,18 +214,21 @@ class Player {
       // mouse up
       this.mouse.stop();
     };
-    this.domElement.addEventListener('mousedown', this.onMouseDown, false);
-    this.domElement.addEventListener('mousemove', this.onMouseMove, false);
-    this.domElement.addEventListener('mouseup', this.onMouseUp, false);
-    this.domElement.addEventListener('mouseleave', this.onMouseUp, false);
+    this.domElement.addEventListener('mousedown', (e) => { this.onMouseDown(e); });
+    this.domElement.addEventListener('mousemove', (e) => { this.onMouseMove(e); });
+    this.domElement.addEventListener('mouseup', (e) => { this.onMouseUp(e); });
+    this.domElement.addEventListener('mouseleave', (e) => { this.onMouseUp(e); });
 
-    // mobile ?
-    this.onMobileDown = (e) => { this.onMouseDown(e.touches[0]); };
-    this.onMobileMove = (e) => { this.onMouseMove(e.touches[0]); };
-    this.onMobileUp = (e) => { this.onMouseUp(e.touches[0]); };
-    this.domElement.addEventListener('touchstart', this.onMobileDown, false);
-    this.domElement.addEventListener('touchmove', this.onMobileMove, false);
-    this.domElement.addEventListener('touchend', this.onMobileUp, false);
+    // mobile
+    if (this.isMobile) {
+      this.onMobileDown = (e) => { if (e.touches[0]){ this.onMouseDown(e.touches[0]); } };
+      this.onMobileMove = (e) => { if (e.touches[0]){ this.onMouseMove(e.touches[0]); } };
+      this.onMobileUp = (e) => { if (e.touches[0]){ this.onMouseUp(e.touches[0]); } };
+      this.domElement.addEventListener('touchstart', (e) => { this.onMobileDown(e); });
+      this.domElement.addEventListener('touchmove', (e) => { this.onMobileMove(e); });
+      this.domElement.addEventListener('touchend', (e) => { this.onMobileUp(e); });
+      console.log('Mobile events registered.');
+    }
 
     // keyboard
     this.keyboard = new Keyboard();

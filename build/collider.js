@@ -61,7 +61,7 @@ var Collider =
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 5);
+/******/ 	return __webpack_require__(__webpack_require__.s = 6);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -75,7 +75,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _config = __webpack_require__(7);
+var _config = __webpack_require__(8);
 
 Object.keys(_config).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -87,7 +87,7 @@ Object.keys(_config).forEach(function (key) {
   });
 });
 
-var _physics = __webpack_require__(8);
+var _physics = __webpack_require__(9);
 
 Object.keys(_physics).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -247,19 +247,42 @@ exports.twoPi = twoPi;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
+var _general = __webpack_require__(1);
+
+Object.keys(_general).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _general[key];
+    }
+  });
+});
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
 exports.Mesh = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _conf = __webpack_require__(0);
 
-var _plane = __webpack_require__(9);
+var _plane = __webpack_require__(10);
 
-var _box = __webpack_require__(19);
+var _box = __webpack_require__(4);
 
-var _transformer = __webpack_require__(10);
+var _transformer = __webpack_require__(11);
 
-var _maths = __webpack_require__(3);
+var _maths = __webpack_require__(2);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -509,7 +532,7 @@ var Mesh = function () {
 exports.Mesh = Mesh;
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -518,21 +541,51 @@ exports.Mesh = Mesh;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.Box = undefined;
 
-var _general = __webpack_require__(1);
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-Object.keys(_general).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _general[key];
+var _maths = __webpack_require__(2);
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Box = function (_THREE$Box) {
+  _inherits(Box, _THREE$Box);
+
+  function Box(object) {
+    _classCallCheck(this, Box);
+
+    var _this = _possibleConstructorReturn(this, (Box.__proto__ || Object.getPrototypeOf(Box)).call(this));
+    // THREE.Box3 + functions
+
+
+    _this.setFromBufferAttribute(object.geometry.attributes.position);
+    _this.position = new THREE.Vector3();
+    return _this;
+  }
+
+  _createClass(Box, [{
+    key: 'setPosition',
+    value: function setPosition(p) {
+      // update position if not set
+      if (!(0, _maths.isVectorEqual)(this.position, p)) {
+        this.translate((0, _maths.subtractVector)(p, this.position));
+        this.position = p.clone();
+      }
     }
-  });
-});
+  }]);
+
+  return Box;
+}(THREE.Box3);
+
+exports.Box = Box;
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -727,41 +780,6 @@ var Collider = function () {
 exports.Collider = Collider;
 
 /***/ }),
-/* 5 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _mesh = __webpack_require__(6);
-
-Object.keys(_mesh).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _mesh[key];
-    }
-  });
-});
-
-var _collider = __webpack_require__(13);
-
-Object.keys(_collider).forEach(function (key) {
-  if (key === "default" || key === "__esModule") return;
-  Object.defineProperty(exports, key, {
-    enumerable: true,
-    get: function get() {
-      return _collider[key];
-    }
-  });
-});
-
-/***/ }),
 /* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -772,7 +790,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _mesh = __webpack_require__(2);
+var _mesh = __webpack_require__(7);
 
 Object.keys(_mesh).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -784,14 +802,14 @@ Object.keys(_mesh).forEach(function (key) {
   });
 });
 
-var _system = __webpack_require__(11);
+var _collider = __webpack_require__(14);
 
-Object.keys(_system).forEach(function (key) {
+Object.keys(_collider).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
   Object.defineProperty(exports, key, {
     enumerable: true,
     get: function get() {
-      return _system[key];
+      return _collider[key];
     }
   });
 });
@@ -806,7 +824,51 @@ Object.keys(_system).forEach(function (key) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
+var _mesh = __webpack_require__(3);
+
+Object.keys(_mesh).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _mesh[key];
+    }
+  });
+});
+
+var _system = __webpack_require__(12);
+
+Object.keys(_system).forEach(function (key) {
+  if (key === "default" || key === "__esModule") return;
+  Object.defineProperty(exports, key, {
+    enumerable: true,
+    get: function get() {
+      return _system[key];
+    }
+  });
+});
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+window.mobileAndTabletcheck = function () {
+  var check = false;
+  (function (a) {
+    if (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino|android|ipad|playbook|silk/i.test(a) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0, 4))) check = true;
+  })(navigator.userAgent || navigator.vendor || window.opera);
+  return check;
+};
+
 var Config = {
+  isMobile: window.mobileAndTabletcheck(),
   system: {
     maxPlanesPerMesh: 250
   },
@@ -865,7 +927,7 @@ var Config = {
 exports.Config = Config;
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -890,7 +952,7 @@ var Physics = {
 exports.Physics = Physics;
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1117,7 +1179,7 @@ var Plane = function () {
 exports.Plane = Plane;
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1130,7 +1192,7 @@ exports.Transformer = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _maths = __webpack_require__(3);
+var _maths = __webpack_require__(2);
 
 var Maths = _interopRequireWildcard(_maths);
 
@@ -1252,7 +1314,7 @@ var Transformer = function () {
 exports.Transformer = Transformer;
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1267,9 +1329,9 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _conf = __webpack_require__(0);
 
-var _mesh = __webpack_require__(2);
+var _mesh = __webpack_require__(3);
 
-var _map = __webpack_require__(12);
+var _map = __webpack_require__(13);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -1379,7 +1441,7 @@ var System = function () {
 exports.System = System;
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1394,7 +1456,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _conf = __webpack_require__(0);
 
-var _box = __webpack_require__(19);
+var _box = __webpack_require__(4);
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -1449,7 +1511,7 @@ var Map = function () {
 exports.Map = Map;
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1459,7 +1521,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _collider = __webpack_require__(4);
+var _collider = __webpack_require__(5);
 
 Object.keys(_collider).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1471,7 +1533,7 @@ Object.keys(_collider).forEach(function (key) {
   });
 });
 
-var _player = __webpack_require__(14);
+var _player = __webpack_require__(15);
 
 Object.keys(_player).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1484,7 +1546,7 @@ Object.keys(_player).forEach(function (key) {
 });
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1501,11 +1563,11 @@ var _general = __webpack_require__(1);
 
 var Maths = _interopRequireWildcard(_general);
 
-var _collider = __webpack_require__(4);
+var _collider = __webpack_require__(5);
 
 var _conf = __webpack_require__(0);
 
-var _io = __webpack_require__(15);
+var _io = __webpack_require__(16);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -1517,6 +1579,7 @@ var Player = function () {
 
     // player handler
     this.domElement = domElement;
+    this.isMobile = _conf.Config.isMobile;
     this.config = _conf.Config.sandbox.player;
 
     // physical props
@@ -1652,7 +1715,6 @@ var Player = function () {
     key: 'move',
     value: function move() {
       // move
-
       this.position.x += (this.target.position.x - this.position.x) * this.config.adjust.veryFast;
       this.position.y += (this.target.position.y - this.position.y) * this.config.adjust.veryFast;
       this.position.z += (this.target.position.z - this.position.z) * this.config.adjust.veryFast;
@@ -1677,7 +1739,7 @@ var Player = function () {
       this.camera.up.x = Math.cos(this.rotation.yaw) * this.rotation.roll;
 
       // set position
-      this.camera.position.set(this.position.x - Math.sin(yaw) * offxz / 4, height - Math.sin(pitch) * offy / 4, this.position.z - Math.cos(yaw) * offxz / 4);
+      this.camera.position.set(this.position.x - Math.sin(yaw) * offxz * 0.25, height - Math.sin(pitch) * offy * 0.25, this.position.z - Math.cos(yaw) * offxz * 0.25);
 
       // look at target
       this.camera.lookAt(new THREE.Vector3(this.position.x + Math.sin(yaw) * offxz, height + Math.sin(pitch) * offy, this.position.z + Math.cos(yaw) * offxz));
@@ -1722,24 +1784,47 @@ var Player = function () {
         // mouse up
         _this.mouse.stop();
       };
-      this.domElement.addEventListener('mousedown', this.onMouseDown, false);
-      this.domElement.addEventListener('mousemove', this.onMouseMove, false);
-      this.domElement.addEventListener('mouseup', this.onMouseUp, false);
-      this.domElement.addEventListener('mouseleave', this.onMouseUp, false);
+      this.domElement.addEventListener('mousedown', function (e) {
+        _this.onMouseDown(e);
+      });
+      this.domElement.addEventListener('mousemove', function (e) {
+        _this.onMouseMove(e);
+      });
+      this.domElement.addEventListener('mouseup', function (e) {
+        _this.onMouseUp(e);
+      });
+      this.domElement.addEventListener('mouseleave', function (e) {
+        _this.onMouseUp(e);
+      });
 
-      // mobile ?
-      this.onMobileDown = function (e) {
-        _this.onMouseDown(e.touches[0]);
-      };
-      this.onMobileMove = function (e) {
-        _this.onMouseMove(e.touches[0]);
-      };
-      this.onMobileUp = function (e) {
-        _this.onMouseUp(e.touches[0]);
-      };
-      this.domElement.addEventListener('touchstart', this.onMobileDown, false);
-      this.domElement.addEventListener('touchmove', this.onMobileMove, false);
-      this.domElement.addEventListener('touchend', this.onMobileUp, false);
+      // mobile
+      if (this.isMobile) {
+        this.onMobileDown = function (e) {
+          if (e.touches[0]) {
+            _this.onMouseDown(e.touches[0]);
+          }
+        };
+        this.onMobileMove = function (e) {
+          if (e.touches[0]) {
+            _this.onMouseMove(e.touches[0]);
+          }
+        };
+        this.onMobileUp = function (e) {
+          if (e.touches[0]) {
+            _this.onMouseUp(e.touches[0]);
+          }
+        };
+        this.domElement.addEventListener('touchstart', function (e) {
+          _this.onMobileDown(e);
+        });
+        this.domElement.addEventListener('touchmove', function (e) {
+          _this.onMobileMove(e);
+        });
+        this.domElement.addEventListener('touchend', function (e) {
+          _this.onMobileUp(e);
+        });
+        console.log('Mobile events registered.');
+      }
 
       // keyboard
       this.keyboard = new _io.Keyboard();
@@ -1756,7 +1841,7 @@ var Player = function () {
 exports.Player = Player;
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1766,7 +1851,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _keyboard = __webpack_require__(16);
+var _keyboard = __webpack_require__(17);
 
 Object.keys(_keyboard).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1778,7 +1863,7 @@ Object.keys(_keyboard).forEach(function (key) {
   });
 });
 
-var _logger = __webpack_require__(17);
+var _logger = __webpack_require__(18);
 
 Object.keys(_logger).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1790,7 +1875,7 @@ Object.keys(_logger).forEach(function (key) {
   });
 });
 
-var _mouse = __webpack_require__(18);
+var _mouse = __webpack_require__(19);
 
 Object.keys(_mouse).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
@@ -1803,7 +1888,7 @@ Object.keys(_mouse).forEach(function (key) {
 });
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1898,7 +1983,7 @@ var Keyboard = function () {
 exports.Keyboard = Keyboard;
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1973,7 +2058,7 @@ var Logger = function () {
 exports.Logger = Logger;
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1992,13 +2077,13 @@ var Mouse = function () {
     _classCallCheck(this, Mouse);
 
     // mouse handler
-
     this.domElement = domElement;
     this.x = 0;
     this.y = 0;
-    this.origin = new THREE.Vector2(0, 0);
-    this.delta = new THREE.Vector2(0, 0);
-    this.rotation = { pitch: 0, yaw: 0, roll: 0 };
+    this.origin = { x: 0, y: 0 };
+    this.delta = { x: 0, y: 0 };
+    this.pitch = 0;
+    this.yaw = 0;
     this.locked = false;
     this.active = false;
   }
@@ -2007,22 +2092,20 @@ var Mouse = function () {
     key: "start",
     value: function start(e, pitch, yaw) {
       // set mouse position [-1, 1]
-
-      this.active = true;
       var bound = this.domElement.getBoundingClientRect();
-      this.origin.x = (e.clientX - bound.x) / bound.width * 2 - 1;
-      this.origin.y = (e.clientY - bound.y) / bound.height * 2 - 1;
-      this.rotation.pitch = pitch;
-      this.rotation.yaw = yaw;
+      this.pitch = !isNaN(pitch) ? pitch : 0;
+      this.yaw = !isNaN(yaw) ? yaw : 0;
+      this.active = true;
+      this.origin.x = bound.width ? (e.clientX - bound.left) / bound.width * 2 - 1 : 0;
+      this.origin.y = bound.height ? (e.clientY - bound.top) / bound.height * 2 - 1 : 0;
     }
   }, {
     key: "move",
     value: function move(e) {
       // move mouse
-
       var bound = this.domElement.getBoundingClientRect();
-      this.x = (e.clientX - bound.x) / bound.width * 2 - 1;
-      this.y = (e.clientY - bound.y) / bound.height * 2 - 1;
+      this.x = (e.clientX - bound.left) / bound.width * 2 - 1;
+      this.y = (e.clientY - bound.top) / bound.height * 2 - 1;
       this.delta.x = this.x - this.origin.x;
       this.delta.y = this.y - this.origin.y;
     }
@@ -2030,31 +2113,26 @@ var Mouse = function () {
     key: "stop",
     value: function stop() {
       // flag off
-
       this.active = false;
     }
   }, {
     key: "getPitch",
-    value: function getPitch(min, max) {
+    value: function getPitch(pmin, pmax) {
       // get clamped pitch
+      var p = Math.max(pmin, Math.min(pmax, this.pitch + this.delta.y));
 
-      var pitch = Math.max(min, Math.min(max, this.rotation.pitch + this.delta.y));
-
-      if (pitch == min || pitch == max) {
+      if (p <= pmin || p >= pmax) {
         // reset start
-
         this.origin.y = this.y;
-        this.rotation.pitch = pitch;
+        this.pitch = pitch;
       }
 
-      return pitch;
+      return p;
     }
   }, {
     key: "getYaw",
     value: function getYaw() {
-      // get yaw
-
-      return this.rotation.yaw + this.delta.x;
+      return this.yaw + this.delta.x;
     }
   }, {
     key: "isActive",
@@ -2072,59 +2150,6 @@ var Mouse = function () {
 }();
 
 exports.Mouse = Mouse;
-
-/***/ }),
-/* 19 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.Box = undefined;
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _maths = __webpack_require__(3);
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Box = function (_THREE$Box) {
-  _inherits(Box, _THREE$Box);
-
-  function Box(object) {
-    _classCallCheck(this, Box);
-
-    var _this = _possibleConstructorReturn(this, (Box.__proto__ || Object.getPrototypeOf(Box)).call(this));
-    // THREE.Box3 + functions
-
-
-    _this.setFromBufferAttribute(object.geometry.attributes.position);
-    _this.position = new THREE.Vector3();
-    return _this;
-  }
-
-  _createClass(Box, [{
-    key: 'setPosition',
-    value: function setPosition(p) {
-      // update position if not set
-      if (!(0, _maths.isVectorEqual)(this.position, p)) {
-        this.translate((0, _maths.subtractVector)(p, this.position));
-        this.position = p.clone();
-      }
-    }
-  }]);
-
-  return Box;
-}(THREE.Box3);
-
-exports.Box = Box;
 
 /***/ })
 /******/ ]);
