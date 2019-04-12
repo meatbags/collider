@@ -1,6 +1,3 @@
 node_modules
-*.mb
-sandbox/**/*.jpg
-sandbox/**/*.jpeg
-*.fbx
-*.png
+package-lock.json
+legacy

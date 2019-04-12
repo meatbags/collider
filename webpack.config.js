@@ -1,38 +1,35 @@
 var path = require('path');
 var webpack = require('webpack');
 
-module.exports = {
-  entry: {
-    'collider': './src/app.js',
-    'collider.min': './src/app.js'
-  },
+// modules
+var TerserJs = require("terser-webpack-plugin");
+
+// path
+var appName = 'COLLIDER';
+var pathJS = './src/app.js';
+var pathOutput = 'build';
+
+module.exports = [{
+  entry: {'app.min': pathJS},
   output: {
-    library: 'Collider',
+    library: appName,
     libraryTarget: 'var',
-    path: path.resolve(__dirname, 'build'),
+    path: path.resolve(__dirname, pathOutput),
     filename: '[name].js'
   },
   module: {
-    loaders: [
-      {
-        test: /\.js$/,
-        loader: 'babel-loader',
-        query: {
-          presets: ['es2015']
-        }
-      }
-    ]
+    rules: [{
+      test: /\.js$/,
+      exclude: /node_modules/,
+      use: {loader: "babel-loader"}
+    }]
   },
-  plugins: [
-    new webpack.optimize.UglifyJsPlugin({
-      include: /\.min\.js$/,
-      minimize: true,
-      output: {
-        comments: false
-      }
-    })
-  ],
-  stats: {
-      colors: true
-  }
-};
+  optimization: {
+    minimizer: [
+      new TerserJs({
+        test: /\.js(\?.*)?$/i,
+      }),
+    ],
+  },
+  stats: {colors: true, warnings: false}
+}];
