@@ -15,14 +15,15 @@ class Player {
     this.target = {
       position: this.position.clone(),
       rotation: this.rotation.clone(),
-      motion: this.motion.clone()
+      motion: this.motion.clone(),
     };
 
-    // physics
+    // bind collision system
     this.collider = new Collider.Point({
+      system: this.root.colliderSystem,
       position: this.target.position,
       motion: this.motion,
-      // gravity: 20
+      gravity: 20,
     });
 
     // physical attributes
@@ -66,7 +67,7 @@ class Player {
         this.fallTime = this.fallTimeThreshold;
       }
     }
-    
+
     // decide if falling
     this.falling = (this.motion.y != 0);
     this.fallTime = (this.falling) ? this.fallTime + delta : 0;
@@ -103,7 +104,7 @@ class Player {
     if (!this.keys.disabled) {
       this.move(delta);
       if (!this.noclip) {
-        this.collider.move(delta, this.root.collider);
+        this.collider.collide(delta);
       } else {
         this.target.position.x += this.motion.x * delta;
         this.target.position.y += this.motion.y * delta;

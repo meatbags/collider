@@ -1,5 +1,6 @@
 /** Collider.Point */
 
+import * as Maths from './maths';
 import Config from './config';
 
 class Point {
@@ -11,41 +12,43 @@ class Point {
   set(settings) {
     // replace defaults
     Object.keys(settings).forEach(key => {
-      if (this.settings[key] !== undefined && typeof(this.settings[key]) === settings[key]) {
+      console.log(key, typeof(this.settings[key]), typeof(settings[key]));
+      if (this.settings[key] !== undefined && typeof(this.settings[key]) === typeof(settings[key])) {
         this.settings[key] = settings[key];
       }
     });
 
+    console.log(this.settings);
+
     // set position
     this.position = settings.position || new THREE.Vector3();
     this.motion = settings.motion || new THREE.Vector3();
+
+    // target system
+    this.system = settings.system || null;
   }
 
-  setMotion(v) {
-    this.motion.x = v.x;
-    this.motion.y = v.y;
-    this.motion.z = v.z;
-  }
+  collide(delta) {
+    if (!this.system) { return; }
 
-  collide(system, delta) {
     // get next position & apply physics
     const p = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
     this.falling = (this.motion.y < 0);
     this.motion.y = Math.max(this.motion.y - this.settings.gravity * delta, -this.settings.maxVelocity);
 
     // collide
-    let collisions = system.getCollisions(p);
+    let collisions = this.system.getCollisions(p);
 
     // slopes/ walls
     if (collisions.length > 0) {
       if (this.stepUpSlopes(p, collisions)) {
-        collisions = system.getCollisions(p);
+        collisions = this.system.getCollisions(p);
       }
-      if (this.extrudeFrom(p, collisions, system)) {
-        this.stepUpSlopes(p, system.getCollisions(p));
+      if (this.extrudeFrom(p, collisions)) {
+        this.stepUpSlopes(p, this.system.getCollisions(p));
       }
     } else if (this.motion.y < 0 && !this.falling) {
-      this.stepDownSlope(p, system.getCeilingPlane(new THREE.Vector3(p.x, p.y - this.settings.snapDown, p.z)));
+      this.stepDownSlope(p, this.system.getCeilingPlane(new THREE.Vector3(p.x, p.y - this.settings.snapDown, p.z)));
     }
 
     // floor limit
@@ -71,7 +74,7 @@ class Point {
     return hits;
   }
 
-  extrudeFrom(p, meshes, system) {
+  extrudeFrom(p, meshes) {
     // extrude position from obstructions
     var isExtruded = false;
     var mesh = false;
@@ -96,7 +99,7 @@ class Point {
           // project in 3D, if other mesh collisions, try 2D
           // NOTE: needs refinement
           const proj = mesh.getProjected(p, plane);
-          const hits = this.getValidCollisions(proj, system.getCollisions(proj));
+          const hits = this.getValidCollisions(proj, this.system.getCollisions(proj));
 
           // stop motion if cornered
           if (hits > 1) {
@@ -114,7 +117,7 @@ class Point {
         } else {
           p.x = intersect.x;
           p.z = intersect.z;
-          const hits = this.getValidCollisions(p, system.getCollisions(p));
+          const hits = this.getValidCollisions(p, this.system.getCollisions(p));
 
           // stop motion if cornered
           if (hits > 1) {
