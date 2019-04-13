@@ -19,8 +19,11 @@ class Player {
     };
 
     // physics
-    this.collider = new Collider.Collider(this.target.position, this.motion);
-    this.collider.setPhysics({gravity: 20});
+    this.collider = new Collider.Point({
+      position: this.target.position,
+      motion: this.motion,
+      // gravity: 20
+    });
 
     // physical attributes
     this.speed = 6;
@@ -63,7 +66,7 @@ class Player {
         this.fallTime = this.fallTimeThreshold;
       }
     }
-
+    
     // decide if falling
     this.falling = (this.motion.y != 0);
     this.fallTime = (this.falling) ? this.fallTime + delta : 0;

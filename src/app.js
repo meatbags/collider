@@ -1,2 +1,1 @@
-export * from './modules/mesh';
-export * from './modules/collider';
+export * from './modules';

@@ -1,9 +1,10 @@
+/** Transform vertex data */
+
 import * as Maths from '../maths';
 
 class Transformer {
   constructor(object) {
-    // bake initial transformations into vectex data
-
+    // bake initial transformations into vertex data
     this.point = new THREE.Vector3();
     this.position = object.position;
     this.rotation = object.rotation;
@@ -45,9 +46,7 @@ class Transformer {
   }
 
   getReverseTransformedY(y) {
-    const newY = y + this.position.y;
-
-    return newY;
+    return y + this.position.y;
   }
 
   getPosition() {
@@ -99,4 +98,4 @@ class Transformer {
   }
 }
 
-export { Transformer };
+export default Transformer;

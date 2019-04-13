@@ -1,3 +1,5 @@
+/** Useful maths */
+
 const twoPi = Math.PI * 2;
 
 const copyVector = function(vec) {

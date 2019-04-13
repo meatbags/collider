@@ -1,11 +1,13 @@
 /** Collider.System */
 
-import Mesh from './mesh';
+import Mesh from './mesh/mesh';
 import Config from './config';
 
 class System {
   constructor() {
     this.meshes = [];
+    this.cache = [];
+    this.settings = Config.system;
     this.isColliderSystem = true;
   }
 
@@ -29,9 +31,10 @@ class System {
   getCollisions(point) {
     // get system collision with point
     const res = [];
-    for (let i=0, len=this.meshes.length; i<len; ++i) {
-      if (this.meshes[i].getCollision(point)) {
-        res.push(this.meshes[i]);
+    const meshes = this.settings.useCache ? this.cache : this.meshes;
+    for (let i=0, len=meshes.length; i<len; ++i) {
+      if (meshes[i].getCollision(point)) {
+        res.push(meshes[i]);
       }
     }
     return res;
@@ -48,6 +51,16 @@ class System {
       }
     }
     return ceiling;
+  }
+
+  cache(point) {
+    // add nearby meshes to cache
+    this.cache = [];
+    for (let i=0, len=this.meshes.length; i<len; ++i) {
+      if (this.meshes[i].distanceTo(point) < this.settings.cacheRadius) {
+        this.cache.push(this.meshes[i]);
+      }
+    }
   }
 }
 

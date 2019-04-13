@@ -1,13 +1,13 @@
-import { Config } from '../conf';
-import { Plane } from './plane';
-import { Box } from './box';
-import { Transformer } from './transformer';
+/** Collision mesh */
+
+import Config from '../config';
+import Plane from './plane';
+import Box from './box';
+import Transformer from './transformer';
 import { subtractVector, dotProduct, normalise, distanceBetween } from '../maths';
 
 class Mesh {
   constructor(object) {
-    // collision mesh
-
     if (!object.geometry.isBufferGeometry) {
       throw('Error: THREE.BufferGeometry not found');
     }
@@ -246,6 +246,10 @@ class Mesh {
     const proj = plane.getProjected(p);
     return this.transform.getReverseTransformedPoint(proj);
   }
+
+  distanceTo(point) {
+    return this.box.distanceTo(point);
+  }
 }
 
-export { Mesh };
+export default Mesh;

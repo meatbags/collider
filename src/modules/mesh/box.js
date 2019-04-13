@@ -1,3 +1,5 @@
+/** Simplified bounding box */
+
 import { subtractVector, isVectorEqual } from '../maths';
 
 class Box extends THREE.Box3 {
@@ -15,6 +17,10 @@ class Box extends THREE.Box3 {
       this.position = p.clone();
     }
   }
+
+  distanceTo(p) {
+    return this.position.distanceTo(p);
+  }
 }
 
-export { Box };
+export default Box;

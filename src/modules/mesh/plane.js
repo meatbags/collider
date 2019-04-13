@@ -1,5 +1,7 @@
+/** Plane */
+
 import * as Maths from '../maths/general';
-import { Config } from '../conf';
+import Config from '../config';
 
 class Plane {
   constructor(p1, p2, p3, n1, n2, n3) {
@@ -11,8 +13,7 @@ class Plane {
     this.n3 = n3;
     this.culled = false;
 
-    // first state of plane
-
+    // set first state
     this.generatePlane();
   }
 
@@ -82,12 +83,12 @@ class Plane {
 
   isPointAboveOrEqual(point) {
     // is point above or on surface
-    return (Maths.dotProduct(Maths.subtractVector(point, this.position), this.normal) >= -Config.plane.dotBuffer);
+    return (Maths.dotProduct(Maths.subtractVector(point, this.position), this.normal) >= -Config.plane.dotThreshold);
   }
 
   isPointBelowOrEqual(point) {
     // is point below or on surface
-    return (Maths.dotProduct(Maths.subtractVector(point, this.position), this.normal) <= Config.plane.dotBuffer);
+    return (Maths.dotProduct(Maths.subtractVector(point, this.position), this.normal) <= Config.plane.dotThreshold);
   }
 
   containsBox(box) {
@@ -111,9 +112,9 @@ class Plane {
   projectedTriangleContainsPoint2D(point) {
     // is point inside projected triangle
     return (
-      Maths.dotProduct2({x: point.x - this.e1.centre.x, y: point.z - this.e1.centre.z}, this.e1.norm2) < Config.plane.dotBuffer &&
-      Maths.dotProduct2({x: point.x - this.e2.centre.x, y: point.z - this.e2.centre.z}, this.e2.norm2) < Config.plane.dotBuffer &&
-      Maths.dotProduct2({x: point.x - this.e3.centre.x, y: point.z - this.e3.centre.z}, this.e3.norm2) < Config.plane.dotBuffer
+      Maths.dotProduct2({x: point.x - this.e1.centre.x, y: point.z - this.e1.centre.z}, this.e1.norm2) < Config.plane.dotThreshold &&
+      Maths.dotProduct2({x: point.x - this.e2.centre.x, y: point.z - this.e2.centre.z}, this.e2.norm2) < Config.plane.dotThreshold &&
+      Maths.dotProduct2({x: point.x - this.e3.centre.x, y: point.z - this.e3.centre.z}, this.e3.norm2) < Config.plane.dotThreshold
     );
   }
 
@@ -127,7 +128,6 @@ class Plane {
 
   getProjected(point) {
     // project point onto plane
-
     const vec = Maths.subtractVector(point, this.p1);
     const dist = Maths.dotProduct(this.normal, vec);
     const proj = Maths.subtractVector(point, Maths.scaleVector(this.normal, dist));
@@ -136,12 +136,11 @@ class Plane {
 
   getIntersect(p1, p2) {
     // get intersection of plane and line between p1, p2
-
     const vec = Maths.subtractVector(p2, p1);
     const dot = Maths.dotProduct(this.normal, Maths.normalise(vec));
 
     // check for parallel lines
-    if (Math.abs(dot) <= Config.plane.dotBuffer) {
+    if (Math.abs(dot) <= Config.plane.dotThreshold) {
       return null;
     }
 
@@ -172,7 +171,6 @@ class Plane {
 
   getNormalIntersect(point) {
     // get intersect which extends normal vector (or inverse) to point
-
     const point2 =  Maths.addVector(point, this.normal);
     const vec = Maths.subtractVector(point2, point);
     const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
@@ -187,7 +185,6 @@ class Plane {
 
   getNormalIntersect2D(point) {
     // get 2D (xz) intersect which extends from point to surface
-
     const numPart = this.normal.x * point.x + this.normal.y * point.y + this.normal.z * point.z + this.D;
     const denom = this.normal.x * this.normal.x + this.normal.z * this.normal.z;
 
@@ -210,4 +207,4 @@ class Plane {
   }
 }
 
-export { Plane };
+export default Plane;
