@@ -26,7 +26,7 @@ class Collider {
     const p = Maths.addVector(this.position, Maths.scaleVector(this.motion, delta));
     this.applyPhysics(delta);
     let collisions = system.getCollisionMeshes(p);
-
+    
     // interact with slopes, walls
     if (collisions.length > 0) {
       if (this.stepUpSlopes(p, collisions)) {
@@ -59,7 +59,7 @@ class Collider {
         hits++;
       }
     }
-    
+
     return hits;
   }
 

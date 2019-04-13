@@ -5,12 +5,12 @@ var webpack = require('webpack');
 var TerserJs = require("terser-webpack-plugin");
 
 // path
-var appName = 'COLLIDER';
+var appName = 'Collider';
 var pathJS = './src/app.js';
 var pathOutput = 'build';
 
 module.exports = [{
-  entry: {'app.min': pathJS},
+  entry: {'collider.min': pathJS},
   output: {
     library: appName,
     libraryTarget: 'var',
