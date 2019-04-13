@@ -12,13 +12,10 @@ class Point {
   set(settings) {
     // replace defaults
     Object.keys(settings).forEach(key => {
-      console.log(key, typeof(this.settings[key]), typeof(settings[key]));
       if (this.settings[key] !== undefined && typeof(this.settings[key]) === typeof(settings[key])) {
         this.settings[key] = settings[key];
       }
     });
-
-    console.log(this.settings);
 
     // set position
     this.position = settings.position || new THREE.Vector3();
