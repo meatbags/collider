@@ -1,4 +1,5 @@
 import System from './system';
 import Point from './point';
+import Mesh from './mesh/mesh';
 
-export { System, Point };
+export { System, Point, Mesh };

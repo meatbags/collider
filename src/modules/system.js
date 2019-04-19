@@ -12,20 +12,36 @@ class System {
   }
 
   add() {
-    // add meshes to system
+    // add objects to collider system
+    let res = null;
+
     for (let i=0, len=arguments.length; i<len; ++i) {
-      let mesh = arguments[i];
-      if (!mesh.isColliderMesh && mesh.geometry && mesh.geometry.isBufferGeometry) {
-        mesh = new Mesh(mesh);
-      }
-      if (mesh.isColliderMesh) {
-        if (mesh.planes.length < Config.system.maxPlanesPerMesh) {
-          this.meshes.push(mesh);
-        } else {
-          console.warn(`Mesh plane count exceeds maximum (${Config.system.maxPlanesPerMesh})`);
+      let obj = arguments[i];
+
+      // recursively add grouped objects
+      if (obj.type && obj.type === 'Group') {
+        obj.children.forEach(child => {
+          this.add(child);
+        });
+      } else {
+        // create new mesh
+        if (!obj.isColliderMesh && obj.geometry && obj.geometry.isBufferGeometry) {
+          obj = new Mesh(obj);
+        }
+
+        // check if mesh passes
+        if (obj.isColliderMesh) {
+          if (obj.planes.length < Config.system.maxPlanesPerMesh) {
+            this.meshes.push(obj);
+            res = obj;
+          } else {
+            console.warn(`Mesh plane count exceeds maximum (${Config.system.maxPlanesPerMesh})`);
+          }
         }
       }
     }
+    
+    return res;
   }
 
   getCollisions(point) {
