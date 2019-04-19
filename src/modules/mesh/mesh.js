@@ -14,6 +14,7 @@ class Mesh {
 
     this.id = object.uuid;
     this.isColliderMesh = true;
+    this.enabled = true;
     this.object = object;
     this.geometry = object.geometry;
     this.box = new Box(object);
@@ -21,6 +22,14 @@ class Mesh {
     this.transform = new Transformer(object);
     this.generatePlanes();
     this.conformPlanes();
+  }
+
+  disable() {
+    this.enabled = false;
+  }
+
+  enable() {
+    this.enabled = true;
   }
 
   generatePlanes() {
@@ -116,12 +125,12 @@ class Mesh {
   }
 
   getCollision(point) {
-    if (!this.box.containsPoint(point)) {
+    if (!this.enabled || !this.box.containsPoint(point)) {
       return false;
     } else {
       // transform point to put inside baked position
       this.transform.set(point)
-
+      
       // reset
       for (var i=0, len=this.planes.length; i<len; ++i) {
         this.planes[i].culled = false;
